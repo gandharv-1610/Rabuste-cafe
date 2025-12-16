@@ -1,0 +1,237 @@
+import React from 'react';
+import { Link } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import Chatbot from '../components/Chatbot';
+
+const Home = () => {
+  return (
+    <div className="pt-20">
+      {/* Hero Section */}
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker via-coffee-dark to-coffee-darker opacity-80"></div>
+        <div className="absolute inset-0" style={{
+          backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%235D4037" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
+        }}></div>
+        
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8 }}
+          className="relative z-10 text-center px-4 max-w-5xl mx-auto"
+        >
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="text-5xl md:text-7xl font-display font-bold text-coffee-amber mb-6"
+          >
+            Bold Robusta.
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-2xl md:text-4xl font-display text-coffee-cream mb-4"
+          >
+            Coffee × Art × Technology
+          </motion.p>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-lg md:text-xl text-coffee-light max-w-2xl mx-auto mb-12"
+          >
+            Experience the finest Robusta coffee in a cozy space where bold flavors meet creative art and innovative technology.
+          </motion.p>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8 }}
+            className="flex flex-wrap gap-4 justify-center"
+          >
+            <Link
+              to="/coffee"
+              className="bg-coffee-amber text-coffee-darker px-8 py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors shadow-lg"
+            >
+              Explore Coffee
+            </Link>
+            <Link
+              to="/art"
+              className="bg-transparent border-2 border-coffee-amber text-coffee-amber px-8 py-4 rounded-lg font-semibold hover:bg-coffee-amber hover:text-coffee-darker transition-colors"
+            >
+              View Art Gallery
+            </Link>
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* Story Sections */}
+      <section className="py-20 px-4 max-w-6xl mx-auto">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="text-center mb-16"
+        >
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-coffee-amber mb-6">
+            Our Story
+          </h2>
+          <p className="text-xl text-coffee-light max-w-3xl mx-auto">
+            Rabuste Coffee is more than a café—it's a bold statement about what coffee can be.
+          </p>
+        </motion.div>
+
+        <div className="space-y-32">
+          {/* Café Philosophy */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="grid md:grid-cols-2 gap-12 items-center"
+          >
+            <div>
+              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+                Bold Coffee, Cozy Space
+              </h3>
+              <p className="text-coffee-light text-lg mb-4">
+                We've made a deliberate choice to serve only Robusta coffee—the boldest, most full-bodied coffee experience available. Our grab-and-go concept brings premium quality to your daily routine.
+              </p>
+              <p className="text-coffee-light text-lg">
+                Step into our cozy space where every cup tells a story of strength, character, and uncompromising flavor.
+              </p>
+            </div>
+            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center">
+              <span className="text-6xl">☕</span>
+            </div>
+          </motion.div>
+
+          {/* Art Gallery */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="grid md:grid-cols-2 gap-12 items-center"
+          >
+            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center order-2 md:order-1">
+              <span className="text-6xl">🎨</span>
+            </div>
+            <div className="order-1 md:order-2">
+              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+                Micro Art Gallery
+              </h3>
+              <p className="text-coffee-light text-lg mb-4">
+                Our café doubles as a micro art gallery, showcasing fine art from talented artists. Each piece tells a story, creating an immersive cultural experience alongside your coffee.
+              </p>
+              <Link
+                to="/art"
+                className="inline-block text-coffee-amber font-semibold hover:underline"
+              >
+                Explore Art Gallery →
+              </Link>
+            </div>
+          </motion.div>
+
+          {/* Workshops */}
+          <motion.div
+            initial={{ opacity: 0, x: -50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="grid md:grid-cols-2 gap-12 items-center"
+          >
+            <div>
+              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+                Workshops & Community
+              </h3>
+              <p className="text-coffee-light text-lg mb-4">
+                Join us for coffee workshops, art & creativity sessions, and community events. Learn the art of brewing, explore your creativity, and connect with like-minded enthusiasts.
+              </p>
+              <Link
+                to="/workshops"
+                className="inline-block text-coffee-amber font-semibold hover:underline"
+              >
+                View Workshops →
+              </Link>
+            </div>
+            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center">
+              <span className="text-6xl">👥</span>
+            </div>
+          </motion.div>
+
+          {/* Franchise */}
+          <motion.div
+            initial={{ opacity: 0, x: 50 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+            className="grid md:grid-cols-2 gap-12 items-center"
+          >
+            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center order-2 md:order-1">
+              <span className="text-6xl">🚀</span>
+            </div>
+            <div className="order-1 md:order-2">
+              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+                Join the Movement
+              </h3>
+              <p className="text-coffee-light text-lg mb-4">
+                Ready to bring the Rabuste Coffee experience to your community? Explore our franchise opportunities and become part of a bold, scalable café concept.
+              </p>
+              <Link
+                to="/franchise"
+                className="inline-block bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+              >
+                Franchise Opportunity →
+              </Link>
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="py-20 px-4 bg-coffee-brown/20">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <h2 className="text-4xl md:text-5xl font-display font-bold text-coffee-amber mb-6">
+            Ready to Experience Bold Robusta?
+          </h2>
+          <p className="text-xl text-coffee-light mb-8">
+            Discover our menu, explore our art gallery, or join our workshops.
+          </p>
+          <div className="flex flex-wrap gap-4 justify-center">
+            <Link
+              to="/coffee"
+              className="bg-coffee-amber text-coffee-darker px-8 py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+            >
+              Coffee Menu
+            </Link>
+            <Link
+              to="/art"
+              className="bg-coffee-brown text-coffee-cream px-8 py-4 rounded-lg font-semibold hover:bg-coffee-medium transition-colors"
+            >
+              Art Gallery
+            </Link>
+            <Link
+              to="/workshops"
+              className="bg-coffee-brown text-coffee-cream px-8 py-4 rounded-lg font-semibold hover:bg-coffee-medium transition-colors"
+            >
+              Workshops
+            </Link>
+          </div>
+        </motion.div>
+      </section>
+
+      <Chatbot />
+    </div>
+  );
+};
+
+export default Home;
+

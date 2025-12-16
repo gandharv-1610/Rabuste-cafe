@@ -1,0 +1,238 @@
+import React, { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
+import api from '../api/axios';
+import Chatbot from '../components/Chatbot';
+
+const ArtGallery = () => {
+  const [arts, setArts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedArt, setSelectedArt] = useState(null);
+  const [filter, setFilter] = useState('all');
+
+  useEffect(() => {
+    fetchArts();
+  }, [filter]);
+
+  const fetchArts = async () => {
+    try {
+      const params = filter !== 'all' ? { availability: filter } : {};
+      const response = await api.get('/art', { params });
+      setArts(response.data);
+    } catch (error) {
+      console.error('Error fetching arts:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="pt-20 min-h-screen flex items-center justify-center">
+        <div className="text-coffee-amber text-xl">Loading art gallery...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pt-20 min-h-screen">
+      {/* Hero Section */}
+      <section className="py-20 px-4 bg-gradient-to-b from-coffee-darker to-coffee-dark">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-4xl mx-auto text-center"
+        >
+          <h1 className="text-5xl md:text-6xl font-display font-bold text-coffee-amber mb-6">
+            Art Gallery
+          </h1>
+          <p className="text-xl text-coffee-light">
+            Fine art showcased in our café space
+          </p>
+        </motion.div>
+      </section>
+
+      {/* Filter Section */}
+      <section className="py-8 px-4 bg-coffee-brown/10">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-wrap gap-4 justify-center">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                filter === 'all'
+                  ? 'bg-coffee-amber text-coffee-darker'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              All Art
+            </button>
+            <button
+              onClick={() => setFilter('Available')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                filter === 'Available'
+                  ? 'bg-coffee-amber text-coffee-darker'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              Available
+            </button>
+            <button
+              onClick={() => setFilter('Sold')}
+              className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
+                filter === 'Sold'
+                  ? 'bg-coffee-amber text-coffee-darker'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              Sold
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Art Grid */}
+      <section className="py-20 px-4 max-w-6xl mx-auto">
+        {arts.length === 0 ? (
+          <div className="text-center py-20">
+            <p className="text-coffee-light text-lg mb-4">No art pieces available yet.</p>
+            <p className="text-coffee-light">Check back soon for new artwork!</p>
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {arts.map((art, idx) => (
+              <motion.div
+                key={art._id}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="bg-coffee-brown/20 rounded-lg overflow-hidden hover:bg-coffee-brown/30 transition-colors cursor-pointer"
+                onClick={() => setSelectedArt(art)}
+              >
+                <div className="aspect-square bg-coffee-brown/40 flex items-center justify-center">
+                  {art.image ? (
+                    <img
+                      src={art.image}
+                      alt={art.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-6xl">🎨</span>
+                  )}
+                </div>
+                <div className="p-6">
+                  <h3 className="text-xl font-display font-bold text-coffee-amber mb-2">
+                    {art.title}
+                  </h3>
+                  <p className="text-coffee-light mb-3">by {art.artistName}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl font-bold text-coffee-amber">
+                      ${art.price}
+                    </span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        art.availability === 'Available'
+                          ? 'bg-green-500/20 text-green-400'
+                          : art.availability === 'Sold'
+                          ? 'bg-red-500/20 text-red-400'
+                          : 'bg-yellow-500/20 text-yellow-400'
+                      }`}
+                    >
+                      {art.availability}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Art Detail Modal */}
+      {selectedArt && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedArt(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid md:grid-cols-2 gap-8">
+              <div className="aspect-square bg-coffee-brown/40 rounded-lg flex items-center justify-center">
+                {selectedArt.image ? (
+                  <img
+                    src={selectedArt.image}
+                    alt={selectedArt.title}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                ) : (
+                  <span className="text-8xl">🎨</span>
+                )}
+              </div>
+              <div>
+                <div className="flex items-start justify-between mb-4">
+                  <h2 className="text-3xl font-display font-bold text-coffee-amber">
+                    {selectedArt.title}
+                  </h2>
+                  <button
+                    onClick={() => setSelectedArt(null)}
+                    className="text-coffee-light hover:text-coffee-amber"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+                <p className="text-coffee-light text-lg mb-4">by {selectedArt.artistName}</p>
+                <div className="mb-6">
+                  <span className="text-3xl font-bold text-coffee-amber">${selectedArt.price}</span>
+                  <span
+                    className={`ml-4 px-3 py-1 rounded-full text-sm font-semibold ${
+                      selectedArt.availability === 'Available'
+                        ? 'bg-green-500/20 text-green-400'
+                        : selectedArt.availability === 'Sold'
+                        ? 'bg-red-500/20 text-red-400'
+                        : 'bg-yellow-500/20 text-yellow-400'
+                    }`}
+                  >
+                    {selectedArt.availability}
+                  </span>
+                </div>
+                <div className="mb-6">
+                  <h3 className="text-coffee-amber font-semibold mb-2">Description</h3>
+                  <p className="text-coffee-light leading-relaxed">{selectedArt.description}</p>
+                </div>
+                {selectedArt.artistStory && (
+                  <div className="mb-6">
+                    <h3 className="text-coffee-amber font-semibold mb-2">Artist Story</h3>
+                    <p className="text-coffee-light leading-relaxed">{selectedArt.artistStory}</p>
+                  </div>
+                )}
+                {selectedArt.dimensions && (
+                  <div className="mb-6">
+                    <h3 className="text-coffee-amber font-semibold mb-2">Dimensions</h3>
+                    <p className="text-coffee-light">{selectedArt.dimensions}</p>
+                  </div>
+                )}
+                {selectedArt.availability === 'Available' && (
+                  <button className="w-full bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors">
+                    Contact to Purchase
+                  </button>
+                )}
+              </div>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      <Chatbot />
+    </div>
+  );
+};
+
+export default ArtGallery;
+

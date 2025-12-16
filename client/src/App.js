@@ -1,0 +1,35 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import Navbar from './components/Navbar';
+import Home from './pages/Home';
+import About from './pages/About';
+import WhyRobusta from './pages/WhyRobusta';
+import CoffeeMenu from './pages/CoffeeMenu';
+import ArtGallery from './pages/ArtGallery';
+import Workshops from './pages/Workshops';
+import Franchise from './pages/Franchise';
+import AdminPanel from './pages/AdminPanel';
+import './App.css';
+
+function App() {
+  return (
+    <Router>
+      <div className="App min-h-screen bg-coffee-darker">
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/why-robusta" element={<WhyRobusta />} />
+          <Route path="/coffee" element={<CoffeeMenu />} />
+          <Route path="/art" element={<ArtGallery />} />
+          <Route path="/workshops" element={<Workshops />} />
+          <Route path="/franchise" element={<Franchise />} />
+          <Route path="/admin" element={<AdminPanel />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+}
+
+export default App;
+
