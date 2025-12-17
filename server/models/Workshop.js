@@ -49,6 +49,22 @@ const workshopSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  cloudinary_url: {
+    type: String,
+    default: ''
+  },
+  cloudinary_public_id: {
+    type: String,
+    default: ''
+  },
+  video_url: {
+    type: String,
+    default: ''
+  },
+  cloudinary_video_public_id: {
+    type: String,
+    default: ''
+  },
   isActive: {
     type: Boolean,
     default: true

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
+import ImageUpload from '../components/ImageUpload';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -192,16 +193,33 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
+    category: 'Coffee',
     strength: 'Medium',
     flavorNotes: '',
+    price: '',
     isBestseller: false,
+    image: '',
+    cloudinary_url: '',
+    cloudinary_public_id: ''
   });
+
+  const handleImageUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      image: uploadResult.url,
+      cloudinary_url: uploadResult.cloudinary_url,
+      cloudinary_public_id: uploadResult.cloudinary_public_id
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const coffeeData = {
       ...formData,
+      price: parseFloat(formData.price) || 0,
       flavorNotes: formData.flavorNotes.split(',').map(f => f.trim()).filter(f => f),
+      // Only include strength if category is Coffee
+      ...(formData.category === 'Coffee' ? { strength: formData.strength } : { strength: undefined })
     };
 
     try {
@@ -212,10 +230,22 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       }
       setShowForm(false);
       setEditingCoffee(null);
-      setFormData({ name: '', description: '', strength: 'Medium', flavorNotes: '', isBestseller: false });
+      setFormData({ 
+        name: '', 
+        description: '', 
+        category: 'Coffee',
+        strength: 'Medium', 
+        flavorNotes: '', 
+        price: '',
+        isBestseller: false,
+        image: '',
+        cloudinary_url: '',
+        cloudinary_public_id: ''
+      });
       onRefresh();
     } catch (error) {
-      alert('Error saving coffee item');
+      alert('Error saving menu item');
+      console.error(error);
     }
   };
 
@@ -224,9 +254,14 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
     setFormData({
       name: coffee.name,
       description: coffee.description,
-      strength: coffee.strength,
+      category: coffee.category || 'Coffee',
+      strength: coffee.strength || 'Medium',
       flavorNotes: coffee.flavorNotes?.join(', ') || '',
-      isBestseller: coffee.isBestseller,
+      price: coffee.price?.toString() || '',
+      isBestseller: coffee.isBestseller || false,
+      image: coffee.image || coffee.cloudinary_url || '',
+      cloudinary_url: coffee.cloudinary_url || '',
+      cloudinary_public_id: coffee.cloudinary_public_id || ''
     });
     setShowForm(true);
   };
@@ -246,21 +281,46 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-display font-bold text-coffee-amber">Coffee Menu Management</h2>
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Menu Management</h2>
         <button
           onClick={() => {
             setShowForm(true);
             setEditingCoffee(null);
-            setFormData({ name: '', description: '', strength: 'Medium', flavorNotes: '', isBestseller: false });
+            setFormData({ 
+              name: '', 
+              description: '', 
+              category: 'Coffee',
+              strength: 'Medium', 
+              flavorNotes: '', 
+              price: '',
+              isBestseller: false,
+              image: '',
+              cloudinary_url: '',
+              cloudinary_public_id: ''
+            });
           }}
           className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
         >
-          Add Coffee Item
+          Add Menu Item
         </button>
       </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-coffee-brown/20 rounded-lg p-6 mb-6 space-y-4">
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Category *</label>
+            <select
+              required
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+            >
+              <option value="Coffee">Coffee</option>
+              <option value="Snacks">Snacks</option>
+              <option value="Merchandise">Merchandise</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
           <div>
             <label className="block text-coffee-amber font-semibold mb-2">Name *</label>
             <input
@@ -281,29 +341,52 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
             />
           </div>
+          {formData.category === 'Coffee' && (
+            <>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Strength *</label>
+                <select
+                  required
+                  value={formData.strength}
+                  onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                >
+                  <option value="Mild">Mild</option>
+                  <option value="Medium">Medium</option>
+                  <option value="Strong">Strong</option>
+                  <option value="Extra Strong">Extra Strong</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Flavor Notes (comma-separated)</label>
+                <input
+                  type="text"
+                  value={formData.flavorNotes}
+                  onChange={(e) => setFormData({ ...formData, flavorNotes: e.target.value })}
+                  placeholder="chocolate, nutty, bold"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+            </>
+          )}
           <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Strength *</label>
-            <select
-              value={formData.strength}
-              onChange={(e) => setFormData({ ...formData, strength: e.target.value })}
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-            >
-              <option value="Mild">Mild</option>
-              <option value="Medium">Medium</option>
-              <option value="Strong">Strong</option>
-              <option value="Extra Strong">Extra Strong</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Flavor Notes (comma-separated)</label>
+            <label className="block text-coffee-amber font-semibold mb-2">Price *</label>
             <input
-              type="text"
-              value={formData.flavorNotes}
-              onChange={(e) => setFormData({ ...formData, flavorNotes: e.target.value })}
-              placeholder="chocolate, nutty, bold"
+              type="number"
+              required
+              step="0.01"
+              min="0"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              placeholder="0.00"
               className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
             />
           </div>
+          <ImageUpload
+            onUploadComplete={handleImageUpload}
+            folder="rabuste-coffee/menu"
+            existingUrl={formData.image || formData.cloudinary_url}
+          />
           <div>
             <label className="flex items-center">
               <input
@@ -337,13 +420,28 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
         {coffees.map((coffee) => (
           <div key={coffee._id} className="bg-coffee-brown/20 rounded-lg p-6">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-xl font-display font-bold text-coffee-amber">{coffee.name}</h3>
+              <div>
+                <span className="inline-block bg-coffee-brown/40 text-coffee-amber text-xs px-2 py-1 rounded mb-2">
+                  {coffee.category}
+                </span>
+                <h3 className="text-xl font-display font-bold text-coffee-amber">{coffee.name}</h3>
+              </div>
               {coffee.isBestseller && (
                 <span className="bg-coffee-amber text-coffee-darker text-xs px-2 py-1 rounded">Bestseller</span>
               )}
             </div>
+            {(coffee.image || coffee.cloudinary_url) && (
+              <img
+                src={coffee.cloudinary_url || coffee.image}
+                alt={coffee.name}
+                className="w-full h-32 object-cover rounded-lg mb-4"
+              />
+            )}
             <p className="text-coffee-light text-sm mb-4 line-clamp-2">{coffee.description}</p>
-            <p className="text-coffee-amber text-sm mb-4">Strength: {coffee.strength}</p>
+            {coffee.category === 'Coffee' && (
+              <p className="text-coffee-amber text-sm mb-2">Strength: {coffee.strength}</p>
+            )}
+            <p className="text-coffee-amber font-bold mb-4">${coffee.price?.toFixed(2) || '0.00'}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleEdit(coffee)}

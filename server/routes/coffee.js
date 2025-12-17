@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const Coffee = require('../models/Coffee');
+const { deleteFromCloudinary } = require('../services/cloudinaryService');
 
 // Get all coffee items
 router.get('/', async (req, res) => {
   try {
-    const coffees = await Coffee.find().sort({ order: 1, createdAt: -1 });
+    const filter = {};
+    if (req.query.category) {
+      filter.category = req.query.category;
+    }
+    const coffees = await Coffee.find(filter).sort({ order: 1, createdAt: -1 });
     res.json(coffees);
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -39,15 +44,27 @@ router.post('/', async (req, res) => {
 // Update coffee item (Admin)
 router.put('/:id', async (req, res) => {
   try {
-    const coffee = await Coffee.findByIdAndUpdate(
+    const coffee = await Coffee.findById(req.params.id);
+    if (!coffee) {
+      return res.status(404).json({ message: 'Coffee not found' });
+    }
+
+    // If updating image and old image exists on Cloudinary, delete it
+    if (req.body.cloudinary_public_id && coffee.cloudinary_public_id && 
+        req.body.cloudinary_public_id !== coffee.cloudinary_public_id) {
+      try {
+        await deleteFromCloudinary(coffee.cloudinary_public_id, 'image');
+      } catch (err) {
+        console.error('Error deleting old image:', err);
+      }
+    }
+
+    const updatedCoffee = await Coffee.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
-    if (!coffee) {
-      return res.status(404).json({ message: 'Coffee not found' });
-    }
-    res.json(coffee);
+    res.json(updatedCoffee);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -56,10 +73,21 @@ router.put('/:id', async (req, res) => {
 // Delete coffee item (Admin)
 router.delete('/:id', async (req, res) => {
   try {
-    const coffee = await Coffee.findByIdAndDelete(req.params.id);
+    const coffee = await Coffee.findById(req.params.id);
     if (!coffee) {
       return res.status(404).json({ message: 'Coffee not found' });
     }
+
+    // Delete from Cloudinary if exists
+    if (coffee.cloudinary_public_id) {
+      try {
+        await deleteFromCloudinary(coffee.cloudinary_public_id, 'image');
+      } catch (err) {
+        console.error('Error deleting from Cloudinary:', err);
+      }
+    }
+
+    await Coffee.findByIdAndDelete(req.params.id);
     res.json({ message: 'Coffee deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: error.message });

@@ -2,22 +2,43 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Chatbot from '../components/Chatbot';
+import VideoPlayer from '../components/VideoPlayer';
 
 const Home = () => {
+  // You can set this via environment variable or hardcode a Cloudinary video URL
+  const heroVideoUrl = process.env.REACT_APP_HERO_VIDEO_URL || '';
+
   return (
     <div className="pt-20">
-      {/* Hero Section */}
+      {/* Hero Section with Video Background */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker via-coffee-dark to-coffee-darker opacity-80"></div>
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%235D4037" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
-        }}></div>
+        {/* Video Background */}
+        {heroVideoUrl ? (
+          <VideoPlayer
+            videoUrl={heroVideoUrl}
+            autoplay={true}
+            muted={true}
+            className="absolute inset-0 z-0"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker via-coffee-dark to-coffee-darker opacity-80"></div>
+        )}
+        
+        {/* Pattern Overlay (if no video) */}
+        {!heroVideoUrl && (
+          <div className="absolute inset-0" style={{
+            backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%235D4037" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
+          }}></div>
+        )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker/80 via-coffee-dark/60 to-coffee-darker/80 z-10"></div>
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative z-10 text-center px-4 max-w-5xl mx-auto"
+          className="relative z-20 text-center px-4 max-w-5xl mx-auto"
         >
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
@@ -102,8 +123,20 @@ const Home = () => {
                 Step into our cozy space where every cup tells a story of strength, character, and uncompromising flavor.
               </p>
             </div>
-            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center">
-              <span className="text-6xl">☕</span>
+            <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square">
+              {/* Video Zone - Replace with your brewing process video URL */}
+              {process.env.REACT_APP_BREWING_VIDEO_URL ? (
+                <VideoPlayer
+                  videoUrl={process.env.REACT_APP_BREWING_VIDEO_URL}
+                  autoplay={true}
+                  muted={true}
+                  className="w-full h-full"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <span className="text-6xl">☕</span>
+                </div>
+              )}
             </div>
           </motion.div>
 

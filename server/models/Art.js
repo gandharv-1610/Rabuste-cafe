@@ -28,6 +28,14 @@ const artSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  cloudinary_url: {
+    type: String,
+    default: ''
+  },
+  cloudinary_public_id: {
+    type: String,
+    default: ''
+  },
   availability: {
     type: String,
     enum: ['Available', 'Sold', 'Reserved'],

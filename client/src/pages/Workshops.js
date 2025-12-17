@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import OTPModal from '../components/OTPModal';
+import { generateGoogleCalendarUrl } from 'google-calendar-url';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -15,6 +17,8 @@ const Workshops = () => {
     message: '',
   });
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
 
   useEffect(() => {
     fetchWorkshops();
@@ -33,13 +37,54 @@ const Workshops = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    
+    // Store registration data and send OTP
+    const registrationPayload = {
+      ...registrationData,
+      workshopId: selectedWorkshop._id
+    };
+    
+    setPendingRegistration(registrationPayload);
+    
     try {
-      const response = await api.post(`/workshops/${selectedWorkshop._id}/register`, registrationData);
+      await api.post('/email/workshop/otp', {
+        email: registrationData.email,
+        registrationData: registrationPayload
+      });
+      setShowOTPModal(true);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+    }
+  };
+
+  const handleOTPVerify = async (otp, resend = false) => {
+    if (resend) {
+      // Resend OTP
+      try {
+        await api.post('/email/workshop/otp', {
+          email: pendingRegistration.email,
+          registrationData: pendingRegistration
+        });
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to resend OTP');
+      }
+      return;
+    }
+
+    // Verify OTP
+    try {
+      const response = await api.post('/email/workshop/verify', {
+        email: pendingRegistration.email,
+        otp
+      });
+
       setRegistrationSuccess(true);
       setRegistrationData({ name: '', email: '', phone: '', message: '' });
-      fetchWorkshops(); // Refresh to update booked seats
+      setPendingRegistration(null);
+      setShowOTPModal(false);
+      fetchWorkshops();
     } catch (error) {
-      alert(error.response?.data?.message || 'Registration failed. Please try again.');
+      throw new Error(error.response?.data?.message || 'Invalid OTP. Please try again.');
     }
   };
 
@@ -179,16 +224,32 @@ const Workshops = () => {
                 <p className="text-coffee-light mb-6">
                   We've received your registration. You'll receive a confirmation email shortly.
                 </p>
-                <button
-                  onClick={() => {
-                    setShowRegistration(false);
-                    setRegistrationSuccess(false);
-                    setSelectedWorkshop(null);
-                  }}
-                  className="bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
-                >
-                  Close
-                </button>
+                <div className="flex flex-col gap-3">
+                  <a
+                    href={generateGoogleCalendarUrl({
+                      start: new Date(selectedWorkshop.date + ' ' + selectedWorkshop.time),
+                      end: new Date(new Date(selectedWorkshop.date + ' ' + selectedWorkshop.time).getTime() + 2 * 60 * 60 * 1000),
+                      title: selectedWorkshop.title,
+                      details: selectedWorkshop.description,
+                      location: 'Rabuste Coffee'
+                    })}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    📅 Add to Google Calendar
+                  </a>
+                  <button
+                    onClick={() => {
+                      setShowRegistration(false);
+                      setRegistrationSuccess(false);
+                      setSelectedWorkshop(null);
+                    }}
+                    className="bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -267,6 +328,18 @@ const Workshops = () => {
           </motion.div>
         </motion.div>
       )}
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          setPendingRegistration(null);
+        }}
+        email={pendingRegistration?.email || ''}
+        onVerify={handleOTPVerify}
+        type="workshop"
+      />
 
       <Chatbot />
     </div>

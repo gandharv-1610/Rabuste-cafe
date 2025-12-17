@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import OTPModal from '../components/OTPModal';
 
 const Franchise = () => {
   const [formData, setFormData] = useState({
@@ -15,13 +16,51 @@ const Franchise = () => {
   });
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEnquiry, setPendingEnquiry] = useState(null);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      await api.post('/franchise/enquiry', formData);
+      // Send OTP instead of submitting directly
+      await api.post('/email/franchise/otp', {
+        email: formData.email,
+        enquiryData: formData
+      });
+      
+      setPendingEnquiry(formData);
+      setShowOTPModal(true);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      console.error('Franchise enquiry error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleOTPVerify = async (otp, resend = false) => {
+    if (resend) {
+      // Resend OTP
+      try {
+        await api.post('/email/franchise/otp', {
+          email: pendingEnquiry.email,
+          enquiryData: pendingEnquiry
+        });
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to resend OTP');
+      }
+      return;
+    }
+
+    // Verify OTP and submit enquiry
+    try {
+      const response = await api.post('/email/franchise/verify', {
+        email: pendingEnquiry.email,
+        otp
+      });
+
       setSubmitted(true);
       setFormData({
         name: '',
@@ -32,11 +71,10 @@ const Franchise = () => {
         experience: '',
         message: '',
       });
+      setPendingEnquiry(null);
+      setShowOTPModal(false);
     } catch (error) {
-      alert('Failed to submit enquiry. Please try again.');
-      console.error('Franchise enquiry error:', error);
-    } finally {
-      setLoading(false);
+      throw new Error(error.response?.data?.message || 'Invalid OTP. Please try again.');
     }
   };
 
@@ -347,12 +385,24 @@ const Franchise = () => {
                 disabled={loading}
                 className="w-full bg-coffee-amber text-coffee-darker py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'Submitting...' : 'Submit Franchise Enquiry'}
+                {loading ? 'Sending OTP...' : 'Submit Franchise Enquiry'}
               </button>
             </form>
           )}
         </motion.div>
       </section>
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          setPendingEnquiry(null);
+        }}
+        email={pendingEnquiry?.email || ''}
+        onVerify={handleOTPVerify}
+        type="franchise"
+      />
 
       <Chatbot />
     </div>
