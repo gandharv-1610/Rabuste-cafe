@@ -26,6 +26,8 @@ app.use('/api/workshops', require('./routes/workshops'));
 app.use('/api/franchise', require('./routes/franchise'));
 app.use('/api/admin', require('./routes/admin'));
 app.use('/api/ai', require('./routes/ai'));
+app.use('/api/email', require('./routes/email'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Health check
 app.get('/api/health', (req, res) => {

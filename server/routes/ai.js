@@ -106,20 +106,56 @@ Remember: We ONLY serve Robusta coffee, so emphasize Robusta's bold, full-bodied
   }
 });
 
+// Fallback responses for common queries
+const getFallbackResponse = (message) => {
+  const lowerMessage = message.toLowerCase();
+  
+  if (lowerMessage.includes('hours') || lowerMessage.includes('open') || lowerMessage.includes('time')) {
+    return "We're open Monday to Sunday, 7 AM to 9 PM. Come visit us for a bold Robusta experience!";
+  }
+  
+  if (lowerMessage.includes('menu') || lowerMessage.includes('coffee') || lowerMessage.includes('drink')) {
+    return "We serve exclusively Robusta coffee! Check out our Coffee Menu page to see our curated selection of bold brews.";
+  }
+  
+  if (lowerMessage.includes('workshop') || lowerMessage.includes('class') || lowerMessage.includes('event')) {
+    return "We offer coffee workshops, art & creativity sessions, and community events. Visit our Workshops page to see upcoming sessions and register!";
+  }
+  
+  if (lowerMessage.includes('price') || lowerMessage.includes('cost')) {
+    return "Our coffee prices vary by brew type. Please visit our Coffee Menu page for detailed pricing. Workshop prices are listed on the Workshops page.";
+  }
+  
+  if (lowerMessage.includes('location') || lowerMessage.includes('address') || lowerMessage.includes('where')) {
+    return "Visit our website to find our location details. We'd love to welcome you to Rabuste Coffee!";
+  }
+  
+  return null; // No fallback, use AI
+};
+
 // Smart Café Chatbot
 router.post('/chatbot', async (req, res) => {
   try {
-    if (!genAI) {
-      return res.status(500).json({ 
-        message: 'Gemini API is not configured. Please set GOOGLE_GEMINI_API_KEY in environment variables.',
-        error: 'API key missing'
-      });
-    }
-
     const { message, conversationHistory = [] } = req.body;
 
     if (!message) {
       return res.status(400).json({ message: 'Message is required' });
+    }
+
+    // Check for fallback first
+    const fallback = getFallbackResponse(message);
+    if (fallback) {
+      return res.json({
+        response: fallback,
+        isRelevant: true
+      });
+    }
+
+    if (!genAI) {
+      return res.json({ 
+        response: "I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, and franchise opportunities. How can I help with that?",
+        isRelevant: true
+      });
     }
 
     // Use gemini-1.5-flash for faster responses (fallback: gemini-pro)
@@ -166,6 +202,15 @@ Provide a helpful, on-topic response:`;
       statusText: error.response?.statusText,
       data: error.response?.data
     });
+    
+    // Try fallback on error
+    const fallback = getFallbackResponse(message);
+    if (fallback) {
+      return res.json({
+        response: fallback,
+        isRelevant: true
+      });
+    }
     
     // Provide more helpful error messages
     let errorMessage = 'Error processing message';

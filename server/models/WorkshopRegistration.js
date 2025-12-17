@@ -39,5 +39,15 @@ const workshopRegistrationSchema = new mongoose.Schema({
   timestamps: true
 });
 
+// Add compound unique index to prevent duplicate registrations (email + workshopId)
+// Only for non-cancelled registrations
+workshopRegistrationSchema.index(
+  { email: 1, workshopId: 1 },
+  { 
+    unique: true,
+    partialFilterExpression: { status: { $ne: 'Cancelled' } }
+  }
+);
+
 module.exports = mongoose.model('WorkshopRegistration', workshopRegistrationSchema);
 

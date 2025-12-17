@@ -69,5 +69,29 @@ router.get('/registrations', async (req, res) => {
   }
 });
 
+// Delete registration
+router.delete('/registrations/:id', async (req, res) => {
+  try {
+    const registration = await WorkshopRegistration.findById(req.params.id);
+    if (!registration) {
+      return res.status(404).json({ message: 'Registration not found' });
+    }
+
+    // Decrease booked seats for the workshop
+    if (registration.workshopId) {
+      const workshop = await Workshop.findById(registration.workshopId);
+      if (workshop && workshop.bookedSeats > 0) {
+        workshop.bookedSeats -= 1;
+        await workshop.save();
+      }
+    }
+
+    await WorkshopRegistration.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Registration deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 

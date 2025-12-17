@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import OTPModal from '../components/OTPModal';
+import { googleCalendarEventUrl } from 'google-calendar-url';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -15,6 +17,8 @@ const Workshops = () => {
     message: '',
   });
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingRegistration, setPendingRegistration] = useState(null);
 
   useEffect(() => {
     fetchWorkshops();
@@ -33,13 +37,69 @@ const Workshops = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    
+    // Store registration data and send OTP
+    const registrationPayload = {
+      ...registrationData,
+      workshopId: selectedWorkshop._id
+    };
+    
+    setPendingRegistration(registrationPayload);
+    
     try {
-      const response = await api.post(`/workshops/${selectedWorkshop._id}/register`, registrationData);
+      await api.post('/email/workshop/otp', {
+        email: registrationData.email,
+        registrationData: registrationPayload
+      });
+      setShowOTPModal(true);
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to send OTP. Please try again.';
+      alert(errorMessage);
+      // If it's a duplicate registration error, reset the form
+      if (errorMessage.includes('already registered')) {
+        setShowRegistration(false);
+        setRegistrationData({ name: '', email: '', phone: '', message: '' });
+        setPendingRegistration(null);
+      }
+    }
+  };
+
+  const handleOTPVerify = async (otp, resend = false) => {
+    if (resend) {
+      // Resend OTP
+      try {
+        await api.post('/email/workshop/otp', {
+          email: pendingRegistration.email,
+          registrationData: pendingRegistration
+        });
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to resend OTP');
+      }
+      return;
+    }
+
+    // Verify OTP
+    try {
+      const response = await api.post('/email/workshop/verify', {
+        email: pendingRegistration.email,
+        otp
+      });
+
       setRegistrationSuccess(true);
       setRegistrationData({ name: '', email: '', phone: '', message: '' });
-      fetchWorkshops(); // Refresh to update booked seats
+      setPendingRegistration(null);
+      setShowOTPModal(false);
+      fetchWorkshops();
     } catch (error) {
-      alert(error.response?.data?.message || 'Registration failed. Please try again.');
+      const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
+      // If it's a duplicate registration error, close modals and reset
+      if (errorMessage.includes('already registered')) {
+        setShowOTPModal(false);
+        setShowRegistration(false);
+        setRegistrationData({ name: '', email: '', phone: '', message: '' });
+        setPendingRegistration(null);
+      }
+      throw new Error(errorMessage);
     }
   };
 
@@ -179,16 +239,109 @@ const Workshops = () => {
                 <p className="text-coffee-light mb-6">
                   We've received your registration. You'll receive a confirmation email shortly.
                 </p>
-                <button
-                  onClick={() => {
-                    setShowRegistration(false);
-                    setRegistrationSuccess(false);
-                    setSelectedWorkshop(null);
-                  }}
-                  className="bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
-                >
-                  Close
-                </button>
+                <div className="flex flex-col gap-3">
+                  <a
+                    href={(() => {
+                      try {
+                        // Parse the date properly - workshop.date is a Date object or ISO string
+                        const workshopDate = new Date(selectedWorkshop.date);
+                        if (isNaN(workshopDate.getTime())) {
+                          console.error('Invalid date:', selectedWorkshop.date);
+                          return '#';
+                        }
+                        
+                        // Parse time string (e.g., "10:00 AM" or "14:30")
+                        const timeStr = selectedWorkshop.time || '10:00';
+                        const timeParts = timeStr.trim().split(' ');
+                        const timePart = timeParts[0];
+                        const period = timeParts[1];
+                        
+                        if (!timePart || !timePart.includes(':')) {
+                          console.error('Invalid time format:', timeStr);
+                          return '#';
+                        }
+                        
+                        const [hours, minutes] = timePart.split(':').map(Number);
+                        
+                        if (isNaN(hours) || isNaN(minutes)) {
+                          console.error('Invalid time values:', hours, minutes);
+                          return '#';
+                        }
+                        
+                        // Convert to 24-hour format if period is specified
+                        let hour24 = hours;
+                        if (period) {
+                          const periodUpper = period.toUpperCase();
+                          if (periodUpper === 'PM' && hours !== 12) {
+                            hour24 = hours + 12;
+                          } else if (periodUpper === 'AM' && hours === 12) {
+                            hour24 = 0;
+                          }
+                        }
+                        
+                        // Create start date with time (using local timezone)
+                        const startDate = new Date(workshopDate);
+                        startDate.setHours(hour24, minutes || 0, 0, 0);
+                        
+                        // Calculate end date (default 2 hours duration, or parse from duration string)
+                        const durationMatch = selectedWorkshop.duration?.match(/(\d+)/);
+                        const durationHours = durationMatch ? parseInt(durationMatch[1]) : 2;
+                        const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
+                        
+                        // Validate dates before creating URL
+                        if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+                          console.error('Invalid date calculation');
+                          return '#';
+                        }
+                        
+                        // Format dates as YYYYMMDDTHHmmss (Google Calendar format)
+                        const formatDateForGoogle = (date) => {
+                          const year = date.getFullYear();
+                          const month = String(date.getMonth() + 1).padStart(2, '0');
+                          const day = String(date.getDate()).padStart(2, '0');
+                          const hours = String(date.getHours()).padStart(2, '0');
+                          const mins = String(date.getMinutes()).padStart(2, '0');
+                          const secs = String(date.getSeconds()).padStart(2, '0');
+                          return `${year}${month}${day}T${hours}${mins}${secs}`;
+                        };
+                        
+                        const startStr = formatDateForGoogle(startDate);
+                        const endStr = formatDateForGoogle(endDate);
+                        
+                        // Create Google Calendar URL manually (more reliable)
+                        const params = new URLSearchParams({
+                          action: 'TEMPLATE',
+                          text: selectedWorkshop.title || 'Workshop',
+                          dates: `${startStr}/${endStr}`,
+                          details: selectedWorkshop.description || '',
+                          location: 'Rabuste Coffee'
+                        });
+                        
+                        const calendarUrl = `https://calendar.google.com/calendar/render?${params.toString()}`;
+                        console.log('Generated calendar URL:', calendarUrl);
+                        return calendarUrl;
+                      } catch (error) {
+                        console.error('Error creating calendar URL:', error);
+                        return '#';
+                      }
+                    })()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg font-semibold transition-colors"
+                  >
+                    📅 Add to Google Calendar
+                  </a>
+                  <button
+                    onClick={() => {
+                      setShowRegistration(false);
+                      setRegistrationSuccess(false);
+                      setSelectedWorkshop(null);
+                    }}
+                    className="bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                  >
+                    Close
+                  </button>
+                </div>
               </div>
             ) : (
               <>
@@ -267,6 +420,18 @@ const Workshops = () => {
           </motion.div>
         </motion.div>
       )}
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          setPendingRegistration(null);
+        }}
+        email={pendingRegistration?.email || ''}
+        onVerify={handleOTPVerify}
+        type="workshop"
+      />
 
       <Chatbot />
     </div>
