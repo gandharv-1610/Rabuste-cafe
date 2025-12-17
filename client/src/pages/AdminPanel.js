@@ -170,6 +170,7 @@ const AdminPanel = () => {
             registrations={registrations}
             loading={loading}
             onRefresh={fetchWorkshops}
+            onRefreshRegistrations={fetchRegistrations}
           />
         )}
 
@@ -697,7 +698,7 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
 };
 
 // Workshops Management Component
-const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh }) => {
+const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onRefreshRegistrations }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingWorkshop, setEditingWorkshop] = useState(null);
   const [formData, setFormData] = useState({
@@ -956,26 +957,58 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh }) =
       <div className="mt-8">
         <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">Recent Registrations</h3>
         <div className="space-y-4">
-          {registrations.slice(0, 10).map((reg) => (
-            <div key={reg._id} className="bg-coffee-brown/20 rounded-lg p-4">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-coffee-amber font-semibold">{reg.name}</p>
-                  <p className="text-coffee-light text-sm">{reg.email} | {reg.phone}</p>
-                  <p className="text-coffee-light text-sm">
-                    Workshop: {reg.workshopId?.title || 'N/A'}
-                  </p>
+          {registrations.length === 0 ? (
+            <p className="text-coffee-light">No registrations yet.</p>
+          ) : (
+            registrations.slice(0, 10).map((reg) => (
+              <div key={reg._id} className="bg-coffee-brown/20 rounded-lg p-4">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <p className="text-coffee-amber font-semibold">{reg.name}</p>
+                    <p className="text-coffee-light text-sm">{reg.email} | {reg.phone}</p>
+                    <p className="text-coffee-light text-sm">
+                      Workshop: {reg.workshopId?.title || 'N/A'}
+                    </p>
+                    {reg.message && (
+                      <p className="text-coffee-light text-sm mt-2 italic">"{reg.message}"</p>
+                    )}
+                    {reg.confirmationCode && (
+                      <p className="text-coffee-light text-xs mt-1">Code: {reg.confirmationCode}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className={`px-3 py-1 rounded-full text-xs ${
+                      reg.status === 'Confirmed' ? 'bg-green-500/20 text-green-400' :
+                      reg.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
+                      'bg-yellow-500/20 text-yellow-400'
+                    }`}>
+                      {reg.status}
+                    </span>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm(`Are you sure you want to delete the registration for ${reg.name}?`)) {
+                          try {
+                            await api.delete(`/admin/registrations/${reg._id}`);
+                            onRefresh();
+                            if (onRefreshRegistrations) {
+                              onRefreshRegistrations();
+                            }
+                          } catch (error) {
+                            alert('Error deleting registration');
+                            console.error(error);
+                          }
+                        }
+                      }}
+                      className="bg-red-500/20 text-red-400 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-red-500/30 transition-colors"
+                      title="Delete Registration"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </div>
-                <span className={`px-3 py-1 rounded-full text-xs ${
-                  reg.status === 'Confirmed' ? 'bg-green-500/20 text-green-400' :
-                  reg.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
-                  'bg-yellow-500/20 text-yellow-400'
-                }`}>
-                  {reg.status}
-                </span>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
     </div>

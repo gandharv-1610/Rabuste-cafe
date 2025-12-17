@@ -15,6 +15,19 @@ router.post('/workshop/otp', async (req, res) => {
       return res.status(400).json({ message: 'Email and registration data are required' });
     }
 
+    // Check if email is already registered for this workshop
+    const existingRegistration = await WorkshopRegistration.findOne({
+      email: email.toLowerCase().trim(),
+      workshopId: registrationData.workshopId,
+      status: { $ne: 'Cancelled' } // Allow re-registration if previous was cancelled
+    });
+
+    if (existingRegistration) {
+      return res.status(400).json({ 
+        message: 'You have already registered for this workshop. Each email can only register once per workshop.' 
+      });
+    }
+
     const otp = generateOTP();
     
     // Save OTP to database
@@ -79,14 +92,39 @@ router.post('/workshop/verify', async (req, res) => {
       return res.status(400).json({ message: 'Workshop is fully booked' });
     }
 
+    // Check again if email is already registered (double-check before creating)
+    const existingRegistration = await WorkshopRegistration.findOne({
+      email: email.toLowerCase().trim(),
+      workshopId: workshop._id,
+      status: { $ne: 'Cancelled' }
+    });
+
+    if (existingRegistration) {
+      return res.status(400).json({ 
+        message: 'You have already registered for this workshop. Each email can only register once per workshop.' 
+      });
+    }
+
     // Create registration
     const confirmationCode = `WRK${Date.now().toString().slice(-6)}`;
     const registration = new WorkshopRegistration({
       ...otpRecord.data,
+      email: email.toLowerCase().trim(), // Ensure lowercase
       workshopId: workshop._id,
       confirmationCode
     });
-    await registration.save();
+    
+    try {
+      await registration.save();
+    } catch (error) {
+      // Handle duplicate key error (if unique index is set)
+      if (error.code === 11000) {
+        return res.status(400).json({ 
+          message: 'You have already registered for this workshop. Each email can only register once per workshop.' 
+        });
+      }
+      throw error;
+    }
 
     // Update booked seats
     workshop.bookedSeats += 1;

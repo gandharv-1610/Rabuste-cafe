@@ -5,26 +5,35 @@ import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
 
 const Home = () => {
-  // You can set this via environment variable or hardcode a Cloudinary video URL
-  const heroVideoUrl = process.env.REACT_APP_HERO_VIDEO_URL || '';
+  // Dummy placeholder videos/images - replace with actual Cloudinary videos later
+  // Using placeholder images from Unsplash as temporary placeholders
+  const heroVideoUrl = process.env.REACT_APP_HERO_VIDEO_URL || 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
+  const brewingVideoUrl = process.env.REACT_APP_BREWING_VIDEO_URL || 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
 
   return (
     <div className="pt-20">
       {/* Hero Section with Video Background */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Video Background */}
-        {heroVideoUrl ? (
+        {/* Hero Background - Using placeholder image, replace with video later */}
+        {heroVideoUrl && heroVideoUrl.includes('video') ? (
           <VideoPlayer
             videoUrl={heroVideoUrl}
             autoplay={true}
             muted={true}
             className="absolute inset-0 z-0"
           />
+        ) : heroVideoUrl ? (
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center"
+            style={{
+              backgroundImage: `url(${heroVideoUrl})`,
+            }}
+          ></div>
         ) : (
           <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker via-coffee-dark to-coffee-darker opacity-80"></div>
         )}
         
-        {/* Pattern Overlay (if no video) */}
+        {/* Pattern Overlay (if no video/image) */}
         {!heroVideoUrl && (
           <div className="absolute inset-0" style={{
             backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%235D4037" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
@@ -124,13 +133,19 @@ const Home = () => {
               </p>
             </div>
             <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square">
-              {/* Video Zone - Replace with your brewing process video URL */}
-              {process.env.REACT_APP_BREWING_VIDEO_URL ? (
+              {/* Video Zone - Using placeholder image, replace with actual brewing process video later */}
+              {brewingVideoUrl && brewingVideoUrl.includes('video') ? (
                 <VideoPlayer
-                  videoUrl={process.env.REACT_APP_BREWING_VIDEO_URL}
+                  videoUrl={brewingVideoUrl}
                   autoplay={true}
                   muted={true}
                   className="w-full h-full"
+                />
+              ) : brewingVideoUrl ? (
+                <img 
+                  src={brewingVideoUrl} 
+                  alt="Coffee brewing process" 
+                  className="w-full h-full object-cover"
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
