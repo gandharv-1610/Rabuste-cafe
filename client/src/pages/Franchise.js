@@ -346,11 +346,11 @@ const Franchise = () => {
                     className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
                   >
                     <option value="">Select range</option>
-                    <option value="Under $50K">Under $50K</option>
-                    <option value="$50K - $100K">$50K - $100K</option>
-                    <option value="$100K - $200K">$100K - $200K</option>
-                    <option value="$200K - $500K">$200K - $500K</option>
-                    <option value="Over $500K">Over $500K</option>
+                    <option value="Under ₹50L">Under ₹50L</option>
+                    <option value="₹50L - ₹1Cr">₹50L - ₹1Cr</option>
+                    <option value="₹1Cr - ₹2Cr">₹1Cr - ₹2Cr</option>
+                    <option value="₹2Cr - ₹5Cr">₹2Cr - ₹5Cr</option>
+                    <option value="Over ₹5Cr">Over ₹5Cr</option>
                   </select>
                 </div>
                 <div>

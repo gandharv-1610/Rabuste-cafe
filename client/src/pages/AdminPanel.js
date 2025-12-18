@@ -13,6 +13,7 @@ const AdminPanel = () => {
   const [registrations, setRegistrations] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
   const [siteMedia, setSiteMedia] = useState([]);
+  const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ const AdminPanel = () => {
     }
     if (activeTab === 'franchise') fetchEnquiries();
     if (activeTab === 'siteMedia') fetchSiteMedia();
+    if (activeTab === 'offers') fetchOffers();
   }, [activeTab]);
 
   const fetchStats = async () => {
@@ -105,12 +107,25 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchOffers = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/offers');
+      setOffers(response.data);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'coffee', label: 'Coffee Menu' },
     { id: 'art', label: 'Art Gallery' },
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
+    { id: 'offers', label: 'Daily Offers' },
     { id: 'siteMedia', label: 'Site Media' },
   ];
 
@@ -196,6 +211,15 @@ const AdminPanel = () => {
             enquiries={enquiries}
             loading={loading}
             onRefresh={fetchEnquiries}
+          />
+        )}
+
+        {/* Offers Management */}
+        {activeTab === 'offers' && (
+          <OffersManagement
+            offers={offers}
+            loading={loading}
+            onRefresh={fetchOffers}
           />
         )}
 
@@ -467,7 +491,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
             {coffee.category === 'Coffee' && (
               <p className="text-coffee-amber text-sm mb-2">Strength: {coffee.strength}</p>
             )}
-            <p className="text-coffee-amber font-bold mb-4">${coffee.price?.toFixed(2) || '0.00'}</p>
+            <p className="text-coffee-amber font-bold mb-4">₹{coffee.price?.toFixed(2) || '0.00'}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleEdit(coffee)}
@@ -708,7 +732,7 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
           <div key={art._id} className="bg-coffee-brown/20 rounded-lg p-6">
             <h3 className="text-xl font-display font-bold text-coffee-amber mb-2">{art.title}</h3>
             <p className="text-coffee-light text-sm mb-2">by {art.artistName}</p>
-            <p className="text-coffee-amber font-bold mb-2">${art.price}</p>
+            <p className="text-coffee-amber font-bold mb-2">₹{art.price}</p>
             <p className={`text-sm mb-4 ${
               art.availability === 'Available' ? 'text-green-400' :
               art.availability === 'Sold' ? 'text-red-400' : 'text-yellow-400'
@@ -1531,6 +1555,348 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
               >
                 Delete
               </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+// Offers Management Component
+const OffersManagement = ({ offers, loading, onRefresh }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [formData, setFormData] = useState({
+    title: '',
+    subtitle: '',
+    description: '',
+    badgeText: '',
+    discountValue: '',
+    discountUnit: 'percent',
+    terms: '',
+    startDate: '',
+    endDate: '',
+    isActive: true,
+    highlight: false,
+    order: 0,
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      ...formData,
+      discountValue: formData.discountValue ? Number(formData.discountValue) : 0,
+      order: formData.order ? Number(formData.order) : 0,
+      startDate: formData.startDate ? new Date(formData.startDate) : null,
+      endDate: formData.endDate ? new Date(formData.endDate) : null,
+    };
+
+    try {
+      if (editingOffer) {
+        await api.put(`/offers/${editingOffer._id}`, payload);
+      } else {
+        await api.post('/offers', payload);
+      }
+      setShowForm(false);
+      setEditingOffer(null);
+      setFormData({
+        title: '',
+        subtitle: '',
+        description: '',
+        badgeText: '',
+        discountValue: '',
+        discountUnit: 'percent',
+        terms: '',
+        startDate: '',
+        endDate: '',
+        isActive: true,
+        highlight: false,
+        order: 0,
+      });
+      onRefresh();
+    } catch (error) {
+      alert('Error saving offer');
+      console.error(error);
+    }
+  };
+
+  const handleEdit = (offer) => {
+    setEditingOffer(offer);
+    setFormData({
+      title: offer.title || '',
+      subtitle: offer.subtitle || '',
+      description: offer.description || '',
+      badgeText: offer.badgeText || '',
+      discountValue: offer.discountValue?.toString() || '',
+      discountUnit: offer.discountUnit || 'percent',
+      terms: offer.terms || '',
+      startDate: offer.startDate ? offer.startDate.substring(0, 10) : '',
+      endDate: offer.endDate ? offer.endDate.substring(0, 10) : '',
+      isActive: offer.isActive ?? true,
+      highlight: offer.highlight ?? false,
+      order: offer.order ?? 0,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this offer?')) return;
+    try {
+      await api.delete(`/offers/${id}`);
+      onRefresh();
+    } catch (error) {
+      alert('Error deleting offer');
+      console.error(error);
+    }
+  };
+
+  if (loading && offers.length === 0) {
+    return <div className="text-coffee-light">Loading...</div>;
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Daily Offers</h2>
+        <button
+          onClick={() => {
+            setShowForm(true);
+            setEditingOffer(null);
+            setFormData({
+              title: '',
+              subtitle: '',
+              description: '',
+              badgeText: '',
+              discountValue: '',
+              discountUnit: 'percent',
+              terms: '',
+              startDate: '',
+              endDate: '',
+              isActive: true,
+              highlight: false,
+              order: 0,
+            });
+          }}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Add Offer
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-coffee-brown/20 rounded-lg p-6 mb-6 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Title *</label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Subtitle</label>
+              <input
+                type="text"
+                value={formData.subtitle}
+                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Description</label>
+            <textarea
+              rows="3"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+            />
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Badge Text</label>
+              <input
+                type="text"
+                placeholder="Today Only"
+                value={formData.badgeText}
+                onChange={(e) => setFormData({ ...formData, badgeText: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Discount Value</label>
+              <input
+                type="number"
+                min="0"
+                step="0.1"
+                value={formData.discountValue}
+                onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Discount Type</label>
+              <select
+                value={formData.discountUnit}
+                onChange={(e) => setFormData({ ...formData, discountUnit: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="percent">% off</option>
+                <option value="flat">Flat ₹ off</option>
+              </select>
+            </div>
+          </div>
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Terms & Conditions (optional)</label>
+            <input
+              type="text"
+              placeholder="Valid on dine-in orders only, etc."
+              value={formData.terms}
+              onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+            />
+          </div>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Start Date</label>
+              <input
+                type="date"
+                value={formData.startDate}
+                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">End Date</label>
+              <input
+                type="date"
+                value={formData.endDate}
+                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Order</label>
+              <input
+                type="number"
+                value={formData.order}
+                onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-6">
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="mr-2"
+              />
+              <span className="text-coffee-amber font-semibold">Active</span>
+            </label>
+            <label className="flex items-center">
+              <input
+                type="checkbox"
+                checked={formData.highlight}
+                onChange={(e) => setFormData({ ...formData, highlight: e.target.checked })}
+                className="mr-2"
+              />
+              <span className="text-coffee-amber font-semibold">Highlight</span>
+            </label>
+          </div>
+
+          <div className="flex gap-4">
+            <button type="submit" className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold">
+              {editingOffer ? 'Update Offer' : 'Create Offer'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingOffer(null);
+              }}
+              className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {offers.map((offer) => (
+          <div
+            key={offer._id}
+            className="bg-coffee-brown/20 rounded-xl p-5 border border-coffee-brown/60 shadow-sm"
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                {offer.badgeText && (
+                  <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-coffee-amber/20 text-coffee-amber mb-2">
+                    {offer.badgeText}
+                  </span>
+                )}
+                <h3 className="text-xl font-display font-bold text-coffee-amber">
+                  {offer.title}
+                </h3>
+                {offer.subtitle && (
+                  <p className="text-coffee-light/80 text-sm mt-1">{offer.subtitle}</p>
+                )}
+              </div>
+              {offer.highlight && (
+                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 font-semibold">
+                  Highlight
+                </span>
+              )}
+            </div>
+            {offer.discountValue > 0 && (
+              <p className="text-coffee-amber font-semibold text-sm mb-2">
+                {offer.discountUnit === 'percent'
+                  ? `${offer.discountValue}% off`
+                  : `Flat ₹${offer.discountValue} off`}
+              </p>
+            )}
+            {offer.description && (
+              <p className="text-coffee-light text-sm mb-2 line-clamp-3">
+                {offer.description}
+              </p>
+            )}
+            {offer.terms && (
+              <p className="text-xs text-coffee-light/70 mb-2">
+                {offer.terms}
+              </p>
+            )}
+            <p className="text-xs text-coffee-light/60 mb-3">
+              {offer.startDate ? `From ${new Date(offer.startDate).toLocaleDateString()}` : 'Starts now'}
+              {offer.endDate ? ` · Until ${new Date(offer.endDate).toLocaleDateString()}` : ''}
+            </p>
+            <div className="flex items-center justify-between">
+              <span
+                className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                  offer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                }`}
+              >
+                {offer.isActive ? 'Active' : 'Inactive'}
+              </span>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(offer)}
+                  className="px-3 py-1 text-xs rounded-lg bg-coffee-amber text-coffee-darker font-semibold"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(offer._id)}
+                  className="px-3 py-1 text-xs rounded-lg bg-red-500/20 text-red-400 font-semibold"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ))}

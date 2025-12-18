@@ -59,7 +59,8 @@ const sendOTPEmail = async (email, otp, type) => {
 };
 
 // Send Workshop Confirmation Email
-const sendWorkshopConfirmationEmail = async (registration, workshop) => {
+// calendarUrl is optional; when provided, a Google Calendar button is included.
+const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl) => {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -87,12 +88,36 @@ const sendWorkshopConfirmationEmail = async (registration, workshop) => {
           <p style="color: #EFEBE9; margin: 10px 0;"><strong>Time:</strong> ${workshop.time} (${workshop.duration})</p>
           <p style="color: #EFEBE9; margin: 10px 0;"><strong>Type:</strong> ${workshop.type}</p>
           ${workshop.instructor ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Instructor:</strong> ${workshop.instructor}</p>` : ''}
-          ${workshop.price > 0 ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> $${workshop.price}</p>` : ''}
+          ${workshop.price > 0 ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${workshop.price}</p>` : ''}
         </div>
         <div style="background-color: #3E2723; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="color: #EFEBE9; margin: 5px 0;"><strong>Confirmation Code:</strong> ${registration.confirmationCode}</p>
         </div>
-        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+        ${calendarUrl ? `
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${calendarUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            Add to Google Calendar
+          </a>
+        </div>
+        ` : ''}
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
           We look forward to seeing you at the workshop! If you have any questions, please don't hesitate to contact us.
         </p>
       </div>
