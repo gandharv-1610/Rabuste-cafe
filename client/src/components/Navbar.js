@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import logoSquare from '../assets/rabuste-logo-square.png';
 
 const Navbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -37,12 +38,18 @@ const Navbar = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center space-x-2">
-            <motion.span
+          <Link to="/" className="flex items-center space-x-3">
+            <motion.img
               whileHover={{ scale: 1.05 }}
-              className="text-2xl font-display font-bold text-coffee-amber"
+              src={logoSquare}
+              alt="Rabuste Coffee logo"
+              className="h-10 w-10 rounded-md shadow-sm"
+            />
+            <motion.span
+              whileHover={{ scale: 1.03 }}
+              className="text-2xl font-display font-bold text-coffee-amber tracking-wide"
             >
-              Rabuste Coffee
+              RABUSTE
             </motion.span>
           </Link>
 
