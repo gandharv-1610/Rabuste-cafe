@@ -89,10 +89,19 @@ const CoffeeMenu = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-coffee-brown/20 rounded-lg p-6 hover:bg-coffee-brown/30 transition-colors cursor-pointer"
+                className="bg-coffee-brown/20 rounded-lg overflow-hidden hover:bg-coffee-brown/30 transition-colors cursor-pointer"
                 onClick={() => setSelectedCoffee(coffee)}
               >
-                <div className="flex items-start justify-between mb-4">
+                {(coffee.image || coffee.cloudinary_url) && (
+                  <div className="w-full h-40 bg-coffee-brown/40 overflow-hidden">
+                    <img
+                      src={coffee.cloudinary_url || coffee.image}
+                      alt={coffee.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="flex items-start justify-between mb-4 px-6 pt-4">
                   <h3 className="text-2xl font-display font-bold text-coffee-amber">
                     {coffee.name}
                   </h3>
@@ -102,10 +111,10 @@ const CoffeeMenu = () => {
                     </span>
                   )}
                 </div>
-                <p className="text-coffee-light mb-4 leading-relaxed">
+                <p className="text-coffee-light mb-4 leading-relaxed px-6">
                   {coffee.description}
                 </p>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="flex flex-wrap gap-2 mb-4 px-6 pb-4">
                   <span className={`px-3 py-1 rounded-full text-sm font-medium ${strengthColors[coffee.strength] || strengthColors['Medium']}`}>
                     {coffee.strength}
                   </span>
@@ -158,6 +167,15 @@ const CoffeeMenu = () => {
                 </svg>
               </button>
             </div>
+            {(selectedCoffee.image || selectedCoffee.cloudinary_url) && (
+              <div className="mb-6 rounded-lg overflow-hidden bg-coffee-brown/30">
+                <img
+                  src={selectedCoffee.cloudinary_url || selectedCoffee.image}
+                  alt={selectedCoffee.name}
+                  className="w-full max-h-64 object-cover"
+                />
+              </div>
+            )}
             <p className="text-coffee-light text-lg mb-6 leading-relaxed">
               {selectedCoffee.description}
             </p>

@@ -3,30 +3,58 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
+import api from '../api/axios';
+import heroLogo from '../assets/rabuste-logo-horizontal.png';
 
 const Home = () => {
-  // Dummy placeholder videos/images - replace with actual Cloudinary videos later
-  // Using placeholder images from Unsplash as temporary placeholders
-  const heroVideoUrl = process.env.REACT_APP_HERO_VIDEO_URL || 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80';
-  const brewingVideoUrl = process.env.REACT_APP_BREWING_VIDEO_URL || 'https://images.unsplash.com/photo-1517487881594-2787fef5ebf7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80';
+  const [heroMedia, setHeroMedia] = React.useState(null);
+  const [brewingMedia, setBrewingMedia] = React.useState(null);
+  const [artStoryMedia, setArtStoryMedia] = React.useState(null);
+  const [workshopStoryMedia, setWorkshopStoryMedia] = React.useState(null);
+  const [franchiseStoryMedia, setFranchiseStoryMedia] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchMedia = async () => {
+      try {
+        const response = await api.get('/site-media', {
+          params: { page: 'home', isActive: true },
+        });
+        const entries = response.data || [];
+        const hero = entries.find((m) => m.section === 'home_hero_background');
+        const brewing = entries.find((m) => m.section === 'home_story_coffee');
+        const artStory = entries.find((m) => m.section === 'home_story_art');
+        const workshopStory = entries.find((m) => m.section === 'home_story_workshops');
+        const franchiseStory = entries.find((m) => m.section === 'home_story_franchise');
+        setHeroMedia(hero || null);
+        setBrewingMedia(brewing || null);
+        setArtStoryMedia(artStory || null);
+        setWorkshopStoryMedia(workshopStory || null);
+        setFranchiseStoryMedia(franchiseStory || null);
+      } catch (error) {
+        console.error('Error fetching home media:', error);
+      }
+    };
+
+    fetchMedia();
+  }, []);
 
   return (
     <div className="pt-20">
       {/* Hero Section with Video Background */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
-        {/* Hero Background - Using placeholder image, replace with video later */}
-        {heroVideoUrl && heroVideoUrl.includes('video') ? (
+        {/* Hero Background - from configurable Site Media */}
+        {heroMedia && heroMedia.mediaType === 'video' ? (
           <VideoPlayer
-            videoUrl={heroVideoUrl}
+            videoUrl={heroMedia.url}
             autoplay={true}
             muted={true}
             className="absolute inset-0 z-0"
           />
-        ) : heroVideoUrl ? (
+        ) : heroMedia ? (
           <div 
             className="absolute inset-0 z-0 bg-cover bg-center"
             style={{
-              backgroundImage: `url(${heroVideoUrl})`,
+              backgroundImage: `url(${heroMedia.url})`,
             }}
           ></div>
         ) : (
@@ -34,7 +62,7 @@ const Home = () => {
         )}
         
         {/* Pattern Overlay (if no video/image) */}
-        {!heroVideoUrl && (
+        {!heroMedia && (
           <div className="absolute inset-0" style={{
             backgroundImage: `url('data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%235D4037" fill-opacity="0.1"%3E%3Cpath d="M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')`,
           }}></div>
@@ -49,6 +77,13 @@ const Home = () => {
           transition={{ duration: 0.8 }}
           className="relative z-20 text-center px-4 max-w-5xl mx-auto"
         >
+          <div className="flex justify-center mb-6">
+            <img
+              src={heroLogo}
+              alt="Rabuste Coffee logo"
+              className="h-20 md:h-24 object-contain drop-shadow-lg"
+            />
+          </div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -133,17 +168,17 @@ const Home = () => {
               </p>
             </div>
             <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square">
-              {/* Video Zone - Using placeholder image, replace with actual brewing process video later */}
-              {brewingVideoUrl && brewingVideoUrl.includes('video') ? (
+              {/* Brewing media from Site Media (image or video) */}
+              {brewingMedia && brewingMedia.mediaType === 'video' ? (
                 <VideoPlayer
-                  videoUrl={brewingVideoUrl}
+                  videoUrl={brewingMedia.url}
                   autoplay={true}
                   muted={true}
                   className="w-full h-full"
                 />
-              ) : brewingVideoUrl ? (
+              ) : brewingMedia ? (
                 <img 
-                  src={brewingVideoUrl} 
+                  src={brewingMedia.url} 
                   alt="Coffee brewing process" 
                   className="w-full h-full object-cover"
                 />
@@ -163,8 +198,23 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
           >
-            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center order-2 md:order-1">
-              <span className="text-6xl">🎨</span>
+            <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square order-2 md:order-1 flex items-center justify-center">
+              {artStoryMedia && artStoryMedia.mediaType === 'video' ? (
+                <VideoPlayer
+                  videoUrl={artStoryMedia.url}
+                  autoplay={true}
+                  muted={true}
+                  className="w-full h-full"
+                />
+              ) : artStoryMedia ? (
+                <img
+                  src={artStoryMedia.url}
+                  alt="Art gallery at Rabuste Coffee"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-6xl">🎨</span>
+              )}
             </div>
             <div className="order-1 md:order-2">
               <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
@@ -204,8 +254,23 @@ const Home = () => {
                 View Workshops →
               </Link>
             </div>
-            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center">
-              <span className="text-6xl">👥</span>
+            <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square flex items-center justify-center">
+              {workshopStoryMedia && workshopStoryMedia.mediaType === 'video' ? (
+                <VideoPlayer
+                  videoUrl={workshopStoryMedia.url}
+                  autoplay={true}
+                  muted={true}
+                  className="w-full h-full"
+                />
+              ) : workshopStoryMedia ? (
+                <img
+                  src={workshopStoryMedia.url}
+                  alt="Workshops and community at Rabuste Coffee"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-6xl">👥</span>
+              )}
             </div>
           </motion.div>
 
@@ -217,8 +282,23 @@ const Home = () => {
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
           >
-            <div className="bg-coffee-brown/30 rounded-lg p-8 aspect-square flex items-center justify-center order-2 md:order-1">
-              <span className="text-6xl">🚀</span>
+            <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square flex items-center justify-center order-2 md:order-1">
+              {franchiseStoryMedia && franchiseStoryMedia.mediaType === 'video' ? (
+                <VideoPlayer
+                  videoUrl={franchiseStoryMedia.url}
+                  autoplay={true}
+                  muted={true}
+                  className="w-full h-full"
+                />
+              ) : franchiseStoryMedia ? (
+                <img
+                  src={franchiseStoryMedia.url}
+                  alt="Rabuste Coffee franchise"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <span className="text-6xl">🚀</span>
+              )}
             </div>
             <div className="order-1 md:order-2">
               <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">

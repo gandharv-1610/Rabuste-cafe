@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import ImageUpload from '../components/ImageUpload';
+import VideoUpload from '../components/VideoUpload';
 
 const AdminPanel = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -11,6 +12,7 @@ const AdminPanel = () => {
   const [workshops, setWorkshops] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
+  const [siteMedia, setSiteMedia] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -22,6 +24,7 @@ const AdminPanel = () => {
       fetchRegistrations();
     }
     if (activeTab === 'franchise') fetchEnquiries();
+    if (activeTab === 'siteMedia') fetchSiteMedia();
   }, [activeTab]);
 
   const fetchStats = async () => {
@@ -90,12 +93,25 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchSiteMedia = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/site-media');
+      setSiteMedia(response.data);
+    } catch (error) {
+      console.error('Error fetching site media:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },
     { id: 'coffee', label: 'Coffee Menu' },
     { id: 'art', label: 'Art Gallery' },
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
+    { id: 'siteMedia', label: 'Site Media' },
   ];
 
   return (
@@ -180,6 +196,15 @@ const AdminPanel = () => {
             enquiries={enquiries}
             loading={loading}
             onRefresh={fetchEnquiries}
+          />
+        )}
+
+        {/* Site Media Management */}
+        {activeTab === 'siteMedia' && (
+          <SiteMediaManagement
+            media={siteMedia}
+            loading={loading}
+            onRefresh={fetchSiteMedia}
           />
         )}
       </div>
@@ -475,13 +500,27 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
     description: '',
     price: '',
     image: '',
+    cloudinary_url: '',
+    cloudinary_public_id: '',
     availability: 'Available',
     dimensions: '',
   });
 
+  const handleImageUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      image: uploadResult.url,
+      cloudinary_url: uploadResult.cloudinary_url,
+      cloudinary_public_id: uploadResult.cloudinary_public_id,
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const artData = { ...formData, price: parseFloat(formData.price) };
+    const artData = {
+      ...formData,
+      price: parseFloat(formData.price),
+    };
 
     try {
       if (editingArt) {
@@ -498,6 +537,8 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
         description: '',
         price: '',
         image: '',
+        cloudinary_url: '',
+        cloudinary_public_id: '',
         availability: 'Available',
         dimensions: '',
       });
@@ -515,7 +556,9 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
       artistStory: art.artistStory || '',
       description: art.description,
       price: art.price.toString(),
-      image: art.image || '',
+      image: art.image || art.cloudinary_url || '',
+      cloudinary_url: art.cloudinary_url || '',
+      cloudinary_public_id: art.cloudinary_public_id || '',
       availability: art.availability,
       dimensions: art.dimensions || '',
     });
@@ -637,15 +680,11 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
               />
             </div>
           </div>
-          <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Image URL</label>
-            <input
-              type="url"
-              value={formData.image}
-              onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-            />
-          </div>
+          <ImageUpload
+            onUploadComplete={handleImageUpload}
+            folder="rabuste-coffee/art-gallery"
+            existingUrl={formData.image || formData.cloudinary_url}
+          />
           <div className="flex gap-4">
             <button type="submit" className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold">
               {editingArt ? 'Update' : 'Create'}
@@ -711,7 +750,29 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
     maxSeats: '',
     price: '',
     instructor: '',
+    image: '',
+    cloudinary_url: '',
+    cloudinary_public_id: '',
+    video_url: '',
+    cloudinary_video_public_id: '',
   });
+
+  const handleImageUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      image: uploadResult.url,
+      cloudinary_url: uploadResult.cloudinary_url,
+      cloudinary_public_id: uploadResult.cloudinary_public_id,
+    });
+  };
+
+  const handleVideoUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      video_url: uploadResult.url,
+      cloudinary_video_public_id: uploadResult.cloudinary_video_public_id || uploadResult.cloudinary_public_id,
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -740,6 +801,11 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
         maxSeats: '',
         price: '',
         instructor: '',
+        image: '',
+        cloudinary_url: '',
+        cloudinary_public_id: '',
+        video_url: '',
+        cloudinary_video_public_id: '',
       });
       onRefresh();
     } catch (error) {
@@ -760,6 +826,11 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
       maxSeats: workshop.maxSeats.toString(),
       price: workshop.price.toString(),
       instructor: workshop.instructor || '',
+      image: workshop.image || workshop.cloudinary_url || '',
+      cloudinary_url: workshop.cloudinary_url || '',
+      cloudinary_public_id: workshop.cloudinary_public_id || '',
+      video_url: workshop.video_url || '',
+      cloudinary_video_public_id: workshop.cloudinary_video_public_id || '',
     });
     setShowForm(true);
   };
@@ -899,6 +970,24 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
                 value={formData.instructor}
                 onChange={(e) => setFormData({ ...formData, instructor: e.target.value })}
                 className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Cover Image</label>
+              <ImageUpload
+                onUploadComplete={handleImageUpload}
+                folder="rabuste-coffee/workshops"
+                existingUrl={formData.image || formData.cloudinary_url}
+              />
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Promo Video (optional)</label>
+              <VideoUpload
+                onUploadComplete={handleVideoUpload}
+                folder="rabuste-coffee/workshops/videos"
+                existingUrl={formData.video_url}
               />
             </div>
           </div>
@@ -1128,6 +1217,324 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
           </motion.div>
         </motion.div>
       )}
+    </div>
+  );
+};
+
+// Site Media Management Component
+const SiteMediaManagement = ({ media, loading, onRefresh }) => {
+  const [showForm, setShowForm] = useState(false);
+  const [editingMedia, setEditingMedia] = useState(null);
+  const [formData, setFormData] = useState({
+    page: 'home',
+    section: 'home_hero_background',
+    label: '',
+    mediaType: 'image',
+    url: '',
+    cloudinary_public_id: '',
+    usage: 'background',
+    order: 0,
+    isActive: true,
+  });
+
+  const handleImageUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      url: uploadResult.url,
+      cloudinary_public_id: uploadResult.cloudinary_public_id,
+      mediaType: 'image',
+    });
+  };
+
+  const handleVideoUpload = (uploadResult) => {
+    setFormData({
+      ...formData,
+      url: uploadResult.url,
+      cloudinary_public_id: uploadResult.cloudinary_video_public_id || uploadResult.cloudinary_public_id,
+      mediaType: 'video',
+    });
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const payload = {
+      ...formData,
+      page: formData.page.toLowerCase(),
+      order: Number(formData.order) || 0,
+    };
+
+    try {
+      if (editingMedia) {
+        await api.put(`/site-media/${editingMedia._id}`, payload);
+      } else {
+        await api.post('/site-media', payload);
+      }
+      setShowForm(false);
+      setEditingMedia(null);
+      setFormData({
+        page: 'home',
+        section: 'home_hero_background',
+        label: '',
+        mediaType: 'image',
+        url: '',
+        cloudinary_public_id: '',
+        usage: 'background',
+        order: 0,
+        isActive: true,
+      });
+      onRefresh();
+    } catch (error) {
+      alert('Error saving site media');
+      console.error(error);
+    }
+  };
+
+  const handleEdit = (entry) => {
+    setEditingMedia(entry);
+    setFormData({
+      page: entry.page || 'home',
+      section: entry.section || 'home_hero_background',
+      label: entry.label || '',
+      mediaType: entry.mediaType || 'image',
+      url: entry.url || '',
+      cloudinary_public_id: entry.cloudinary_public_id || '',
+      usage: entry.usage || '',
+      order: entry.order ?? 0,
+      isActive: entry.isActive ?? true,
+    });
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this media entry?')) return;
+    try {
+      await api.delete(`/site-media/${id}`);
+      onRefresh();
+    } catch (error) {
+      alert('Error deleting media entry');
+      console.error(error);
+    }
+  };
+
+  if (loading && media.length === 0) return <div className="text-coffee-light">Loading...</div>;
+
+  // Small helper list of known sections for convenience
+  const knownSections = [
+    { value: 'home_hero_background', label: 'Home - Hero Background' },
+    { value: 'home_story_coffee', label: 'Home - Story Coffee Visual' },
+    { value: 'home_story_art', label: 'Home - Story Art Visual' },
+    { value: 'home_story_workshops', label: 'Home - Story Workshops Visual' },
+    { value: 'home_story_franchise', label: 'Home - Story Franchise Visual' },
+  ];
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Site Media Management</h2>
+        <button
+          onClick={() => {
+            setShowForm(true);
+            setEditingMedia(null);
+            setFormData({
+              page: 'home',
+              section: 'home_hero_background',
+              label: '',
+              mediaType: 'image',
+              url: '',
+              cloudinary_public_id: '',
+              usage: 'background',
+              order: 0,
+              isActive: true,
+            });
+          }}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Add Media
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="bg-coffee-brown/20 rounded-lg p-6 mb-6 space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Page *</label>
+              <select
+                required
+                value={formData.page}
+                onChange={(e) => setFormData({ ...formData, page: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="home">Home</option>
+                <option value="about">About</option>
+                <option value="coffee">Coffee</option>
+                <option value="art">Art</option>
+                <option value="workshops">Workshops</option>
+                <option value="franchise">Franchise</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Section *</label>
+              <select
+                value={formData.section}
+                onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-2"
+              >
+                {knownSections.map((s) => (
+                  <option key={s.value} value={s.value}>{s.label}</option>
+                ))}
+                <option value={formData.section}>Custom: {formData.section}</option>
+              </select>
+              <input
+                type="text"
+                value={formData.section}
+                onChange={(e) => setFormData({ ...formData, section: e.target.value })}
+                placeholder="custom_section_identifier"
+                className="w-full bg-coffee-brown/40 border border-dashed border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 text-sm"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Label (Admin only)</label>
+            <input
+              type="text"
+              value={formData.label}
+              onChange={(e) => setFormData({ ...formData, label: e.target.value })}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+            />
+          </div>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Media Type *</label>
+              <select
+                value={formData.mediaType}
+                onChange={(e) => setFormData({ ...formData, mediaType: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="image">Image</option>
+                <option value="video">Video</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Usage (optional)</label>
+              <input
+                type="text"
+                value={formData.usage}
+                onChange={(e) => setFormData({ ...formData, usage: e.target.value })}
+                placeholder="background, thumbnail, gallery..."
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+          </div>
+
+          {/* Upload widgets */}
+          {formData.mediaType === 'image' ? (
+            <ImageUpload
+              onUploadComplete={handleImageUpload}
+              folder="rabuste-coffee/site-media"
+              existingUrl={formData.url}
+            />
+          ) : (
+            <VideoUpload
+              onUploadComplete={handleVideoUpload}
+              folder="rabuste-coffee/site-media/videos"
+              existingUrl={formData.url}
+            />
+          )}
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Order</label>
+              <input
+                type="number"
+                value={formData.order}
+                onChange={(e) => setFormData({ ...formData, order: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div className="flex items-center">
+              <label className="flex items-center mt-6">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="mr-2"
+                />
+                <span className="text-coffee-amber font-semibold">Active</span>
+              </label>
+            </div>
+          </div>
+
+          <div className="flex gap-4">
+            <button type="submit" className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold">
+              {editingMedia ? 'Update' : 'Create'}
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setShowForm(false);
+                setEditingMedia(null);
+              }}
+              className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      )}
+
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {media.map((entry) => (
+          <div key={entry._id} className="bg-coffee-brown/20 rounded-lg p-4">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="text-xs text-coffee-light/70 uppercase tracking-wide">
+                  {entry.page} · {entry.section}
+                </p>
+                <h3 className="text-lg font-display font-bold text-coffee-amber">
+                  {entry.label || entry.usage || 'Untitled media'}
+                </h3>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                entry.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+              }`}>
+                {entry.isActive ? 'Active' : 'Hidden'}
+              </span>
+            </div>
+            <div className="mb-3">
+              {entry.mediaType === 'image' ? (
+                <img
+                  src={entry.url}
+                  alt={entry.label || entry.section}
+                  className="w-full h-40 object-cover rounded-lg"
+                />
+              ) : (
+                <video
+                  src={entry.url}
+                  controls
+                  className="w-full h-40 object-cover rounded-lg"
+                />
+              )}
+            </div>
+            <p className="text-xs text-coffee-light/70 mb-3">
+              Type: {entry.mediaType} · Order: {entry.order ?? 0}
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleEdit(entry)}
+                className="flex-1 bg-coffee-amber text-coffee-darker px-3 py-2 rounded-lg text-sm font-semibold"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => handleDelete(entry._id)}
+                className="flex-1 bg-red-500/20 text-red-400 px-3 py-2 rounded-lg text-sm font-semibold"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
