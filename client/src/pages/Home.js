@@ -12,6 +12,7 @@ const Home = () => {
   const [artStoryMedia, setArtStoryMedia] = React.useState(null);
   const [workshopStoryMedia, setWorkshopStoryMedia] = React.useState(null);
   const [franchiseStoryMedia, setFranchiseStoryMedia] = React.useState(null);
+  const [offers, setOffers] = React.useState([]);
 
   React.useEffect(() => {
     const fetchMedia = async () => {
@@ -36,6 +37,29 @@ const Home = () => {
     };
 
     fetchMedia();
+
+    const fetchOffers = async () => {
+      try {
+        const response = await api.get('/offers');
+        const all = response.data || [];
+        const now = new Date();
+
+        const activeOffers = all.filter((offer) => {
+          if (offer.isActive === false) return false;
+          const start = offer.startDate ? new Date(offer.startDate) : null;
+          const end = offer.endDate ? new Date(offer.endDate) : null;
+          if (start && now < start) return false;
+          if (end && now > end) return false;
+          return true;
+        });
+
+        setOffers(activeOffers);
+      } catch (error) {
+        console.error('Error fetching offers:', error);
+      }
+    };
+
+    fetchOffers();
   }, []);
 
   return (
@@ -129,6 +153,90 @@ const Home = () => {
           </motion.div>
         </motion.div>
       </section>
+
+      {/* Daily Offers */}
+      {offers.length > 0 && (
+        <section className="py-10 px-4 bg-coffee-brown/20 border-y border-coffee-brown/40">
+          <div className="max-w-6xl mx-auto">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="mb-6 text-center"
+            >
+              <p className="text-xs uppercase tracking-[0.3em] text-coffee-light/70 mb-2">
+                Today at Rabuste
+              </p>
+              <h2 className="text-3xl md:text-4xl font-display font-bold text-coffee-amber">
+                Daily Offers & Specials
+              </h2>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.1 }}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
+            >
+              {offers.slice(0, 6).map((offer) => (
+                <div
+                  key={offer._id}
+                  className="relative rounded-xl bg-gradient-to-br from-coffee-darker/80 via-coffee-brown/60 to-coffee-darker/80 border border-coffee-brown/60 shadow-lg px-5 py-4 flex flex-col h-full"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div>
+                      {offer.badgeText && (
+                        <span className="inline-block text-[10px] font-semibold px-2 py-1 rounded-full bg-coffee-amber/15 text-coffee-amber tracking-[0.18em] uppercase mb-2">
+                          {offer.badgeText}
+                        </span>
+                      )}
+                      <h3 className="text-lg md:text-xl font-display font-semibold text-coffee-amber leading-snug">
+                        {offer.title}
+                      </h3>
+                      {offer.subtitle && (
+                        <p className="text-xs text-coffee-light/80 mt-1">
+                          {offer.subtitle}
+                        </p>
+                      )}
+                    </div>
+                    {offer.highlight && (
+                      <span className="ml-2 text-[10px] px-2 py-1 rounded-full bg-green-500/15 text-green-400 font-semibold uppercase tracking-[0.16em]">
+                        Featured
+                      </span>
+                    )}
+                  </div>
+                  {offer.discountValue > 0 && (
+                    <p className="text-sm font-semibold text-coffee-amber mb-1">
+                      {offer.discountUnit === 'percent'
+                        ? `${offer.discountValue}% off`
+                        : `Flat ₹${offer.discountValue} off`}
+                    </p>
+                  )}
+                  {offer.description && (
+                    <p className="text-xs text-coffee-light/90 mb-1 line-clamp-3">
+                      {offer.description}
+                    </p>
+                  )}
+                  {offer.terms && (
+                    <p className="text-[11px] text-coffee-light/60 mb-2">
+                      {offer.terms}
+                    </p>
+                  )}
+                  <p className="mt-auto pt-1 text-[11px] text-coffee-light/60">
+                    {offer.startDate
+                      ? `From ${new Date(offer.startDate).toLocaleDateString()}`
+                      : 'Starts today'}
+                    {offer.endDate
+                      ? ` • Until ${new Date(offer.endDate).toLocaleDateString()}`
+                      : ''}
+                  </p>
+                </div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Story Sections */}
       <section className="py-20 px-4 max-w-6xl mx-auto">
