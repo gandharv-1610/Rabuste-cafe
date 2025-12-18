@@ -467,7 +467,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
             {coffee.category === 'Coffee' && (
               <p className="text-coffee-amber text-sm mb-2">Strength: {coffee.strength}</p>
             )}
-            <p className="text-coffee-amber font-bold mb-4">${coffee.price?.toFixed(2) || '0.00'}</p>
+            <p className="text-coffee-amber font-bold mb-4">₹{coffee.price?.toFixed(2) || '0.00'}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleEdit(coffee)}
@@ -708,7 +708,7 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
           <div key={art._id} className="bg-coffee-brown/20 rounded-lg p-6">
             <h3 className="text-xl font-display font-bold text-coffee-amber mb-2">{art.title}</h3>
             <p className="text-coffee-light text-sm mb-2">by {art.artistName}</p>
-            <p className="text-coffee-amber font-bold mb-2">${art.price}</p>
+            <p className="text-coffee-amber font-bold mb-2">₹{art.price}</p>
             <p className={`text-sm mb-4 ${
               art.availability === 'Available' ? 'text-green-400' :
               art.availability === 'Sold' ? 'text-red-400' : 'text-yellow-400'

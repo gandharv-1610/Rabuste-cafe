@@ -5,6 +5,7 @@ const WorkshopRegistration = require('../models/WorkshopRegistration');
 const Workshop = require('../models/Workshop');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
 const { generateOTP, sendOTPEmail, sendWorkshopConfirmationEmail, sendFranchiseConfirmationEmail } = require('../services/emailService');
+const { buildGoogleCalendarUrlForWorkshop } = require('../utils/calendar');
 
 // Send OTP for Workshop Registration
 router.post('/workshop/otp', async (req, res) => {
@@ -130,8 +131,16 @@ router.post('/workshop/verify', async (req, res) => {
     workshop.bookedSeats += 1;
     await workshop.save();
 
+    // Build Google Calendar URL (non-fatal if it fails)
+    let calendarUrl;
+    try {
+      calendarUrl = buildGoogleCalendarUrlForWorkshop(workshop);
+    } catch (err) {
+      console.error('Error building Google Calendar URL:', err);
+    }
+
     // Send confirmation email
-    await sendWorkshopConfirmationEmail(registration, workshop);
+    await sendWorkshopConfirmationEmail(registration, workshop, calendarUrl);
 
     res.status(201).json({
       message: 'Registration successful',

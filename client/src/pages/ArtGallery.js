@@ -126,7 +126,7 @@ const ArtGallery = () => {
                   <p className="text-coffee-light mb-3">by {art.artistName}</p>
                   <div className="flex items-center justify-between">
                     <span className="text-2xl font-bold text-coffee-amber">
-                      ${art.price}
+                      ₹{art.price}
                     </span>
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${
@@ -189,7 +189,7 @@ const ArtGallery = () => {
                 </div>
                 <p className="text-coffee-light text-lg mb-4">by {selectedArt.artistName}</p>
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-coffee-amber">${selectedArt.price}</span>
+                  <span className="text-3xl font-bold text-coffee-amber">₹{selectedArt.price}</span>
                   <span
                     className={`ml-4 px-3 py-1 rounded-full text-sm font-semibold ${
                       selectedArt.availability === 'Available'

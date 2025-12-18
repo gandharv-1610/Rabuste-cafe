@@ -29,7 +29,7 @@ const workshopRegistrationSchema = new mongoose.Schema({
   status: {
     type: String,
     enum: ['Pending', 'Confirmed', 'Cancelled'],
-    default: 'Pending'
+    default: 'Confirmed'
   },
   confirmationCode: {
     type: String,
