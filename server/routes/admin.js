@@ -5,6 +5,10 @@ const Art = require('../models/Art');
 const Workshop = require('../models/Workshop');
 const WorkshopRegistration = require('../models/WorkshopRegistration');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
+const auth = require('../middleware/auth');
+
+// All admin routes below this line require valid admin JWT
+router.use(auth);
 
 // Dashboard stats
 router.get('/stats', async (req, res) => {

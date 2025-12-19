@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import ImageUpload from '../components/ImageUpload';
 import VideoUpload from '../components/VideoUpload';
 
 const AdminPanel = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [stats, setStats] = useState(null);
   const [coffees, setCoffees] = useState([]);
@@ -127,12 +129,27 @@ const AdminPanel = () => {
     { id: 'franchise', label: 'Franchise Enquiries' },
     { id: 'offers', label: 'Daily Offers' },
     { id: 'siteMedia', label: 'Site Media' },
+    { id: 'settings', label: 'Settings' },
   ];
+
+  const handleLogout = () => {
+    localStorage.removeItem('rabuste_admin_token');
+    navigate('/admin/login');
+  };
 
   return (
     <div className="pt-20 min-h-screen bg-coffee-darker">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <h1 className="text-4xl font-display font-bold text-coffee-amber mb-8">Admin Panel</h1>
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
+          <h1 className="text-4xl font-display font-bold text-coffee-amber">Admin Panel</h1>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="rounded-lg border border-red-500/60 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-red-300 hover:bg-red-500/20 transition-colors"
+          >
+            Logout
+          </button>
+        </div>
 
         {/* Tabs */}
         <div className="flex flex-wrap gap-2 mb-8 border-b border-coffee-brown">
@@ -231,6 +248,157 @@ const AdminPanel = () => {
             onRefresh={fetchSiteMedia}
           />
         )}
+
+        {/* Settings Tab */}
+        {activeTab === 'settings' && <PasswordChange />}
+      </div>
+    </div>
+  );
+};
+
+// Password Change Component
+const PasswordChange = () => {
+  const [formData, setFormData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!formData.currentPassword || !formData.newPassword || !formData.confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+
+    if (formData.newPassword.length < 8) {
+      setError('New password must be at least 8 characters long');
+      return;
+    }
+
+    if (formData.newPassword !== formData.confirmPassword) {
+      setError('New password and confirm password do not match');
+      return;
+    }
+
+    if (formData.currentPassword === formData.newPassword) {
+      setError('New password must be different from current password');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      await api.post('/admin/auth/change-password', {
+        currentPassword: formData.currentPassword,
+        newPassword: formData.newPassword,
+      });
+
+      setSuccess('Password changed successfully!');
+      setFormData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: '',
+      });
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        'Failed to change password. Please try again.';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div>
+      <h2 className="text-2xl font-display font-bold text-coffee-amber mb-6">
+        Change Password
+      </h2>
+
+      <div className="bg-coffee-brown/20 rounded-lg p-6 max-w-2xl">
+        {error && (
+          <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/40 px-4 py-3 text-sm text-red-300">
+            {error}
+          </div>
+        )}
+
+        {success && (
+          <div className="mb-4 rounded-md bg-green-500/10 border border-green-500/40 px-4 py-3 text-sm text-green-300">
+            {success}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">
+              Current Password *
+            </label>
+            <input
+              type="password"
+              required
+              value={formData.currentPassword}
+              onChange={(e) =>
+                setFormData({ ...formData, currentPassword: e.target.value })
+              }
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              placeholder="Enter your current password"
+            />
+          </div>
+
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">
+              New Password *
+            </label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={formData.newPassword}
+              onChange={(e) =>
+                setFormData({ ...formData, newPassword: e.target.value })
+              }
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              placeholder="Enter new password (min. 8 characters)"
+            />
+            <p className="text-xs text-coffee-light/70 mt-1">
+              Password must be at least 8 characters long
+            </p>
+          </div>
+
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">
+              Confirm New Password *
+            </label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={formData.confirmPassword}
+              onChange={(e) =>
+                setFormData({ ...formData, confirmPassword: e.target.value })
+              }
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              placeholder="Confirm your new password"
+            />
+          </div>
+
+          <div className="flex gap-4 pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Changing...' : 'Change Password'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

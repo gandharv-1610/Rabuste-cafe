@@ -16,15 +16,16 @@ app.use(express.urlencoded({ extended: true }));
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rabuste-coffee';
 
 mongoose.connect(MONGODB_URI)
-.then(() => console.log('MongoDB Connected'))
-.catch(err => console.error('MongoDB Connection Error:', err));
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes
 app.use('/api/coffee', require('./routes/coffee'));
 app.use('/api/art', require('./routes/art'));
 app.use('/api/workshops', require('./routes/workshops'));
 app.use('/api/franchise', require('./routes/franchise'));
-app.use('/api/admin', require('./routes/admin'));
+app.use('/api/admin/auth', require('./routes/adminAuth')); // public login
+app.use('/api/admin', require('./routes/admin')); // protected admin routes
 app.use('/api/ai', require('./routes/ai'));
 app.use('/api/email', require('./routes/email'));
 app.use('/api/upload', require('./routes/upload'));

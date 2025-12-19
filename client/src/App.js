@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
+import ProtectedRoute from './components/ProtectedRoute';
 import Home from './pages/Home';
 import About from './pages/About';
 import WhyRobusta from './pages/WhyRobusta';
@@ -9,6 +10,7 @@ import ArtGallery from './pages/ArtGallery';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
 import AdminPanel from './pages/AdminPanel';
+import AdminLogin from './pages/AdminLogin';
 import './App.css';
 
 function App() {
@@ -24,7 +26,15 @@ function App() {
           <Route path="/art" element={<ArtGallery />} />
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/franchise" element={<Franchise />} />
-          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPanel />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </div>
     </Router>
