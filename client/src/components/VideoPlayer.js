@@ -5,7 +5,7 @@ const VideoPlayer = ({ videoUrl, autoplay = true, className = '' }) => {
   if (!videoUrl) return null;
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={className}>
       <video
         src={videoUrl}
         autoPlay={autoplay}
