@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
 const Chatbot = () => {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -41,10 +43,25 @@ const Chatbot = () => {
         conversationHistory,
       });
 
-      setMessages((prev) => [
-        ...prev,
-        { role: 'bot', content: response.data.response },
-      ]);
+      const botResponse = response.data.response;
+      
+      // Check if response includes navigation instruction
+      if (response.data.navigateTo) {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'bot', content: botResponse + ' 🚀' },
+        ]);
+        // Small delay before navigation for better UX
+        setTimeout(() => {
+          navigate(response.data.navigateTo);
+          setIsOpen(false);
+        }, 1500);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          { role: 'bot', content: botResponse },
+        ]);
+      }
     } catch (error) {
       console.error('Chatbot error:', error);
       setMessages((prev) => [

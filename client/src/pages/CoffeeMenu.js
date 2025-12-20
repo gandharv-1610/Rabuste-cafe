@@ -15,7 +15,9 @@ const CoffeeMenu = () => {
 
   const fetchCoffees = async () => {
     try {
-      const response = await api.get('/coffee');
+      const response = await api.get('/coffee', {
+        params: { _t: Date.now() }, // Cache busting
+      });
       setCoffees(response.data);
     } catch (error) {
       console.error('Error fetching coffees:', error);
@@ -95,9 +97,13 @@ const CoffeeMenu = () => {
                 {(coffee.image || coffee.cloudinary_url) && (
                   <div className="w-full h-40 bg-coffee-brown/40 overflow-hidden">
                     <img
-                      src={coffee.cloudinary_url || coffee.image}
+                      src={`${coffee.cloudinary_url || coffee.image}?v=${coffee.updatedAt || Date.now()}`}
                       alt={coffee.name}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        // Fallback if image fails to load
+                        e.target.style.display = 'none';
+                      }}
                     />
                   </div>
                 )}
@@ -170,9 +176,12 @@ const CoffeeMenu = () => {
             {(selectedCoffee.image || selectedCoffee.cloudinary_url) && (
               <div className="mb-6 rounded-lg overflow-hidden bg-coffee-brown/30">
                 <img
-                  src={selectedCoffee.cloudinary_url || selectedCoffee.image}
+                  src={`${selectedCoffee.cloudinary_url || selectedCoffee.image}?v=${selectedCoffee.updatedAt || Date.now()}`}
                   alt={selectedCoffee.name}
                   className="w-full max-h-64 object-cover"
+                  onError={(e) => {
+                    e.target.style.display = 'none';
+                  }}
                 />
               </div>
             )}

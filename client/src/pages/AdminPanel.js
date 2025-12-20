@@ -169,28 +169,37 @@ const AdminPanel = () => {
         </div>
 
         {/* Dashboard Tab */}
-        {activeTab === 'dashboard' && stats && (
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-coffee-light text-sm mb-2">Coffee Items</h3>
-              <p className="text-3xl font-bold text-coffee-amber">{stats.coffee}</p>
-            </div>
-            <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-coffee-light text-sm mb-2">Art Pieces</h3>
-              <p className="text-3xl font-bold text-coffee-amber">{stats.art}</p>
-            </div>
-            <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-coffee-light text-sm mb-2">Workshops</h3>
-              <p className="text-3xl font-bold text-coffee-amber">{stats.workshops}</p>
-            </div>
-            <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-coffee-light text-sm mb-2">Franchise Enquiries</h3>
-              <p className="text-3xl font-bold text-coffee-amber">{stats.franchiseEnquiries}</p>
-              {stats.newEnquiries > 0 && (
-                <p className="text-sm text-coffee-amber mt-2">{stats.newEnquiries} new</p>
-              )}
-            </div>
-          </div>
+        {activeTab === 'dashboard' && (
+          <>
+            {stats ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div className="bg-coffee-brown/20 rounded-lg p-6">
+                  <h3 className="text-coffee-light text-sm mb-2">Coffee Items</h3>
+                  <p className="text-3xl font-bold text-coffee-amber">{stats.coffee}</p>
+                </div>
+                <div className="bg-coffee-brown/20 rounded-lg p-6">
+                  <h3 className="text-coffee-light text-sm mb-2">Art Pieces</h3>
+                  <p className="text-3xl font-bold text-coffee-amber">{stats.art}</p>
+                </div>
+                <div className="bg-coffee-brown/20 rounded-lg p-6">
+                  <h3 className="text-coffee-light text-sm mb-2">Workshops</h3>
+                  <p className="text-3xl font-bold text-coffee-amber">{stats.workshops}</p>
+                </div>
+                <div className="bg-coffee-brown/20 rounded-lg p-6">
+                  <h3 className="text-coffee-light text-sm mb-2">Franchise Enquiries</h3>
+                  <p className="text-3xl font-bold text-coffee-amber">{stats.franchiseEnquiries}</p>
+                  {stats.newEnquiries > 0 && (
+                    <p className="text-sm text-coffee-amber mt-2">{stats.newEnquiries} new</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <div className="text-coffee-amber text-xl mb-2">Loading dashboard...</div>
+                <div className="text-coffee-light/60 text-sm">Fetching statistics...</div>
+              </div>
+            )}
+          </>
         )}
 
         {/* Coffee Management */}

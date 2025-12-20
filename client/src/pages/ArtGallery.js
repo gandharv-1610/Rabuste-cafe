@@ -16,6 +16,7 @@ const ArtGallery = () => {
   const fetchArts = async () => {
     try {
       const params = filter !== 'all' ? { availability: filter } : {};
+      params._t = Date.now(); // Cache busting
       const response = await api.get('/art', { params });
       setArts(response.data);
     } catch (error) {
@@ -111,9 +112,13 @@ const ArtGallery = () => {
                 <div className="aspect-square bg-coffee-brown/40 flex items-center justify-center">
                   {art.image ? (
                     <img
-                      src={art.image}
+                      src={`${art.image}?v=${art.updatedAt || Date.now()}`}
                       alt={art.title}
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = '<span class="text-6xl">🎨</span>';
+                      }}
                     />
                   ) : (
                     <span className="text-6xl">🎨</span>
@@ -165,7 +170,7 @@ const ArtGallery = () => {
               <div className="aspect-square bg-coffee-brown/40 rounded-lg flex items-center justify-center">
                 {selectedArt.image ? (
                   <img
-                    src={selectedArt.image}
+                    src={`${selectedArt.image}?v=${selectedArt.updatedAt || Date.now()}`}
                     alt={selectedArt.title}
                     className="w-full h-full object-cover rounded-lg"
                   />
