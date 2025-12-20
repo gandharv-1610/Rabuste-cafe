@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
+import GoogleReviewsSlider from '../components/GoogleReviewsSlider';
 import api from '../api/axios';
 import heroLogo from '../assets/rabuste-logo-horizontal.png';
 
@@ -466,6 +467,9 @@ const Home = () => {
         </motion.div>
       </section>
 
+      {/* Google Reviews Section */}
+      <GoogleReviewsSlider />
+
       {/* Contact & Location Section */}
       <section className="py-20 px-4 bg-coffee-darker border-t border-coffee-brown/40">
         <div className="max-w-7xl mx-auto">
@@ -596,7 +600,7 @@ const Home = () => {
                   <div>
                     <h4 className="font-semibold text-coffee-amber mb-2">Opening Hours</h4>
                     <div className="text-coffee-light space-y-1">
-                      <p>Monday - Sunday: 7:00 AM - 9:00 PM</p>
+                      <p>Monday - Sunday: 9:30 AM - 11:00 PM</p>
                     </div>
                   </div>
                 </div>
