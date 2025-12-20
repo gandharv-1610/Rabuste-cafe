@@ -1,6 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const Coffee = require('../models/Coffee');
+const Art = require('../models/Art');
+const Workshop = require('../models/Workshop');
 
 const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
 
@@ -107,15 +110,40 @@ Remember: We ONLY serve Robusta coffee, so emphasize Robusta's bold, full-bodied
 });
 
 // Fallback responses for common queries
-const getFallbackResponse = (message) => {
+const getFallbackResponse = async (message) => {
   const lowerMessage = message.toLowerCase();
   
   if (lowerMessage.includes('hours') || lowerMessage.includes('open') || lowerMessage.includes('time')) {
     return "We're open Monday to Sunday, 7 AM to 9 PM. Come visit us for a bold Robusta experience!";
   }
   
-  if (lowerMessage.includes('menu') || lowerMessage.includes('coffee') || lowerMessage.includes('drink')) {
-    return "We serve exclusively Robusta coffee! Check out our Coffee Menu page to see our curated selection of bold brews.";
+  if (lowerMessage.includes('menu') || lowerMessage.includes('coffee') || lowerMessage.includes('drink') || lowerMessage.includes('what do you have')) {
+    try {
+      const menuItems = await Coffee.find().sort({ order: 1 });
+      const coffeeItems = menuItems.filter(item => item.category === 'Coffee').slice(0, 5);
+      const otherItems = menuItems.filter(item => item.category !== 'Coffee').slice(0, 3);
+      
+      let response = "We serve exclusively Robusta coffee! Here are some items from our menu:\n\n";
+      
+      if (coffeeItems.length > 0) {
+        response += "Coffee:\n";
+        coffeeItems.forEach(item => {
+          response += `- ${item.name} (${item.strength}) - ₹${item.price}\n`;
+        });
+      }
+      
+      if (otherItems.length > 0) {
+        response += "\nOther items:\n";
+        otherItems.forEach(item => {
+          response += `- ${item.name} (${item.category}) - ₹${item.price}\n`;
+        });
+      }
+      
+      response += "\nVisit our Coffee Menu page to see all items with full descriptions!";
+      return response;
+    } catch (error) {
+      return "We serve exclusively Robusta coffee! Check out our Coffee Menu page to see our curated selection of bold brews.";
+    }
   }
   
   if (lowerMessage.includes('workshop') || lowerMessage.includes('class') || lowerMessage.includes('event')) {
@@ -130,6 +158,18 @@ const getFallbackResponse = (message) => {
     return "Visit our website to find our location details. We'd love to welcome you to Rabuste Coffee!";
   }
   
+  if (lowerMessage.includes('robusta') || lowerMessage.includes('why robusta')) {
+    return "Robusta coffee is known for its bold, full-bodied flavor and higher caffeine content compared to Arabica. It has a stronger, more intense taste with earthy and nutty notes. Visit our 'Why Robusta?' page to learn more about why we exclusively serve Robusta coffee!";
+  }
+  
+  if (lowerMessage.includes('art') || lowerMessage.includes('gallery')) {
+    return "We have a micro art gallery featuring works from talented artists. Each piece tells a story and creates an immersive cultural experience. Visit our Art Gallery page to explore the collection!";
+  }
+  
+  if (lowerMessage.includes('franchise') || lowerMessage.includes('business opportunity')) {
+    return "We offer franchise opportunities for those interested in bringing the Rabuste Coffee experience to their community. Visit our Franchise page to learn more and submit an enquiry!";
+  }
+  
   return null; // No fallback, use AI
 };
 
@@ -142,8 +182,54 @@ router.post('/chatbot', async (req, res) => {
       return res.status(400).json({ message: 'Message is required' });
     }
 
+    const lowerMessage = message.toLowerCase().trim();
+
+    // Check for navigation requests
+    const navigationPatterns = {
+      'art': '/art',
+      'gallery': '/art',
+      'art gallery': '/art',
+      'artwork': '/art',
+      'coffee': '/coffee',
+      'menu': '/coffee',
+      'coffee menu': '/coffee',
+      'workshop': '/workshops',
+      'workshops': '/workshops',
+      'class': '/workshops',
+      'event': '/workshops',
+      'franchise': '/franchise',
+      'about': '/about',
+      'why robusta': '/why-robusta',
+      'why robusta?': '/why-robusta',
+      'home': '/',
+      'main': '/',
+    };
+
+    // Check if user wants to navigate
+    for (const [keyword, path] of Object.entries(navigationPatterns)) {
+      if (lowerMessage.includes(keyword) && (
+        lowerMessage.includes('take me') || 
+        lowerMessage.includes('go to') || 
+        lowerMessage.includes('show me') ||
+        lowerMessage.includes('open') ||
+        lowerMessage.includes('navigate') ||
+        lowerMessage.includes('redirect')
+      )) {
+        return res.json({
+          response: `I'll take you to the ${keyword === 'art' ? 'Art Gallery' : keyword === 'coffee' ? 'Coffee Menu' : keyword} page!`,
+          navigateTo: path,
+          isRelevant: true
+        });
+      }
+    }
+
+    // Fetch actual menu data
+    const menuItems = await Coffee.find().sort({ order: 1, createdAt: -1 });
+    const artPieces = await Art.find({ availability: 'Available' }).limit(10);
+    const workshops = await Workshop.find({ isActive: true }).limit(5);
+
     // Check for fallback first
-    const fallback = getFallbackResponse(message);
+    const fallback = await getFallbackResponse(message);
     if (fallback) {
       return res.json({
         response: fallback,
@@ -152,46 +238,96 @@ router.post('/chatbot', async (req, res) => {
     }
 
     if (!genAI) {
+      // Fallback response with menu items
+      const coffeeList = menuItems.filter(item => item.category === 'Coffee').map(item => `- ${item.name} (${item.strength}, ₹${item.price})`).join('\n');
+      const otherItems = menuItems.filter(item => item.category !== 'Coffee').map(item => `- ${item.name} (${item.category}, ₹${item.price})`).join('\n');
+      
       return res.json({ 
-        response: "I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, and franchise opportunities. How can I help with that?",
+        response: `I'm here to help you learn about Rabuste Coffee! We serve exclusively Robusta coffee. Our menu includes:\n\n${coffeeList}\n\n${otherItems ? `Other items:\n${otherItems}\n\n` : ''}Visit our Coffee Menu page to see all items with descriptions. How can I help you?`,
         isRelevant: true
       });
     }
 
-    // Use gemini-1.5-flash for faster responses (fallback: gemini-pro)
+    // Use gemini-1.5-flash for faster responses
     const modelName = 'gemini-1.5-flash';
     const model = genAI.getGenerativeModel({ model: modelName });
 
-    const systemPrompt = `You are a friendly and knowledgeable assistant for Rabuste Coffee, a specialty café that serves ONLY Robusta coffee. 
+    // Format menu items for AI
+    const coffeeItems = menuItems
+      .filter(item => item.category === 'Coffee')
+      .map(item => ({
+        name: item.name,
+        description: item.description,
+        strength: item.strength,
+        price: item.price,
+        flavorNotes: item.flavorNotes || [],
+        isBestseller: item.isBestseller
+      }));
 
-Your role is to help customers learn about:
-- Robusta coffee (what it is, flavor profile, why we serve only Robusta)
-- Our coffee menu and brewing methods
-- Art gallery and featured artists
-- Workshops and community experiences
-- Franchise opportunities
+    const otherItems = menuItems
+      .filter(item => item.category !== 'Coffee')
+      .map(item => ({
+        name: item.name,
+        description: item.description,
+        category: item.category,
+        price: item.price
+      }));
 
-IMPORTANT RULES:
-1. You MUST only answer questions related to coffee, art, workshops, or the café
-2. If asked about topics outside these areas, politely redirect: "I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, and franchise opportunities. How can I help with that?"
-3. Be conversational, warm, and coffee-focused
-4. Keep responses concise (2-3 sentences max)
-5. For workshop details, encourage them to visit the Workshops page
-6. For art inquiries, direct them to the Art Gallery
-7. For franchise info, suggest the Franchise page
+    const menuData = {
+      coffee: coffeeItems,
+      otherItems: otherItems,
+      art: artPieces.map(art => ({
+        title: art.title,
+        artistName: art.artistName,
+        description: art.description,
+        price: art.price,
+        availability: art.availability
+      })),
+      workshops: workshops.map(w => ({
+        title: w.title,
+        type: w.type,
+        description: w.description,
+        date: w.date,
+        price: w.price
+      }))
+    };
+
+    const systemPrompt = `You are a friendly and knowledgeable assistant for Rabuste Coffee, a specialty café that serves ONLY Robusta coffee.
+
+CURRENT MENU ITEMS (ONLY SUGGEST FROM THIS LIST):
+
+COFFEE ITEMS (All are Robusta coffee):
+${coffeeItems.map(item => `- ${item.name}: ${item.description} (Strength: ${item.strength}, Price: ₹${item.price}${item.flavorNotes.length > 0 ? `, Notes: ${item.flavorNotes.join(', ')}` : ''}${item.isBestseller ? ', BESTSELLER' : ''})`).join('\n')}
+
+OTHER ITEMS:
+${otherItems.map(item => `- ${item.name} (${item.category}): ${item.description} (Price: ₹${item.price})`).join('\n')}
+
+CRITICAL RULES:
+1. ONLY suggest items from the menu above. NEVER suggest items not in this list.
+2. When suggesting coffee, mention it's Robusta coffee and highlight its bold, full-bodied nature.
+3. For vague queries like "what do you recommend" or "what's good", suggest 2-3 items from the menu with brief reasons.
+4. If user asks about items not in menu, politely say: "I don't see that item in our current menu. Would you like to see our available items?"
+5. Be conversational, warm, and helpful (2-3 sentences max).
+6. For navigation requests (like "take me to art"), respond with: "NAVIGATE:/art" (but this should be handled before reaching AI).
+
+CAFÉ INFORMATION:
+- We serve ONLY Robusta coffee (bold, full-bodied, higher caffeine)
+- We have an art gallery with featured artists
+- We offer workshops (coffee, art, community sessions)
+- We have franchise opportunities
 
 Conversation history: ${JSON.stringify(conversationHistory.slice(-3))}
 
 User question: ${message}
 
-Provide a helpful, on-topic response:`;
+Provide a helpful response based ONLY on the menu items above and café information. If the query is vague, suggest 2-3 items from the menu with brief explanations.`;
 
     const result = await model.generateContent(systemPrompt);
     const response = await result.response;
-    const text = response.text();
+    const text = response.text().trim();
 
     res.json({
-      response: text.trim(),
+      response: text,
       isRelevant: true
     });
   } catch (error) {
@@ -204,12 +340,16 @@ Provide a helpful, on-topic response:`;
     });
     
     // Try fallback on error
-    const fallback = getFallbackResponse(message);
-    if (fallback) {
-      return res.json({
-        response: fallback,
-        isRelevant: true
-      });
+    try {
+      const fallback = await getFallbackResponse(message);
+      if (fallback) {
+        return res.json({
+          response: fallback,
+          isRelevant: true
+        });
+      }
+    } catch (fallbackError) {
+      console.error('Fallback error:', fallbackError);
     }
     
     // Provide more helpful error messages
