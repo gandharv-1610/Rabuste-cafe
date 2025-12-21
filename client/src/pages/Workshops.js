@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import OTPModal from '../components/OTPModal';
+import VideoPlayer from '../components/VideoPlayer';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -18,10 +19,68 @@ const Workshops = () => {
   const [registrationSuccess, setRegistrationSuccess] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingRegistration, setPendingRegistration] = useState(null);
+  const [backgroundMedia, setBackgroundMedia] = useState(null);
 
   useEffect(() => {
     fetchWorkshops();
+    fetchBackground();
   }, []);
+
+  const fetchBackground = async () => {
+    try {
+      // Try fetching with exact page name
+      let response = await api.get('/site-media', {
+        params: { page: 'workshops', _t: Date.now() },
+      });
+      let entries = response.data || [];
+      
+      // If no results, try fetching all and filtering client-side
+      if (entries.length === 0) {
+        console.log('Workshops page - No results with page filter, trying all entries...');
+        response = await api.get('/site-media', {
+          params: { _t: Date.now() },
+        });
+        const allEntries = response.data || [];
+        // Filter for workshops page entries (case-insensitive)
+        entries = allEntries.filter((m) => 
+          m.page && m.page.toLowerCase().trim() === 'workshops'
+        );
+        console.log('Workshops page - Filtered entries from all:', entries);
+      }
+      
+      // Filter for active entries on client side
+      const activeEntries = entries.filter((m) => m.isActive !== false);
+      
+      console.log('Workshops page - All entries:', entries);
+      console.log('Workshops page - Active entries:', activeEntries);
+      console.log('Workshops page - Looking for section: workshops_hero_background');
+      
+      // Try to find exact match first
+      let background = activeEntries.find((m) => 
+        m.section && m.section.trim() === 'workshops_hero_background'
+      );
+      
+      // If not found, try any active entry for workshops page
+      if (!background && activeEntries.length > 0) {
+        background = activeEntries[0];
+        console.log('Workshops page - Using first available active entry:', background);
+      }
+      
+      console.log('Workshops page - Selected background:', background);
+      console.log('Workshops page - Background URL:', background?.url);
+      
+      if (background && background.url) {
+        setBackgroundMedia(background);
+      } else {
+        console.warn('Workshops page - No valid background found.');
+        console.warn('Workshops page - All entries from API:', entries);
+        setBackgroundMedia(null);
+      }
+    } catch (error) {
+      console.error('Error fetching workshops background:', error);
+      setBackgroundMedia(null);
+    }
+  };
 
   const fetchWorkshops = async () => {
     try {
@@ -118,13 +177,36 @@ const Workshops = () => {
   return (
     <div className="pt-20 min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-coffee-darker to-coffee-dark">
+      <section className="relative py-20 px-4 min-h-[60vh] flex items-center justify-center overflow-hidden">
+        {/* Background Media */}
+        {backgroundMedia && backgroundMedia.mediaType === 'video' ? (
+          <VideoPlayer
+            videoUrl={backgroundMedia.url}
+            autoplay={true}
+            muted={true}
+            className="absolute inset-0 z-0"
+          />
+        ) : backgroundMedia && backgroundMedia.url ? (
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${backgroundMedia.url}${backgroundMedia.url.includes('?') ? '&' : '?'}v=${backgroundMedia.updatedAt || Date.now()})`,
+            }}
+          ></div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker to-coffee-dark"></div>
+        )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darkest/90 via-coffee-darker/75 to-coffee-dark/80 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5 z-10"></div>
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center relative z-20"
         >
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-coffee-amber mb-6">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6">
             Workshops & Experiences
           </h1>
           <p className="text-xl text-coffee-light">
@@ -160,7 +242,7 @@ const Workshops = () => {
                       {workshop.type}
                     </span>
                   </div>
-                  <h3 className="text-2xl font-display font-bold text-coffee-amber mb-3">
+                  <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-3">
                     {workshop.title}
                   </h3>
                   <p className="text-coffee-light mb-4 line-clamp-3">
@@ -232,7 +314,7 @@ const Workshops = () => {
             {registrationSuccess ? (
               <div className="text-center">
                 <div className="text-6xl mb-4">✅</div>
-                <h2 className="text-2xl font-display font-bold text-coffee-amber mb-4">
+                <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
                   Registration Successful!
                 </h2>
                 <p className="text-coffee-light mb-6">
@@ -251,7 +333,7 @@ const Workshops = () => {
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-display font-bold text-coffee-amber mb-4">
+                <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
                   Register for {selectedWorkshop.title}
                 </h2>
                 <form onSubmit={handleRegister} className="space-y-4">

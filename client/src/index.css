@@ -8,7 +8,8 @@
   }
   
   h1, h2, h3, h4, h5, h6 {
-    @apply font-display;
+    @apply font-heading;
+    letter-spacing: -0.02em;
   }
 }
 
@@ -20,19 +21,21 @@
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 10px;
+  width: 12px;
 }
 
 ::-webkit-scrollbar-track {
-  @apply bg-coffee-darker;
+  @apply bg-coffee-darkest;
 }
 
 ::-webkit-scrollbar-thumb {
-  @apply bg-coffee-brown rounded-full;
+  background: linear-gradient(to bottom, #FF6F00, #FFB300);
+  border-radius: 6px;
+  border: 2px solid #1A0F0A;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  @apply bg-coffee-medium;
+  background: linear-gradient(to bottom, #FF8F33, #FFC233);
 }
 
 /* Smooth scrolling */

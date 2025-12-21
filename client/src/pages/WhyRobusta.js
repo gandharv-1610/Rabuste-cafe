@@ -1,8 +1,51 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import Chatbot from '../components/Chatbot';
+import VideoPlayer from '../components/VideoPlayer';
+import api from '../api/axios';
 
 const WhyRobusta = () => {
+  const [backgroundMedia, setBackgroundMedia] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchBackground = async () => {
+      try {
+        // First try without isActive filter (like Home page does)
+        const response = await api.get('/site-media', {
+          params: { page: 'why-robusta', _t: Date.now() },
+        });
+        const entries = response.data || [];
+        
+        // Filter for active entries on client side
+        const activeEntries = entries.filter((m) => m.isActive !== false);
+        
+        console.log('Why Robusta page - All entries:', entries);
+        console.log('Why Robusta page - Active entries:', activeEntries);
+        
+        // Try to find exact match first
+        let background = activeEntries.find((m) => m.section === 'why_robusta_hero_background');
+        
+        // If not found, try any active entry for why-robusta page
+        if (!background && activeEntries.length > 0) {
+          background = activeEntries[0];
+        }
+        
+        console.log('Why Robusta page - Selected background:', background);
+        
+        if (background && background.url) {
+          setBackgroundMedia(background);
+        } else {
+          console.warn('Why Robusta page - No valid background found');
+          setBackgroundMedia(null);
+        }
+      } catch (error) {
+        console.error('Error fetching why robusta background:', error);
+        setBackgroundMedia(null);
+      }
+    };
+
+    fetchBackground();
+  }, []);
   const features = [
     {
       icon: '💪',
@@ -36,13 +79,36 @@ const WhyRobusta = () => {
   return (
     <div className="pt-20 min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-coffee-darker to-coffee-dark">
+      <section className="relative py-20 px-4 min-h-[60vh] flex items-center justify-center overflow-hidden">
+        {/* Background Media */}
+        {backgroundMedia && backgroundMedia.mediaType === 'video' ? (
+          <VideoPlayer
+            videoUrl={backgroundMedia.url}
+            autoplay={true}
+            muted={true}
+            className="absolute inset-0 z-0"
+          />
+        ) : backgroundMedia && backgroundMedia.url ? (
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${backgroundMedia.url}${backgroundMedia.url.includes('?') ? '&' : '?'}v=${backgroundMedia.updatedAt || Date.now()})`,
+            }}
+          ></div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker to-coffee-dark"></div>
+        )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darkest/90 via-coffee-darker/75 to-coffee-dark/80 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5 z-10"></div>
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center relative z-20"
         >
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-coffee-amber mb-6">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6">
             Why Robusta?
           </h1>
           <p className="text-xl text-coffee-light">
@@ -60,7 +126,7 @@ const WhyRobusta = () => {
           transition={{ duration: 0.8 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-8 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
             What is Robusta Coffee?
           </h2>
           <div className="bg-coffee-brown/20 rounded-lg p-8 md:p-12">
@@ -84,7 +150,7 @@ const WhyRobusta = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-12 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-12 text-center">
             Why Robusta Stands Out
           </h2>
           <div className="grid md:grid-cols-2 gap-8">
@@ -98,7 +164,7 @@ const WhyRobusta = () => {
                 className="bg-coffee-brown/20 rounded-lg p-6 hover:bg-coffee-brown/30 transition-colors"
               >
                 <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-2xl font-display font-semibold text-coffee-amber mb-3">
+                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
                   {feature.title}
                 </h3>
                 <p className="text-coffee-light leading-relaxed">
@@ -117,7 +183,7 @@ const WhyRobusta = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-8 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
             Robusta vs. Arabica
           </h2>
           <div className="overflow-x-auto">
@@ -150,7 +216,7 @@ const WhyRobusta = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="bg-gradient-to-r from-coffee-amber/20 to-coffee-gold/20 rounded-lg p-8 md:p-12 text-center"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-6">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-6">
             Why Rabuste Serves Only Robusta
           </h2>
           <p className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6">

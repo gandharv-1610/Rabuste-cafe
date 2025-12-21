@@ -1526,6 +1526,12 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
     { value: 'home_story_art', label: 'Home - Story Art Visual' },
     { value: 'home_story_workshops', label: 'Home - Story Workshops Visual' },
     { value: 'home_story_franchise', label: 'Home - Story Franchise Visual' },
+    { value: 'about_hero_background', label: 'About - Hero Background' },
+    { value: 'why_robusta_hero_background', label: 'Why Robusta - Hero Background' },
+    { value: 'franchise_hero_background', label: 'Franchise - Hero Background' },
+    { value: 'art_hero_background', label: 'Art Gallery - Hero Background' },
+    { value: 'coffee_hero_background', label: 'Coffee - Hero Background' },
+    { value: 'workshops_hero_background', label: 'Workshops - Hero Background' },
   ];
 
   return (
@@ -1567,6 +1573,7 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
               >
                 <option value="home">Home</option>
                 <option value="about">About</option>
+                <option value="why-robusta">Why Robusta</option>
                 <option value="coffee">Coffee</option>
                 <option value="art">Art</option>
                 <option value="workshops">Workshops</option>
