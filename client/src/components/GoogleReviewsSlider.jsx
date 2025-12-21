@@ -10,22 +10,39 @@ const GoogleReviewsSlider = ({ placeId }) => {
   const [reviews, setReviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [googleLoaded, setGoogleLoaded] = useState(false);
   const [imageLoadStates, setImageLoadStates] = useState({}); // Track: 'loading' | 'loaded' | 'error'
   const scriptLoadedRef = useRef(false);
+  const retryCountRef = useRef(0);
+  const MAX_RETRIES = 10;
 
   // Default Place ID - can be overridden via prop or env
   const PLACE_ID = placeId || process.env.REACT_APP_GOOGLE_PLACE_ID || '';
   const API_KEY = process.env.REACT_APP_GOOGLE_MAPS_API_KEY;
 
   useEffect(() => {
+    // Reset states
+    setLoading(true);
+    setError(null);
+    setReviews([]);
+    retryCountRef.current = 0;
+    
+    // Debug logging
+    console.log('GoogleReviewsSlider: Component mounted', {
+      hasAPIKey: !!API_KEY,
+      apiKeyLength: API_KEY?.length,
+      hasPlaceId: !!PLACE_ID,
+      placeId: PLACE_ID
+    });
+    
     if (!API_KEY) {
+      console.error('GoogleReviewsSlider: API_KEY is missing');
       setError('Google Maps API key is not configured');
       setLoading(false);
       return;
     }
 
     if (!PLACE_ID) {
+      console.error('GoogleReviewsSlider: PLACE_ID is missing');
       setError('Google Place ID is not configured. Please set REACT_APP_GOOGLE_PLACE_ID in your .env file');
       setLoading(false);
       return;
@@ -43,15 +60,16 @@ const GoogleReviewsSlider = ({ placeId }) => {
         if (existingScript) {
           scriptLoadedRef.current = true;
           if (window.google && window.google.maps && window.google.maps.places) {
-            setGoogleLoaded(true);
             resolve();
             return;
           }
           // Wait for script to load
           existingScript.addEventListener('load', () => {
             scriptLoadedRef.current = true;
-            setGoogleLoaded(true);
             resolve();
+          });
+          existingScript.addEventListener('error', () => {
+            reject(new Error('Failed to load Google Maps script'));
           });
           return;
         }
@@ -62,7 +80,6 @@ const GoogleReviewsSlider = ({ placeId }) => {
         script.defer = true;
         script.onload = () => {
           scriptLoadedRef.current = true;
-          setGoogleLoaded(true);
           resolve();
         };
         script.onerror = () => {
@@ -77,53 +94,94 @@ const GoogleReviewsSlider = ({ placeId }) => {
       try {
         await loadGoogleMapsScript();
 
-        // Wait for Google Maps API to be fully loaded
+        // Wait for Google Maps API to be fully loaded with retry limit
         if (!window.google || !window.google.maps || !window.google.maps.places) {
-          // Retry after a short delay
-          setTimeout(() => {
-            if (window.google && window.google.maps && window.google.maps.places) {
-              fetchReviews();
-            } else {
-              setError('Google Maps Places API failed to load');
-              setLoading(false);
-            }
-          }, 500);
-          return;
+          if (retryCountRef.current < MAX_RETRIES) {
+            retryCountRef.current += 1;
+            // Retry after a short delay
+            setTimeout(() => {
+              fetchReviews(); // Continue retrying up to MAX_RETRIES
+            }, 500);
+            return;
+          } else {
+            setError('Google Maps Places API failed to load after multiple attempts');
+            setLoading(false);
+            return;
+          }
         }
+        
+        // Reset retry count on successful load
+        retryCountRef.current = 0;
+
+        // Create a map element for PlacesService (it requires a Map instance)
+        const mapDiv = document.createElement('div');
+        const map = new window.google.maps.Map(mapDiv, {
+          center: { lat: 0, lng: 0 },
+          zoom: 1,
+        });
 
         // Use the new Places API (PlacesService)
-        const service = new window.google.maps.places.PlacesService(
-          document.createElement('div')
-        );
+        const service = new window.google.maps.places.PlacesService(map);
 
         // Use Place Details request
+        // Note: 'reviews' field includes profile_photo_url automatically when available
         const request = {
           placeId: PLACE_ID,
-          fields: ['reviews', 'rating', 'user_ratings_total', 'name'],
+          fields: ['reviews', 'rating', 'user_ratings_total', 'name', 'formatted_address'],
         };
 
+        console.log('GoogleReviewsSlider: Making Places API request with:', request);
+        
         service.getDetails(request, (place, status) => {
+          console.log('GoogleReviewsSlider: Places API callback received', { status, hasPlace: !!place });
+          
           if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
             const placeReviews = place.reviews || [];
             // Debug: Log reviews to see what data we're getting
-            console.log('Google Reviews Data:', placeReviews);
-            placeReviews.forEach((review, idx) => {
-              console.log(`Review ${idx}:`, {
-                author_name: review.author_name,
-                profile_photo_url: review.profile_photo_url,
-                author_url: review.author_url,
-                rating: review.rating
-              });
+            console.log('GoogleReviewsSlider: Place details received', {
+              reviewCount: placeReviews.length,
+              placeName: place.name,
+              rating: place.rating,
+              totalRatings: place.user_ratings_total
             });
-            // Limit to top 5-6 reviews
-            const topReviews = placeReviews.slice(0, 6);
-            setReviews(topReviews);
+            console.log('GoogleReviewsSlider: Reviews array:', placeReviews);
+            
+            if (placeReviews.length > 0) {
+              placeReviews.forEach((review, idx) => {
+                console.log(`GoogleReviewsSlider: Review ${idx}:`, {
+                  author_name: review.author_name,
+                  rating: review.rating,
+                  time: review.time,
+                  text_length: review.text?.length,
+                  has_photo: !!review.profile_photo_url,
+                  profile_photo_url: review.profile_photo_url
+                });
+              });
+              // Limit to top 5-6 reviews and ensure profile_photo_url is available
+              const topReviews = placeReviews.slice(0, 6).map(review => {
+                // Log if profile photo URL exists but might be restricted
+                if (review.profile_photo_url) {
+                  console.log(`Profile photo URL for ${review.author_name}:`, review.profile_photo_url);
+                }
+                return review;
+              });
+              console.log('GoogleReviewsSlider: Setting reviews state with', topReviews.length, 'reviews');
+              setReviews(topReviews);
+            } else {
+              console.warn('GoogleReviewsSlider: No reviews found in place details. Place data:', place);
+              setReviews([]);
+            }
             setLoading(false);
           } else if (status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
-            setError('No reviews found for this place');
+            console.warn('GoogleReviewsSlider: Place not found or has no reviews. Status:', status);
+            setReviews([]);
             setLoading(false);
           } else {
-            setError(`Failed to fetch reviews: ${status}`);
+            console.error('GoogleReviewsSlider: Places API error. Status:', status);
+            const statusText = Object.keys(window.google.maps.places.PlacesServiceStatus).find(
+              key => window.google.maps.places.PlacesServiceStatus[key] === status
+            );
+            setError(`Failed to fetch reviews: ${statusText || status}`);
             setLoading(false);
           }
         });
@@ -135,6 +193,11 @@ const GoogleReviewsSlider = ({ placeId }) => {
     };
 
     fetchReviews();
+    
+    // Cleanup function to prevent memory leaks
+    return () => {
+      retryCountRef.current = 0;
+    };
   }, [API_KEY, PLACE_ID]);
 
   // Format date
@@ -200,7 +263,17 @@ const GoogleReviewsSlider = ({ placeId }) => {
     );
   }
 
-  if (reviews.length === 0) {
+  // Debug: Log current state
+  console.log('GoogleReviewsSlider: Render state', { 
+    loading, 
+    error, 
+    reviewsCount: reviews.length,
+    hasReviews: reviews.length > 0
+  });
+
+  if (reviews.length === 0 && !loading && !error) {
+    // Don't show anything if no reviews found (component returns null)
+    console.log('GoogleReviewsSlider: Returning null - no reviews, not loading, no error');
     return null;
   }
 
@@ -254,11 +327,11 @@ const GoogleReviewsSlider = ({ placeId }) => {
               dynamicBullets: true,
             }}
             navigation={true}
-            loop={reviews.length > 3}
+            loop={reviews.length >= 3}
             className="google-reviews-swiper"
           >
             {reviews.map((review, index) => (
-              <SwiperSlide key={index}>
+              <SwiperSlide key={`review-${review.author_name}-${review.time || index}`}>
                 <div className="bg-gradient-to-br from-coffee-darker/90 via-coffee-brown/60 to-coffee-darker/90 border border-coffee-brown/60 rounded-xl p-6 h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow">
                   {/* Rating */}
                   <div className="mb-4">
@@ -284,21 +357,26 @@ const GoogleReviewsSlider = ({ placeId }) => {
                         alt={review.author_name}
                         className="w-12 h-12 rounded-full object-cover border-2 border-coffee-amber/30"
                         loading="lazy"
+                        referrerPolicy="no-referrer"
                         onError={(e) => {
                           // Only mark as error once
                           if (imageLoadStates[review.profile_photo_url] !== 'error') {
                             console.warn('Failed to load profile photo:', {
                               url: review.profile_photo_url,
-                              author: review.author_name
+                              author: review.author_name,
+                              error: 'Image failed to load - may be blocked by CORS or unavailable'
                             });
                             setImageLoadStates(prev => ({
                               ...prev,
                               [review.profile_photo_url]: 'error'
                             }));
+                            // Hide the broken image
+                            e.target.style.display = 'none';
                           }
                         }}
                         onLoad={() => {
                           // Mark as successfully loaded - this prevents fallback
+                          console.log('Profile photo loaded successfully:', review.author_name);
                           setImageLoadStates(prev => ({
                             ...prev,
                             [review.profile_photo_url]: 'loaded'
@@ -308,7 +386,7 @@ const GoogleReviewsSlider = ({ placeId }) => {
                     ) : null}
                     {/* Show fallback only if no photo URL OR if image failed to load */}
                     {(!review.profile_photo_url || imageLoadStates[review.profile_photo_url] === 'error') && (
-                      <div className="w-12 h-12 rounded-full bg-coffee-brown/50 flex items-center justify-center border-2 border-coffee-amber/30">
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-brown/60 to-coffee-amber/20 flex items-center justify-center border-2 border-coffee-amber/30 shadow-sm">
                         <span className="text-coffee-amber text-xl font-semibold">
                           {review.author_name?.charAt(0)?.toUpperCase() || '?'}
                         </span>
@@ -369,4 +447,5 @@ const GoogleReviewsSlider = ({ placeId }) => {
 };
 
 export default GoogleReviewsSlider;
+
 

@@ -95,27 +95,36 @@ const Home = () => {
           }}></div>
         )}
         
-        {/* Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker/80 via-coffee-dark/60 to-coffee-darker/80 z-10"></div>
+        {/* Enhanced Gradient Overlay with Color Depth */}
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darkest/90 via-coffee-darker/75 to-coffee-dark/80 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5 z-10"></div>
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="relative z-20 text-center px-4 max-w-5xl mx-auto"
+          className="relative z-20 text-center px-4 max-w-6xl mx-auto"
         >
-          <div className="flex justify-center mb-6">
-            <img
-              src={heroLogo}
-              alt="Rabuste Coffee logo"
-              className="h-20 md:h-24 object-contain drop-shadow-lg"
-            />
-          </div>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.6 }}
+            className="flex justify-center mb-8"
+          >
+            <div className="relative">
+              <div className="absolute inset-0 bg-coffee-amber/20 blur-2xl rounded-full"></div>
+              <img
+                src={heroLogo}
+                alt="Rabuste Coffee logo"
+                className="relative h-24 md:h-32 object-contain drop-shadow-2xl"
+              />
+            </div>
+          </motion.div>
           <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-5xl md:text-7xl font-display font-bold text-coffee-amber mb-6"
+            className="text-6xl md:text-8xl font-heading font-bold mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent leading-tight"
           >
             Bold Robusta.
           </motion.h1>
@@ -123,7 +132,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="text-2xl md:text-4xl font-display text-coffee-cream mb-4"
+            className="text-2xl md:text-4xl font-heading text-coffee-creamLight mb-6 font-medium"
           >
             Coffee × Art × Technology
           </motion.p>
@@ -131,7 +140,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-lg md:text-xl text-coffee-light max-w-2xl mx-auto mb-12"
+            className="text-lg md:text-xl text-coffee-light max-w-3xl mx-auto mb-12 leading-relaxed"
           >
             Experience the finest Robusta coffee in a cozy space where bold flavors meet creative art and innovative technology.
           </motion.p>
@@ -139,17 +148,18 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="flex flex-wrap gap-4 justify-center"
+            className="flex flex-wrap gap-5 justify-center"
           >
             <Link
               to="/coffee"
-              className="bg-coffee-amber text-coffee-darker px-8 py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors shadow-lg"
+              className="group relative bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darkest px-10 py-4 rounded-xl font-semibold hover:from-coffee-amberLight hover:to-coffee-goldLight transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform"
             >
-              Explore Coffee
+              <span className="relative z-10">Explore Coffee</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-coffee-gold to-coffee-amber rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Link>
             <Link
               to="/art"
-              className="bg-transparent border-2 border-coffee-amber text-coffee-amber px-8 py-4 rounded-lg font-semibold hover:bg-coffee-amber hover:text-coffee-darker transition-colors"
+              className="group relative bg-transparent border-2 border-coffee-amber/80 text-coffee-amber px-10 py-4 rounded-xl font-semibold hover:bg-coffee-amber/10 hover:border-coffee-amber transition-all duration-300 backdrop-blur-sm hover:scale-105 transform"
             >
               View Art Gallery
             </Link>
@@ -159,19 +169,20 @@ const Home = () => {
 
       {/* Daily Offers */}
       {offers.length > 0 && (
-        <section className="py-10 px-4 bg-coffee-brown/20 border-y border-coffee-brown/40">
-          <div className="max-w-6xl mx-auto">
+        <section className="py-16 px-4 bg-gradient-to-b from-coffee-darkest via-coffee-darker to-coffee-darkest border-y border-coffee-amber/20 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5"></div>
+          <div className="max-w-7xl mx-auto relative z-10">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.6 }}
-              className="mb-6 text-center"
+              className="mb-10 text-center"
             >
-              <p className="text-xs uppercase tracking-[0.3em] text-coffee-light/70 mb-2">
+              <p className="text-xs uppercase tracking-[0.4em] text-coffee-gold/80 mb-3 font-semibold">
                 Today at Rabuste
               </p>
-              <h2 className="text-3xl md:text-4xl font-display font-bold text-coffee-amber">
+              <h2 className="text-4xl md:text-5xl font-heading font-bold bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
                 Daily Offers & Specials
               </h2>
             </motion.div>
@@ -183,10 +194,17 @@ const Home = () => {
               className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
             >
               {offers.slice(0, 6).map((offer) => (
-                <div
+                <motion.div
                   key={offer._id}
-                  className="relative rounded-xl bg-gradient-to-br from-coffee-darker/80 via-coffee-brown/60 to-coffee-darker/80 border border-coffee-brown/60 shadow-lg px-5 py-4 flex flex-col h-full"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5 }}
+                  whileHover={{ y: -5, transition: { duration: 0.2 } }}
+                  className="relative rounded-2xl bg-gradient-to-br from-coffee-darker/95 via-coffee-brown/70 to-coffee-dark/90 border border-coffee-amber/30 shadow-xl hover:shadow-2xl hover:border-coffee-amber/50 px-6 py-5 flex flex-col h-full transition-all duration-300 group overflow-hidden"
                 >
+                  <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                  <div className="relative z-10">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       {offer.badgeText && (
@@ -194,7 +212,7 @@ const Home = () => {
                           {offer.badgeText}
                         </span>
                       )}
-                      <h3 className="text-lg md:text-xl font-display font-semibold text-coffee-amber leading-snug">
+                      <h3 className="text-lg md:text-xl font-heading font-semibold text-coffee-amber leading-snug">
                         {offer.title}
                       </h3>
                       {offer.subtitle && (
@@ -226,15 +244,16 @@ const Home = () => {
                       {offer.terms}
                     </p>
                   )}
-                  <p className="mt-auto pt-1 text-[11px] text-coffee-light/60">
-                    {offer.startDate
-                      ? `From ${new Date(offer.startDate).toLocaleDateString()}`
-                      : 'Starts today'}
-                    {offer.endDate
-                      ? ` • Until ${new Date(offer.endDate).toLocaleDateString()}`
-                      : ''}
-                  </p>
-                </div>
+                    <p className="mt-auto pt-1 text-[11px] text-coffee-light/60">
+                      {offer.startDate
+                        ? `From ${new Date(offer.startDate).toLocaleDateString()}`
+                        : 'Starts today'}
+                      {offer.endDate
+                        ? ` • Until ${new Date(offer.endDate).toLocaleDateString()}`
+                        : ''}
+                    </p>
+                  </div>
+                </motion.div>
               ))}
             </motion.div>
           </div>
@@ -242,18 +261,22 @@ const Home = () => {
       )}
 
       {/* Story Sections */}
-      <section className="py-20 px-4 max-w-6xl mx-auto">
+      <section className="py-24 px-4 max-w-7xl mx-auto relative">
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-coffee-amber/3 to-transparent"></div>
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+          className="text-center mb-20 relative z-10"
         >
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-coffee-amber mb-6">
+          <p className="text-sm uppercase tracking-[0.3em] text-coffee-gold/70 mb-4 font-semibold">
+            Discover Our Journey
+          </p>
+          <h2 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
             Our Story
           </h2>
-          <p className="text-xl text-coffee-light max-w-3xl mx-auto">
+          <p className="text-xl md:text-2xl text-coffee-light max-w-3xl mx-auto leading-relaxed">
             Rabuste Coffee is more than a café—it's a bold statement about what coffee can be.
           </p>
         </motion.div>
@@ -266,9 +289,10 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
+
           >
             <div>
-              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Bold Coffee, Cozy Space
               </h3>
               <p className="text-coffee-light text-lg mb-4">
@@ -278,7 +302,7 @@ const Home = () => {
                 Step into our cozy space where every cup tells a story of strength, character, and uncompromising flavor.
               </p>
             </div>
-            <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square">
+            <div className="bg-gradient-to-br from-coffee-brown/40 to-coffee-dark/60 rounded-2xl overflow-hidden aspect-square shadow-2xl border border-coffee-amber/20 group hover:border-coffee-amber/40 transition-all duration-300">
               {/* Brewing media from Site Media (image or video) */}
               {brewingMedia && brewingMedia.mediaType === 'video' ? (
                 <VideoPlayer
@@ -308,6 +332,7 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
+
           >
             <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square order-2 md:order-1 flex items-center justify-center">
               {artStoryMedia && artStoryMedia.mediaType === 'video' ? (
@@ -328,7 +353,7 @@ const Home = () => {
               )}
             </div>
             <div className="order-1 md:order-2">
-              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Micro Art Gallery
               </h3>
               <p className="text-coffee-light text-lg mb-4">
@@ -350,9 +375,10 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
+
           >
             <div>
-              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Workshops & Community
               </h3>
               <p className="text-coffee-light text-lg mb-4">
@@ -392,6 +418,7 @@ const Home = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
             className="grid md:grid-cols-2 gap-12 items-center"
+
           >
             <div className="bg-coffee-brown/30 rounded-lg overflow-hidden aspect-square flex items-center justify-center order-2 md:order-1">
               {franchiseStoryMedia && franchiseStoryMedia.mediaType === 'video' ? (
@@ -412,7 +439,7 @@ const Home = () => {
               )}
             </div>
             <div className="order-1 md:order-2">
-              <h3 className="text-3xl font-display font-bold text-coffee-amber mb-4">
+              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Join the Movement
               </h3>
               <p className="text-coffee-light text-lg mb-4">
@@ -430,36 +457,41 @@ const Home = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 px-4 bg-coffee-brown/20">
+      <section className="py-24 px-4 bg-gradient-to-b from-coffee-dark via-coffee-darker to-coffee-darkest relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/10 via-coffee-gold/5 to-coffee-amber/10"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,111,0,0.1),transparent_70%)]"></div>
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-5xl mx-auto text-center relative z-10"
         >
-          <h2 className="text-4xl md:text-5xl font-display font-bold text-coffee-amber mb-6">
+          <p className="text-sm uppercase tracking-[0.3em] text-coffee-gold/80 mb-4 font-semibold">
+            Join The Experience
+          </p>
+          <h2 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
             Ready to Experience Bold Robusta?
           </h2>
-          <p className="text-xl text-coffee-light mb-8">
+          <p className="text-xl md:text-2xl text-coffee-light mb-12 max-w-2xl mx-auto leading-relaxed">
             Discover our menu, explore our art gallery, or join our workshops.
           </p>
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex flex-wrap gap-5 justify-center">
             <Link
               to="/coffee"
-              className="bg-coffee-amber text-coffee-darker px-8 py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+              className="group relative bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darkest px-10 py-4 rounded-xl font-semibold hover:from-coffee-amberLight hover:to-coffee-goldLight transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform"
             >
-              Coffee Menu
+              <span className="relative z-10">Coffee Menu</span>
             </Link>
             <Link
               to="/art"
-              className="bg-coffee-brown text-coffee-cream px-8 py-4 rounded-lg font-semibold hover:bg-coffee-medium transition-colors"
+              className="group relative bg-gradient-to-r from-coffee-brown to-coffee-medium text-coffee-creamLight px-10 py-4 rounded-xl font-semibold hover:from-coffee-medium hover:to-coffee-light transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform"
             >
               Art Gallery
             </Link>
             <Link
               to="/workshops"
-              className="bg-coffee-brown text-coffee-cream px-8 py-4 rounded-lg font-semibold hover:bg-coffee-medium transition-colors"
+              className="group relative bg-gradient-to-r from-coffee-brown to-coffee-medium text-coffee-creamLight px-10 py-4 rounded-xl font-semibold hover:from-coffee-medium hover:to-coffee-light transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform"
             >
               Workshops
             </Link>
@@ -471,33 +503,37 @@ const Home = () => {
       <GoogleReviewsSlider />
 
       {/* Contact & Location Section */}
-      <section className="py-20 px-4 bg-coffee-darker border-t border-coffee-brown/40">
+      <section className="py-24 px-4 bg-gradient-to-b from-coffee-darkest to-coffee-darker border-t border-coffee-amber/20 relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5"></div>
         <div className="max-w-7xl mx-auto">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="text-center mb-12"
+            className="text-center mb-16 relative z-10"
           >
-            <h2 className="text-4xl md:text-5xl font-display font-bold text-coffee-amber mb-4">
+            <p className="text-sm uppercase tracking-[0.3em] text-coffee-gold/80 mb-4 font-semibold">
+              Find Us
+            </p>
+            <h2 className="text-5xl md:text-6xl font-heading font-bold mb-4 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
               Visit Us
             </h2>
-            <p className="text-xl text-coffee-light">
+            <p className="text-xl md:text-2xl text-coffee-light">
               Come experience bold Robusta coffee in our cozy space
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12">
+          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 relative z-10">
             {/* Contact Information */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="bg-coffee-brown/20 rounded-lg p-8"
+              className="bg-gradient-to-br from-coffee-brown/30 to-coffee-dark/40 rounded-2xl p-8 border border-coffee-amber/20 shadow-xl hover:shadow-2xl transition-all duration-300"
             >
-              <h3 className="text-2xl font-display font-bold text-coffee-amber mb-6">
+              <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-6">
                 Contact & Location
               </h3>
               
@@ -613,7 +649,7 @@ const Home = () => {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="bg-coffee-brown/20 rounded-lg overflow-hidden"
+              className="bg-gradient-to-br from-coffee-brown/30 to-coffee-dark/40 rounded-2xl overflow-hidden border border-coffee-amber/20 shadow-xl"
             >
               <div className="h-full min-h-[400px]">
                 {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
@@ -656,4 +692,8 @@ const Home = () => {
 };
 
 export default Home;
+
+
+
+
 

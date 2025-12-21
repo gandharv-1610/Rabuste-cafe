@@ -3,8 +3,50 @@ import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import OTPModal from '../components/OTPModal';
+import VideoPlayer from '../components/VideoPlayer';
 
 const Franchise = () => {
+  const [backgroundMedia, setBackgroundMedia] = React.useState(null);
+
+  React.useEffect(() => {
+    const fetchBackground = async () => {
+      try {
+        // First try without isActive filter (like Home page does)
+        const response = await api.get('/site-media', {
+          params: { page: 'franchise', _t: Date.now() },
+        });
+        const entries = response.data || [];
+        
+        // Filter for active entries on client side
+        const activeEntries = entries.filter((m) => m.isActive !== false);
+        
+        console.log('Franchise page - All entries:', entries);
+        console.log('Franchise page - Active entries:', activeEntries);
+        
+        // Try to find exact match first
+        let background = activeEntries.find((m) => m.section === 'franchise_hero_background');
+        
+        // If not found, try any active entry for franchise page
+        if (!background && activeEntries.length > 0) {
+          background = activeEntries[0];
+        }
+        
+        console.log('Franchise page - Selected background:', background);
+        
+        if (background && background.url) {
+          setBackgroundMedia(background);
+        } else {
+          console.warn('Franchise page - No valid background found');
+          setBackgroundMedia(null);
+        }
+      } catch (error) {
+        console.error('Error fetching franchise background:', error);
+        setBackgroundMedia(null);
+      }
+    };
+
+    fetchBackground();
+  }, []);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -108,13 +150,36 @@ const Franchise = () => {
   return (
     <div className="pt-20 min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 px-4 bg-gradient-to-b from-coffee-darker to-coffee-dark">
+      <section className="relative py-20 px-4 min-h-[60vh] flex items-center justify-center overflow-hidden">
+        {/* Background Media */}
+        {backgroundMedia && backgroundMedia.mediaType === 'video' ? (
+          <VideoPlayer
+            videoUrl={backgroundMedia.url}
+            autoplay={true}
+            muted={true}
+            className="absolute inset-0 z-0"
+          />
+        ) : backgroundMedia && backgroundMedia.url ? (
+          <div 
+            className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{
+              backgroundImage: `url(${backgroundMedia.url}${backgroundMedia.url.includes('?') ? '&' : '?'}v=${backgroundMedia.updatedAt || Date.now()})`,
+            }}
+          ></div>
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker to-coffee-dark"></div>
+        )}
+        
+        {/* Gradient Overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-coffee-darkest/90 via-coffee-darker/75 to-coffee-dark/80 z-10"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5 z-10"></div>
+        
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
-          className="max-w-4xl mx-auto text-center"
+          className="max-w-4xl mx-auto text-center relative z-20"
         >
-          <h1 className="text-5xl md:text-6xl font-display font-bold text-coffee-amber mb-6">
+          <h1 className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6">
             Franchise Opportunity
           </h1>
           <p className="text-xl text-coffee-light">
@@ -132,7 +197,7 @@ const Franchise = () => {
           transition={{ duration: 0.8 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-6 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-6 text-center">
             Join the Rabuste Movement
           </h2>
           <div className="bg-coffee-brown/20 rounded-lg p-8 md:p-12">
@@ -153,7 +218,7 @@ const Franchise = () => {
           transition={{ duration: 0.8, delay: 0.2 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-12 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-12 text-center">
             Why Franchise with Rabuste?
           </h2>
           <div className="grid md:grid-cols-2 gap-8">
@@ -167,7 +232,7 @@ const Franchise = () => {
                 className="bg-coffee-brown/20 rounded-lg p-6"
               >
                 <div className="text-4xl mb-4">{benefit.icon}</div>
-                <h3 className="text-2xl font-display font-semibold text-coffee-amber mb-3">
+                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
                   {benefit.title}
                 </h3>
                 <p className="text-coffee-light leading-relaxed">
@@ -186,12 +251,12 @@ const Franchise = () => {
           transition={{ duration: 0.8, delay: 0.4 }}
           className="mb-16"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-8 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
             Requirements & Benefits
           </h2>
           <div className="grid md:grid-cols-2 gap-8">
             <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-2xl font-display font-semibold text-coffee-amber mb-4">
+              <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
                 What We Look For
               </h3>
               <ul className="space-y-3 text-coffee-light">
@@ -218,7 +283,7 @@ const Franchise = () => {
               </ul>
             </div>
             <div className="bg-coffee-brown/20 rounded-lg p-6">
-              <h3 className="text-2xl font-display font-semibold text-coffee-amber mb-4">
+              <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
                 What We Provide
               </h3>
               <ul className="space-y-3 text-coffee-light">
@@ -255,14 +320,14 @@ const Franchise = () => {
           transition={{ duration: 0.8, delay: 0.6 }}
           className="bg-gradient-to-r from-coffee-amber/20 to-coffee-gold/20 rounded-lg p-8 md:p-12"
         >
-          <h2 className="text-4xl font-display font-bold text-coffee-amber mb-8 text-center">
+          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
             Get in Touch
           </h2>
 
           {submitted ? (
             <div className="text-center py-12">
               <div className="text-6xl mb-4">✅</div>
-              <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">
+              <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
                 Thank You!
               </h3>
               <p className="text-coffee-light text-lg mb-6">
