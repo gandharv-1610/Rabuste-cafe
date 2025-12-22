@@ -10,32 +10,21 @@ const WhyRobusta = () => {
   React.useEffect(() => {
     const fetchBackground = async () => {
       try {
-        // First try without isActive filter (like Home page does)
         const response = await api.get('/site-media', {
           params: { page: 'why-robusta', _t: Date.now() },
         });
         const entries = response.data || [];
-        
-        // Filter for active entries on client side
         const activeEntries = entries.filter((m) => m.isActive !== false);
         
-        console.log('Why Robusta page - All entries:', entries);
-        console.log('Why Robusta page - Active entries:', activeEntries);
-        
-        // Try to find exact match first
         let background = activeEntries.find((m) => m.section === 'why_robusta_hero_background');
         
-        // If not found, try any active entry for why-robusta page
         if (!background && activeEntries.length > 0) {
           background = activeEntries[0];
         }
         
-        console.log('Why Robusta page - Selected background:', background);
-        
         if (background && background.url) {
           setBackgroundMedia(background);
         } else {
-          console.warn('Why Robusta page - No valid background found');
           setBackgroundMedia(null);
         }
       } catch (error) {
@@ -46,41 +35,97 @@ const WhyRobusta = () => {
 
     fetchBackground();
   }, []);
+
   const features = [
     {
       icon: '💪',
       title: 'Extra Strength',
-      description: 'Robusta contains nearly double the caffeine content of Arabica, providing a powerful energy boost and intense coffee experience.',
+      shortDescription: 'Robusta contains nearly double the caffeine content of Arabica, providing a powerful energy boost and intense coffee experience.',
+      detailedDescription: 'Robusta beans contain approximately 2.7% caffeine compared to Arabica\'s 1.5%, making them nearly twice as potent. This higher caffeine content not only provides a more significant energy boost but also contributes to Robusta\'s characteristic bold, intense flavor. The increased caffeine acts as a natural pest deterrent, making Robusta plants more resilient. For coffee lovers seeking a true jolt, Robusta delivers an unparalleled experience that wakes you up and keeps you alert throughout the day.',
+      benefits: ['2.7% caffeine content', 'Sustained energy release', 'Natural pest resistance', 'Enhanced mental alertness'],
     },
     {
       icon: '🌿',
       title: 'Bold Flavor Profile',
-      description: 'Rich, full-bodied taste with notes of dark chocolate, nuts, and a natural bitterness that coffee enthusiasts love.',
+      shortDescription: 'Rich, full-bodied taste with notes of dark chocolate, nuts, and a natural bitterness that coffee enthusiasts love.',
+      detailedDescription: 'Robusta\'s flavor profile is distinctly bold and complex. It features deep, earthy notes with hints of dark chocolate, roasted nuts, and a characteristic bitterness that many coffee connoisseurs appreciate. Unlike Arabica\'s delicate, fruity notes, Robusta offers a robust, full-bodied experience that stands up to milk and sugar without losing its character. The low acidity makes it smooth and easy to drink, while the heavy body creates a rich, satisfying mouthfeel that lingers pleasantly on the palate.',
+      benefits: ['Low acidity', 'Heavy body', 'Rich mouthfeel', 'Complex flavor notes'],
     },
     {
       icon: '🌍',
       title: 'Hardy & Sustainable',
-      description: 'Robusta plants are more resilient, require less maintenance, and produce higher yields, making them more sustainable for farming.',
+      shortDescription: 'Robusta plants are more resilient, require less maintenance, and produce higher yields, making them more sustainable for farming.',
+      detailedDescription: 'Robusta coffee plants (Coffea canephora) are naturally more resilient than their Arabica counterparts. They thrive at lower elevations (200-800 meters), resist common coffee diseases like coffee leaf rust and coffee berry disease, and can withstand higher temperatures. These characteristics mean Robusta requires fewer pesticides and less intensive farming practices, making it more environmentally sustainable. Additionally, Robusta plants produce higher yields per hectare, making them economically viable for farmers while reducing the environmental footprint of coffee cultivation.',
+      benefits: ['Disease resistant', 'Higher yields', 'Lower elevation growth', 'Reduced pesticide need'],
     },
     {
       icon: '☕',
       title: 'Perfect for Espresso',
-      description: 'Robusta\'s bold characteristics make it ideal for espresso and creates excellent crema—the golden foam on top of a perfect shot.',
+      shortDescription: 'Robusta\'s bold characteristics make it ideal for espresso and creates excellent crema—the golden foam on top of a perfect shot.',
+      detailedDescription: 'Robusta beans are the secret ingredient behind exceptional espresso. Their high oil content and bold flavor profile create a rich, thick crema—the golden-brown foam that crowns a perfect espresso shot. The crema not only looks beautiful but also traps the coffee\'s aromatic compounds, enhancing the drinking experience. Robusta\'s low acidity and heavy body make it ideal for espresso blends, providing structure and depth. Many award-winning espresso blends include Robusta for its ability to create a stable, long-lasting crema and add complexity to the flavor profile.',
+      benefits: ['Thick, stable crema', 'Rich espresso body', 'Aromatic enhancement', 'Blend complexity'],
     },
   ];
 
   const comparisonData = [
-    { feature: 'Caffeine Content', robusta: '2.7%', arabica: '1.5%' },
-    { feature: 'Flavor', robusta: 'Bold, Bitter, Full-bodied', arabica: 'Mild, Sweet, Smooth' },
-    { feature: 'Body', robusta: 'Heavy', arabica: 'Light to Medium' },
-    { feature: 'Acidity', robusta: 'Low', arabica: 'High' },
+    { 
+      feature: 'Caffeine Content', 
+      robusta: { value: '2.7%', description: 'Nearly double the caffeine for a powerful boost' },
+      arabica: { value: '1.5%', description: 'Milder caffeine content for a gentler experience' }
+    },
+    { 
+      feature: 'Flavor Profile', 
+      robusta: { value: 'Bold, Bitter, Full-bodied', description: 'Deep, earthy notes with chocolate and nutty undertones' },
+      arabica: { value: 'Mild, Sweet, Smooth', description: 'Delicate, fruity notes with floral and wine-like characteristics' }
+    },
+    { 
+      feature: 'Body & Texture', 
+      robusta: { value: 'Heavy', description: 'Rich, full-bodied mouthfeel that lingers on the palate' },
+      arabica: { value: 'Light to Medium', description: 'Lighter body with a smoother, more delicate texture' }
+    },
+    { 
+      feature: 'Acidity', 
+      robusta: { value: 'Low', description: 'Smooth, low acidity makes it easy to drink' },
+      arabica: { value: 'High', description: 'Bright, tangy acidity that adds complexity' }
+    },
+    {
+      feature: 'Growing Conditions',
+      robusta: { value: '200-800m elevation', description: 'Thrives at lower elevations, more resilient to climate' },
+      arabica: { value: '800-2000m elevation', description: 'Requires higher elevations and cooler temperatures' }
+    },
+    {
+      feature: 'Disease Resistance',
+      robusta: { value: 'High', description: 'Naturally resistant to coffee rust and berry disease' },
+      arabica: { value: 'Low', description: 'More susceptible to diseases, requires careful management' }
+    },
   ];
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: [0.4, 0, 0.2, 1],
+      },
+    },
+  };
 
   return (
     <div className="pt-20 min-h-screen">
       {/* Hero Section */}
       <section className="relative py-20 px-4 min-h-[60vh] flex items-center justify-center overflow-hidden">
-        {/* Background Media */}
         {backgroundMedia && backgroundMedia.mediaType === 'video' ? (
           <VideoPlayer
             videoUrl={backgroundMedia.url}
@@ -99,132 +144,338 @@ const WhyRobusta = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-coffee-darker to-coffee-dark"></div>
         )}
         
-        {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-b from-coffee-darkest/90 via-coffee-darker/75 to-coffee-dark/80 z-10"></div>
         <div className="absolute inset-0 bg-gradient-to-r from-coffee-amber/5 via-transparent to-coffee-gold/5 z-10"></div>
         
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
           className="max-w-4xl mx-auto text-center relative z-20"
         >
-          <h1 className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6">
+          <motion.h1 
+            className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6 tracking-tight"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             Why Robusta?
-          </h1>
-          <p className="text-xl text-coffee-light">
+          </motion.h1>
+          <motion.p 
+            className="text-xl text-coffee-light"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
             Understanding the bold choice behind our exclusive coffee selection
-          </p>
+          </motion.p>
         </motion.div>
       </section>
 
       {/* What is Robusta Section */}
       <section className="py-20 px-4 max-w-6xl mx-auto">
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8 }}
-          className="mb-16"
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          className="mb-20"
         >
-          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
+          <motion.h2 
+            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-8 text-center tracking-tight"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             What is Robusta Coffee?
-          </h2>
-          <div className="bg-coffee-brown/20 rounded-lg p-8 md:p-12">
-            <p className="text-lg text-coffee-light mb-6 leading-relaxed">
-              Robusta (Coffea canephora) is one of the two main species of coffee plants cultivated worldwide, alongside Arabica. While Arabica often gets the spotlight, Robusta brings its own exceptional qualities to the table.
-            </p>
-            <p className="text-lg text-coffee-light mb-6 leading-relaxed">
-              Grown primarily in Africa and Asia, Robusta coffee plants are known for their resilience. They thrive at lower elevations, resist diseases better, and produce higher yields. But more importantly for coffee lovers, they produce beans with a distinctly bold and powerful flavor profile.
-            </p>
-            <p className="text-lg text-coffee-light leading-relaxed">
-              At Rabuste Coffee, we've dedicated ourselves to showcasing Robusta's unique characteristics, proving that this "underdog" coffee variety deserves recognition as a premium specialty coffee.
-            </p>
-          </div>
+          </motion.h2>
+          <motion.div 
+            className="modern-card p-8 md:p-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8, delay: 0.3 }}
+          >
+            <motion.p 
+              className="text-lg text-coffee-light mb-6 leading-relaxed"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+            >
+              Robusta (Coffea canephora) is one of the two main species of coffee plants cultivated worldwide, alongside Arabica. While Arabica often gets the spotlight, Robusta brings its own exceptional qualities to the table that make it a premium choice for coffee enthusiasts.
+            </motion.p>
+            <motion.p 
+              className="text-lg text-coffee-light mb-6 leading-relaxed"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.5 }}
+            >
+              Grown primarily in Africa and Asia, Robusta coffee plants are known for their resilience. They thrive at lower elevations (200-800 meters), resist diseases better, and produce higher yields. But more importantly for coffee lovers, they produce beans with a distinctly bold and powerful flavor profile that stands out in every cup.
+            </motion.p>
+            <motion.p 
+              className="text-lg text-coffee-light leading-relaxed"
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.6 }}
+            >
+              At Rabuste Coffee, we've dedicated ourselves to showcasing Robusta's unique characteristics, proving that this "underdog" coffee variety deserves recognition as a premium specialty coffee. Our expertise in Robusta allows us to extract the finest flavors and create an experience that celebrates strength, character, and authenticity.
+            </motion.p>
+          </motion.div>
         </motion.div>
 
-        {/* Features Grid */}
+        {/* Visual Tree Comparison */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
+          initial={{ opacity: 0, y: 50 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="mb-16"
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          className="mb-12"
         >
-          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-12 text-center">
+          <motion.h2 
+            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-8 text-center tracking-tight"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            Robusta vs. Arabica
+          </motion.h2>
+          
+          <div className="coffee-tree">
+            <motion.div
+              className="tree-trunk"
+              initial={{ height: 0, opacity: 0 }}
+              whileInView={{ height: 120, opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.1 }}
+            ></motion.div>
+            
+            <motion.div
+              className="tree-branch left"
+              initial={{ opacity: 0, x: -50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <div className="tree-leaf mb-4">
+                <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-3">Robusta</h3>
+                <p className="text-coffee-light text-sm mb-2">Coffea canephora</p>
+                <div className="space-y-2 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-amber">●</span>
+                    <span className="text-sm text-coffee-light">2.7% Caffeine</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-amber">●</span>
+                    <span className="text-sm text-coffee-light">Bold, Full-bodied</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-amber">●</span>
+                    <span className="text-sm text-coffee-light">Low Elevation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-amber">●</span>
+                    <span className="text-sm text-coffee-light">High Resilience</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+            
+            <motion.div
+              className="tree-branch right"
+              initial={{ opacity: 0, x: 50 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.4 }}
+            >
+              <div className="tree-leaf mb-4">
+                <h3 className="text-2xl font-heading font-bold text-coffee-light mb-3">Arabica</h3>
+                <p className="text-coffee-light/70 text-sm mb-2">Coffea arabica</p>
+                <div className="space-y-2 text-left">
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-light/50">●</span>
+                    <span className="text-sm text-coffee-light/70">1.5% Caffeine</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-light/50">●</span>
+                    <span className="text-sm text-coffee-light/70">Mild, Smooth</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-light/50">●</span>
+                    <span className="text-sm text-coffee-light/70">High Elevation</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-coffee-light/50">●</span>
+                    <span className="text-sm text-coffee-light/70">Delicate</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+
+          {/* Detailed Comparison Cards */}
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mt-8"
+          >
+            {comparisonData.map((row, idx) => (
+              <motion.div
+                key={idx}
+                variants={itemVariants}
+                className="modern-card p-6"
+              >
+                <h4 className="text-lg font-heading font-semibold text-coffee-amber mb-4">
+                  {row.feature}
+                </h4>
+                <div className="space-y-4">
+                  <div className="border-l-4 border-coffee-amber pl-4">
+                    <p className="text-sm font-semibold text-coffee-amber mb-1">Robusta</p>
+                    <p className="text-sm text-coffee-light font-medium mb-2">{row.robusta.value}</p>
+                    <p className="text-xs text-coffee-light/70">{row.robusta.description}</p>
+                  </div>
+                  <div className="border-l-4 border-coffee-light/30 pl-4">
+                    <p className="text-sm font-semibold text-coffee-light/70 mb-1">Arabica</p>
+                    <p className="text-sm text-coffee-light/80 font-medium mb-2">{row.arabica.value}</p>
+                    <p className="text-xs text-coffee-light/60">{row.arabica.description}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </motion.div>
+        </motion.div>
+
+        {/* Flip Cards for Features */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          className="mb-20"
+        >
+          <motion.h2 
+            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-12 text-center tracking-tight"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             Why Robusta Stands Out
-          </h2>
-          <div className="grid md:grid-cols-2 gap-8">
+          </motion.h2>
+          <motion.p 
+            className="text-center text-coffee-light mb-8 max-w-2xl mx-auto"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            Hover over each card to discover detailed insights about Robusta's unique characteristics
+          </motion.p>
+          
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, margin: "-50px" }}
+            className="grid md:grid-cols-2 gap-8"
+          >
             {features.map((feature, idx) => (
               <motion.div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-coffee-brown/20 rounded-lg p-6 hover:bg-coffee-brown/30 transition-colors"
+                variants={itemVariants}
+                className="flip-card"
+                style={{ minHeight: '400px', height: '400px' }}
               >
-                <div className="text-4xl mb-4">{feature.icon}</div>
-                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
-                  {feature.title}
-                </h3>
-                <p className="text-coffee-light leading-relaxed">
-                  {feature.description}
-                </p>
+                <div className="flip-card-inner">
+                  <div className="flip-card-front">
+                    <div className="text-6xl mb-5">{feature.icon}</div>
+                    <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
+                      {feature.title}
+                    </h3>
+                    <p className="text-base text-coffee-light leading-relaxed mb-4">
+                      {feature.shortDescription}
+                    </p>
+                    <div className="mt-auto text-sm text-coffee-amber/70">
+                      Hover to learn more →
+                    </div>
+                  </div>
+                  <div className="flip-card-back">
+                    <div className="w-full">
+                      <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm text-coffee-light leading-relaxed mb-4">
+                        {feature.detailedDescription}
+                      </p>
+                    </div>
+                    <div className="w-full mt-auto">
+                      <p className="text-sm font-semibold text-coffee-amber mb-2">Key Benefits:</p>
+                      <ul className="space-y-2 text-left">
+                        {feature.benefits.map((benefit, i) => (
+                          <li key={i} className="text-sm text-coffee-light flex items-start gap-2">
+                            <span className="text-coffee-amber mt-0.5">✓</span>
+                            <span>{benefit}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
               </motion.div>
             ))}
-          </div>
-        </motion.div>
-
-        {/* Comparison Table */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.4 }}
-          className="mb-16"
-        >
-          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
-            Robusta vs. Arabica
-          </h2>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse bg-coffee-brown/20 rounded-lg overflow-hidden">
-              <thead>
-                <tr className="bg-coffee-brown/40">
-                  <th className="p-4 text-left text-coffee-amber font-semibold">Feature</th>
-                  <th className="p-4 text-left text-coffee-amber font-semibold">Robusta</th>
-                  <th className="p-4 text-left text-coffee-amber font-semibold">Arabica</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisonData.map((row, idx) => (
-                  <tr key={idx} className="border-t border-coffee-brown/30">
-                    <td className="p-4 text-coffee-cream font-medium">{row.feature}</td>
-                    <td className="p-4 text-coffee-amber font-semibold">{row.robusta}</td>
-                    <td className="p-4 text-coffee-light">{row.arabica}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          </motion.div>
         </motion.div>
 
         {/* Why Rabuste Section */}
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.8, delay: 0.6 }}
-          className="bg-gradient-to-r from-coffee-amber/20 to-coffee-gold/20 rounded-lg p-8 md:p-12 text-center"
+          initial={{ opacity: 0, y: 50, scale: 0.95 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
+          className="modern-card p-8 md:p-12 text-center"
         >
-          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-6">
+          <motion.h2 
+            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-6 tracking-tight"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
             Why Rabuste Serves Only Robusta
-          </h2>
-          <p className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6">
+          </motion.h2>
+          <motion.p 
+            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
             We've made a conscious decision to focus exclusively on Robusta coffee because we believe in its unmatched potential. By dedicating ourselves to a single variety, we can master every aspect of Robusta brewing, from bean selection to extraction techniques.
-          </p>
-          <p className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed">
-            This singular focus allows us to become true experts in Robusta coffee, offering you the finest expressions of this bold variety. When you choose Rabuste, you're choosing a coffee experience that's unapologetically strong, authentically bold, and expertly crafted.
-          </p>
+          </motion.p>
+          <motion.p 
+            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            This singular focus allows us to become true experts in Robusta coffee, offering you the finest expressions of this bold variety. Our baristas are trained specifically in Robusta preparation, understanding how to extract the perfect balance of strength, flavor, and crema.
+          </motion.p>
+          <motion.p 
+            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.5 }}
+          >
+            When you choose Rabuste, you're choosing a coffee experience that's unapologetically strong, authentically bold, and expertly crafted. We're not just serving coffee—we're championing a variety that deserves recognition and celebrating the bold choice to be different.
+          </motion.p>
         </motion.div>
       </section>
 
@@ -234,4 +485,3 @@ const WhyRobusta = () => {
 };
 
 export default WhyRobusta;
-

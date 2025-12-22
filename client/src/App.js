@@ -16,7 +16,12 @@ import './App.css';
 function App() {
   return (
     <Router>
-      <div className="App min-h-screen bg-coffee-darker">
+      {/* Crema Mesh Animated Background */}
+      <div className="mesh-background">
+        <div className="mesh-gradient"></div>
+      </div>
+      
+      <div className="App min-h-screen">
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
