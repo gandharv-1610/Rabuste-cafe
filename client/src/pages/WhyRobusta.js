@@ -41,29 +41,29 @@ const WhyRobusta = () => {
       icon: '💪',
       title: 'Extra Strength',
       shortDescription: 'Robusta contains nearly double the caffeine content of Arabica, providing a powerful energy boost and intense coffee experience.',
-      detailedDescription: 'Robusta beans contain approximately 2.7% caffeine compared to Arabica\'s 1.5%, making them nearly twice as potent. This higher caffeine content not only provides a more significant energy boost but also contributes to Robusta\'s characteristic bold, intense flavor. The increased caffeine acts as a natural pest deterrent, making Robusta plants more resilient. For coffee lovers seeking a true jolt, Robusta delivers an unparalleled experience that wakes you up and keeps you alert throughout the day.',
-      benefits: ['2.7% caffeine content', 'Sustained energy release', 'Natural pest resistance', 'Enhanced mental alertness'],
+      detailedDescription: 'Robusta beans contain approximately 2.7% caffeine compared to Arabica\'s 1.5%, making them nearly twice as potent. This higher caffeine content provides a more significant energy boost and contributes to Robusta\'s characteristic bold, intense flavor.',
+      benefits: ['2.7% caffeine content', 'Sustained energy release', 'Enhanced mental alertness'],
     },
     {
       icon: '🌿',
       title: 'Bold Flavor Profile',
       shortDescription: 'Rich, full-bodied taste with notes of dark chocolate, nuts, and a natural bitterness that coffee enthusiasts love.',
-      detailedDescription: 'Robusta\'s flavor profile is distinctly bold and complex. It features deep, earthy notes with hints of dark chocolate, roasted nuts, and a characteristic bitterness that many coffee connoisseurs appreciate. Unlike Arabica\'s delicate, fruity notes, Robusta offers a robust, full-bodied experience that stands up to milk and sugar without losing its character. The low acidity makes it smooth and easy to drink, while the heavy body creates a rich, satisfying mouthfeel that lingers pleasantly on the palate.',
-      benefits: ['Low acidity', 'Heavy body', 'Rich mouthfeel', 'Complex flavor notes'],
+      detailedDescription: 'Robusta\'s flavor profile is distinctly bold and complex. It features deep, earthy notes with hints of dark chocolate, roasted nuts, and a characteristic bitterness. The low acidity makes it smooth and easy to drink, while the heavy body creates a rich, satisfying mouthfeel.',
+      benefits: ['Low acidity', 'Heavy body', 'Complex flavor notes'],
     },
     {
       icon: '🌍',
       title: 'Hardy & Sustainable',
       shortDescription: 'Robusta plants are more resilient, require less maintenance, and produce higher yields, making them more sustainable for farming.',
-      detailedDescription: 'Robusta coffee plants (Coffea canephora) are naturally more resilient than their Arabica counterparts. They thrive at lower elevations (200-800 meters), resist common coffee diseases like coffee leaf rust and coffee berry disease, and can withstand higher temperatures. These characteristics mean Robusta requires fewer pesticides and less intensive farming practices, making it more environmentally sustainable. Additionally, Robusta plants produce higher yields per hectare, making them economically viable for farmers while reducing the environmental footprint of coffee cultivation.',
-      benefits: ['Disease resistant', 'Higher yields', 'Lower elevation growth', 'Reduced pesticide need'],
+      detailedDescription: 'Robusta coffee plants thrive at lower elevations (200-800 meters), resist common coffee diseases, and can withstand higher temperatures. These characteristics mean Robusta requires fewer pesticides and less intensive farming practices, making it more environmentally sustainable.',
+      benefits: ['Disease resistant', 'Higher yields', 'Lower elevation growth'],
     },
     {
       icon: '☕',
       title: 'Perfect for Espresso',
       shortDescription: 'Robusta\'s bold characteristics make it ideal for espresso and creates excellent crema—the golden foam on top of a perfect shot.',
-      detailedDescription: 'Robusta beans are the secret ingredient behind exceptional espresso. Their high oil content and bold flavor profile create a rich, thick crema—the golden-brown foam that crowns a perfect espresso shot. The crema not only looks beautiful but also traps the coffee\'s aromatic compounds, enhancing the drinking experience. Robusta\'s low acidity and heavy body make it ideal for espresso blends, providing structure and depth. Many award-winning espresso blends include Robusta for its ability to create a stable, long-lasting crema and add complexity to the flavor profile.',
-      benefits: ['Thick, stable crema', 'Rich espresso body', 'Aromatic enhancement', 'Blend complexity'],
+      detailedDescription: 'Robusta beans create a rich, thick crema—the golden-brown foam that crowns a perfect espresso shot. The crema traps aromatic compounds, enhancing the drinking experience. Robusta\'s low acidity and heavy body make it ideal for espresso blends, providing structure and depth.',
+      benefits: ['Thick, stable crema', 'Rich espresso body', 'Blend complexity'],
     },
   ];
 
@@ -78,25 +78,10 @@ const WhyRobusta = () => {
       robusta: { value: 'Bold, Bitter, Full-bodied', description: 'Deep, earthy notes with chocolate and nutty undertones' },
       arabica: { value: 'Mild, Sweet, Smooth', description: 'Delicate, fruity notes with floral and wine-like characteristics' }
     },
-    { 
-      feature: 'Body & Texture', 
-      robusta: { value: 'Heavy', description: 'Rich, full-bodied mouthfeel that lingers on the palate' },
-      arabica: { value: 'Light to Medium', description: 'Lighter body with a smoother, more delicate texture' }
-    },
-    { 
-      feature: 'Acidity', 
-      robusta: { value: 'Low', description: 'Smooth, low acidity makes it easy to drink' },
-      arabica: { value: 'High', description: 'Bright, tangy acidity that adds complexity' }
-    },
     {
       feature: 'Growing Conditions',
       robusta: { value: '200-800m elevation', description: 'Thrives at lower elevations, more resilient to climate' },
       arabica: { value: '800-2000m elevation', description: 'Requires higher elevations and cooler temperatures' }
-    },
-    {
-      feature: 'Disease Resistance',
-      robusta: { value: 'High', description: 'Naturally resistant to coffee rust and berry disease' },
-      arabica: { value: 'Low', description: 'More susceptible to diseases, requires careful management' }
     },
   ];
 
