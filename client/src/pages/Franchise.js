@@ -131,12 +131,12 @@ const Franchise = () => {
       description: 'Join a scalable café model with a unique positioning in the specialty coffee market.',
     },
     {
-      icon: '☕',
+      icon: '💎',
       title: 'Brand Value',
       description: 'Be part of a brand that celebrates bold Robusta coffee and premium experiences.',
     },
     {
-      icon: '🎨',
+      icon: '🎯',
       title: 'Multi-Faceted Business',
       description: 'Operate a café that combines coffee, art, workshops, and community engagement.',
     },

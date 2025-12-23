@@ -417,6 +417,9 @@ const PasswordChange = () => {
 const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingCoffee, setEditingCoffee] = useState(null);
+  const [customCategory, setCustomCategory] = useState('');
+  const [useCustomCategory, setUseCustomCategory] = useState(false);
+  const defaultCategories = ['Coffee', 'Pizza', 'Sides'];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -441,12 +444,14 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const finalCategory = useCustomCategory && customCategory.trim() ? customCategory.trim() : formData.category;
     const coffeeData = {
       ...formData,
+      category: finalCategory,
       price: parseFloat(formData.price) || 0,
       flavorNotes: formData.flavorNotes.split(',').map(f => f.trim()).filter(f => f),
       // Only include strength if category is Coffee
-      ...(formData.category === 'Coffee' ? { strength: formData.strength } : { strength: undefined })
+      ...(finalCategory === 'Coffee' ? { strength: formData.strength } : { strength: undefined })
     };
 
     try {
@@ -457,6 +462,8 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       }
       setShowForm(false);
       setEditingCoffee(null);
+      setCustomCategory('');
+      setUseCustomCategory(false);
       setFormData({ 
         name: '', 
         description: '', 
@@ -478,10 +485,14 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
 
   const handleEdit = (coffee) => {
     setEditingCoffee(coffee);
+    const category = coffee.category || 'Coffee';
+    const isCustomCategory = !defaultCategories.includes(category);
+    setUseCustomCategory(isCustomCategory);
+    setCustomCategory(isCustomCategory ? category : '');
     setFormData({
       name: coffee.name,
       description: coffee.description,
-      category: coffee.category || 'Coffee',
+      category: isCustomCategory ? 'Custom' : category,
       strength: coffee.strength || 'Medium',
       flavorNotes: coffee.flavorNotes?.join(', ') || '',
       price: coffee.price?.toString() || '',
@@ -525,6 +536,8 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               cloudinary_url: '',
               cloudinary_public_id: ''
             });
+            setCustomCategory('');
+            setUseCustomCategory(false);
           }}
           className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
         >
@@ -539,14 +552,31 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
             <select
               required
               value={formData.category}
-              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              onChange={(e) => {
+                const value = e.target.value;
+                setFormData({ ...formData, category: value });
+                setUseCustomCategory(value === 'Custom');
+                if (value !== 'Custom') {
+                  setCustomCategory('');
+                }
+              }}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-2"
             >
-              <option value="Coffee">Coffee</option>
-              <option value="Snacks">Snacks</option>
-              <option value="Merchandise">Merchandise</option>
-              <option value="Other">Other</option>
+              {defaultCategories.map(cat => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+              <option value="Custom">Custom Category</option>
             </select>
+            {useCustomCategory && (
+              <input
+                type="text"
+                required
+                value={customCategory}
+                onChange={(e) => setCustomCategory(e.target.value)}
+                placeholder="Enter category name"
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mt-2"
+              />
+            )}
           </div>
           <div>
             <label className="block text-coffee-amber font-semibold mb-2">Name *</label>
@@ -568,7 +598,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
             />
           </div>
-          {formData.category === 'Coffee' && (
+          {(useCustomCategory ? customCategory === 'Coffee' : formData.category === 'Coffee') && (
             <>
               <div>
                 <label className="block text-coffee-amber font-semibold mb-2">Strength *</label>
@@ -634,6 +664,8 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               onClick={() => {
                 setShowForm(false);
                 setEditingCoffee(null);
+                setCustomCategory('');
+                setUseCustomCategory(false);
               }}
               className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold"
             >
