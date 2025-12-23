@@ -262,7 +262,7 @@ const Home = () => {
 
       {/* Story Sections */}
       <section className="py-24 px-4 max-w-7xl mx-auto relative">
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-coffee-amber/3 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-coffee-amber/3 to-transparent pointer-events-none"></div>
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -352,7 +352,7 @@ const Home = () => {
                 <span className="text-6xl">🎨</span>
               )}
             </div>
-            <div className="order-1 md:order-2">
+            <div className="order-1 md:order-2 relative z-10">
               <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Micro Art Gallery
               </h3>
@@ -361,7 +361,7 @@ const Home = () => {
               </p>
               <Link
                 to="/art"
-                className="inline-block text-coffee-amber font-semibold hover:underline"
+                className="inline-block text-coffee-amber font-semibold hover:underline cursor-pointer transition-colors hover:text-coffee-gold relative z-20 pointer-events-auto"
               >
                 Explore Art Gallery →
               </Link>
@@ -377,7 +377,7 @@ const Home = () => {
             className="grid md:grid-cols-2 gap-12 items-center"
 
           >
-            <div>
+            <div className="relative z-10">
               <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Workshops & Community
               </h3>
@@ -386,7 +386,7 @@ const Home = () => {
               </p>
               <Link
                 to="/workshops"
-                className="inline-block text-coffee-amber font-semibold hover:underline"
+                className="inline-block text-coffee-amber font-semibold hover:underline cursor-pointer transition-colors hover:text-coffee-gold relative z-20 pointer-events-auto"
               >
                 View Workshops →
               </Link>
@@ -438,7 +438,7 @@ const Home = () => {
                 <span className="text-6xl">🚀</span>
               )}
             </div>
-            <div className="order-1 md:order-2">
+            <div className="order-1 md:order-2 relative z-10">
               <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Join the Movement
               </h3>
@@ -447,7 +447,7 @@ const Home = () => {
               </p>
               <Link
                 to="/franchise"
-                className="inline-block bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                className="inline-block text-coffee-amber font-semibold hover:underline cursor-pointer transition-colors hover:text-coffee-gold relative z-20 pointer-events-auto"
               >
                 Franchise Opportunity →
               </Link>

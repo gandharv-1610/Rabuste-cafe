@@ -139,6 +139,7 @@ html {
   background-color: transparent;
   perspective: 1000px;
   height: 100%;
+  cursor: pointer;
 }
 
 .flip-card-inner {
@@ -146,11 +147,19 @@ html {
   width: 100%;
   height: 100%;
   text-align: center;
-  transition: transform 0.8s;
+  transition: transform 0.6s;
   transform-style: preserve-3d;
 }
 
-.flip-card:hover .flip-card-inner {
+/* Desktop: Hover to flip */
+@media (hover: hover) and (pointer: fine) {
+  .flip-card:hover .flip-card-inner {
+    transform: rotateY(180deg);
+  }
+}
+
+/* Mobile: Click to flip */
+.flip-card.flipped .flip-card-inner {
   transform: rotateY(180deg);
 }
 
@@ -161,7 +170,7 @@ html {
   height: 100%;
   backface-visibility: hidden;
   border-radius: 20px;
-  padding: 1.75rem;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
   justify-content: space-between;

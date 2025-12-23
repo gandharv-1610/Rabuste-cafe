@@ -10,6 +10,7 @@ const CoffeeMenu = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCoffee, setSelectedCoffee] = useState(null);
   const [backgroundMedia, setBackgroundMedia] = useState(null);
+  const [flippedCards, setFlippedCards] = useState(new Set());
 
   useEffect(() => {
     fetchCoffees();
@@ -164,68 +165,151 @@ const CoffeeMenu = () => {
             <p className="text-coffee-light text-lg mb-4">No coffee items available yet.</p>
             <p className="text-coffee-light">Check back soon for our curated Robusta selection!</p>
           </div>
-        ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coffees.map((coffee, idx) => (
-              <motion.div
-                key={coffee._id}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="bg-coffee-brown/20 rounded-lg overflow-hidden hover:bg-coffee-brown/30 transition-colors cursor-pointer"
-                onClick={() => setSelectedCoffee(coffee)}
-              >
-                {(coffee.image || coffee.cloudinary_url) && (
-                  <div className="w-full h-40 bg-coffee-brown/40 overflow-hidden">
-                    <img
-                      src={`${coffee.cloudinary_url || coffee.image}?v=${coffee.updatedAt || Date.now()}`}
-                      alt={coffee.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback if image fails to load
-                        e.target.style.display = 'none';
-                      }}
-                    />
+        ) : (() => {
+          // Group coffees by category
+          const groupedCoffees = coffees.reduce((acc, coffee) => {
+            const category = coffee.category || 'Other';
+            if (!acc[category]) {
+              acc[category] = [];
+            }
+            acc[category].push(coffee);
+            return acc;
+          }, {});
+
+          // Sort categories: Coffee first, then alphabetically
+          const sortedCategories = Object.keys(groupedCoffees).sort((a, b) => {
+            if (a === 'Coffee') return -1;
+            if (b === 'Coffee') return 1;
+            return a.localeCompare(b);
+          });
+
+          return (
+            <div className="space-y-16">
+              {sortedCategories.map((category, catIdx) => (
+                <div key={category}>
+                  <motion.h3
+                    initial={{ opacity: 0, y: 20 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6, delay: catIdx * 0.1 }}
+                    className="text-3xl md:text-4xl font-heading font-bold text-coffee-amber mb-8 text-center"
+                  >
+                    {category}
+                  </motion.h3>
+                  <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    {groupedCoffees[category].map((coffee, idx) => {
+                      const isFlipped = flippedCards.has(coffee._id);
+                      return (
+                      <motion.div
+                        key={coffee._id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: (catIdx * 0.1) + (idx * 0.1) }}
+                        className={`flip-card ${isFlipped ? 'flipped' : ''}`}
+                        style={{ minHeight: '400px', height: '400px' }}
+                        onTouchStart={(e) => {
+                          // Prevent default to avoid double-tap zoom on mobile
+                          e.preventDefault();
+                        }}
+                        onClick={(e) => {
+                          // Toggle flip on mobile/tablet (screens < 768px)
+                          if (window.innerWidth < 768 || 'ontouchstart' in window) {
+                            e.stopPropagation();
+                            setFlippedCards(prev => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(coffee._id)) {
+                                newSet.delete(coffee._id);
+                              } else {
+                                newSet.add(coffee._id);
+                              }
+                              return newSet;
+                            });
+                          }
+                        }}
+                      >
+                        <div className="flip-card-inner">
+                          {/* Front Side - Photo, Name, Strength, Price */}
+                          <div className="flip-card-front">
+                            {(coffee.image || coffee.cloudinary_url) ? (
+                              <div className="w-full h-48 bg-coffee-brown/40 overflow-hidden rounded-lg mb-4">
+                                <img
+                                  src={`${coffee.cloudinary_url || coffee.image}?v=${coffee.updatedAt || Date.now()}`}
+                                  alt={coffee.name}
+                                  className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    e.target.style.display = 'none';
+                                  }}
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-full h-48 bg-coffee-brown/40 rounded-lg mb-4 flex items-center justify-center">
+                                <span className="text-6xl">☕</span>
+                              </div>
+                            )}
+                            <div className="w-full">
+                              <div className="flex items-center justify-between mb-2">
+                                <h3 className="text-xl font-heading font-bold text-coffee-amber text-center flex-1">
+                                  {coffee.name}
+                                </h3>
+                                {coffee.isBestseller && (
+                                  <span className="bg-coffee-amber text-coffee-darker text-xs font-semibold px-2 py-1 rounded ml-2">
+                                    ⭐
+                                  </span>
+                                )}
+                              </div>
+                              {coffee.category === 'Coffee' && coffee.strength && (
+                                <div className="flex justify-center mb-3">
+                                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${strengthColors[coffee.strength] || strengthColors['Medium']}`}>
+                                    {coffee.strength}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="mt-auto">
+                                <p className="text-coffee-amber font-bold text-xl">₹{coffee.price?.toFixed(2) || '0.00'}</p>
+                              </div>
+                            </div>
+                            <div className="mt-auto text-xs text-coffee-amber/70 md:hidden">
+                              Tap to see description →
+                            </div>
+                          </div>
+                          
+                          {/* Back Side - Description */}
+                          <div className="flip-card-back">
+                            <div className="w-full">
+                              <h3 className="text-xl font-heading font-bold text-coffee-amber mb-4">
+                                {coffee.name}
+                              </h3>
+                              <p className="text-sm text-coffee-light leading-relaxed text-left">
+                                {coffee.description}
+                              </p>
+                              {coffee.flavorNotes && coffee.flavorNotes.length > 0 && (
+                                <div className="mt-4">
+                                  <p className="text-xs text-coffee-amber/80 mb-2 font-semibold">Flavor Notes:</p>
+                                  <div className="flex flex-wrap gap-2">
+                                    {coffee.flavorNotes.map((note, noteIdx) => (
+                                      <span
+                                        key={noteIdx}
+                                        className="text-xs bg-coffee-brown/40 text-coffee-cream px-2 py-1 rounded"
+                                      >
+                                        {note}
+                                      </span>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                      );
+                    })}
                   </div>
-                )}
-                <div className="flex items-start justify-between mb-4 px-6 pt-4">
-                  <h3 className="text-2xl font-heading font-bold text-coffee-amber">
-                    {coffee.name}
-                  </h3>
-                  {coffee.isBestseller && (
-                    <span className="bg-coffee-amber text-coffee-darker text-xs font-semibold px-2 py-1 rounded">
-                      Bestseller
-                    </span>
-                  )}
                 </div>
-                <p className="text-coffee-light mb-4 leading-relaxed px-6">
-                  {coffee.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mb-4 px-6 pb-4">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${strengthColors[coffee.strength] || strengthColors['Medium']}`}>
-                    {coffee.strength}
-                  </span>
-                </div>
-                {coffee.flavorNotes && coffee.flavorNotes.length > 0 && (
-                  <div className="mt-4">
-                    <p className="text-sm text-coffee-light/70 mb-2">Flavor Notes:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {coffee.flavorNotes.map((note, noteIdx) => (
-                        <span
-                          key={noteIdx}
-                          className="text-xs bg-coffee-brown/40 text-coffee-cream px-2 py-1 rounded"
-                        >
-                          {note}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-            ))}
-          </div>
-        )}
+              ))}
+            </div>
+          );
+        })()}
       </section>
 
       {/* Coffee Detail Modal */}
@@ -270,13 +354,18 @@ const CoffeeMenu = () => {
             <p className="text-coffee-light text-lg mb-6 leading-relaxed">
               {selectedCoffee.description}
             </p>
+            <div className="mb-6">
+              <p className="text-coffee-amber font-bold text-2xl">₹{selectedCoffee.price?.toFixed(2) || '0.00'}</p>
+            </div>
             <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="text-coffee-amber font-semibold mb-2">Strength</h3>
-                <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${strengthColors[selectedCoffee.strength] || strengthColors['Medium']}`}>
-                  {selectedCoffee.strength}
-                </span>
-              </div>
+              {selectedCoffee.category === 'Coffee' && selectedCoffee.strength && (
+                <div>
+                  <h3 className="text-coffee-amber font-semibold mb-2">Strength</h3>
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-medium ${strengthColors[selectedCoffee.strength] || strengthColors['Medium']}`}>
+                    {selectedCoffee.strength}
+                  </span>
+                </div>
+              )}
               {selectedCoffee.flavorNotes && selectedCoffee.flavorNotes.length > 0 && (
                 <div>
                   <h3 className="text-coffee-amber font-semibold mb-2">Flavor Notes</h3>

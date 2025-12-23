@@ -4,6 +4,58 @@ import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
 import api from '../api/axios';
 
+// SVG Icon Components
+const StrengthIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" 
+      stroke="#FF8C00" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"/>
+  </svg>
+);
+
+const FlavorIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 21C16.9706 21 21 16.9706 21 12C21 7.02944 16.9706 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21Z" 
+      stroke="#FF8C00" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"/>
+    <path d="M7 10C7 10 9.5 9 12 12C14.5 15 17 14 17 14" 
+      stroke="#FF8C00" 
+      strokeWidth="2" 
+      strokeLinecap="round" 
+      strokeLinejoin="round"/>
+  </svg>
+);
+
+const SustainableIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 14.8346 3.17594 17.3961 5.06586 19.2306" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 8V16" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 12C14.5 11.5 16 10 16 8C16 6.5 15 5.5 13.5 5.5C12.5 5.5 12 6.5 12 8Z" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 12C9.5 12.5 8 14 8 16C8 17.5 9 18.5 10.5 18.5C11.5 18.5 12 17.5 12 16Z" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const EspressoIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M20 40C20 55 30 75 50 75C70 75 80 55 80 40" stroke="#FF8C00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M80 45C88 45 90 50 90 55C90 60 88 65 80 65" stroke="#FF8C00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <ellipse cx="50" cy="40" rx="30" ry="8" stroke="#FF8C00" strokeWidth="3" fill="url(#coffeeGradient)"/>
+    <path d="M45 30Q50 25 50 15Q50 5 55 10" stroke="#FF8C00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M50 25Q55 20 55 10Q55 0 60 5" stroke="#FF8C00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M55 20Q60 15 60 5Q60 -5 65 0" stroke="#FF8C00" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+    <defs>
+      <radialGradient id="coffeeGradient" cx="50" cy="40" r="30" fx="50" fy="40">
+        <stop offset="0%" stopColor="#D97706"/>
+        <stop offset="100%" stopColor="#B45309"/>
+      </radialGradient>
+    </defs>
+  </svg>
+);
+
 const WhyRobusta = () => {
   const [backgroundMedia, setBackgroundMedia] = React.useState(null);
 
@@ -38,28 +90,28 @@ const WhyRobusta = () => {
 
   const features = [
     {
-      icon: '💪',
+      icon: <StrengthIcon />,
       title: 'Extra Strength',
       shortDescription: 'Robusta contains nearly double the caffeine content of Arabica, providing a powerful energy boost and intense coffee experience.',
       detailedDescription: 'Robusta beans contain approximately 2.7% caffeine compared to Arabica\'s 1.5%, making them nearly twice as potent. This higher caffeine content provides a more significant energy boost and contributes to Robusta\'s characteristic bold, intense flavor.',
       benefits: ['2.7% caffeine content', 'Sustained energy release', 'Enhanced mental alertness'],
     },
     {
-      icon: '🌿',
+      icon: <FlavorIcon />,
       title: 'Bold Flavor Profile',
       shortDescription: 'Rich, full-bodied taste with notes of dark chocolate, nuts, and a natural bitterness that coffee enthusiasts love.',
       detailedDescription: 'Robusta\'s flavor profile is distinctly bold and complex. It features deep, earthy notes with hints of dark chocolate, roasted nuts, and a characteristic bitterness. The low acidity makes it smooth and easy to drink, while the heavy body creates a rich, satisfying mouthfeel.',
       benefits: ['Low acidity', 'Heavy body', 'Complex flavor notes'],
     },
     {
-      icon: '🌍',
+      icon: <SustainableIcon />,
       title: 'Hardy & Sustainable',
       shortDescription: 'Robusta plants are more resilient, require less maintenance, and produce higher yields, making them more sustainable for farming.',
       detailedDescription: 'Robusta coffee plants thrive at lower elevations (200-800 meters), resist common coffee diseases, and can withstand higher temperatures. These characteristics mean Robusta requires fewer pesticides and less intensive farming practices, making it more environmentally sustainable.',
       benefits: ['Disease resistant', 'Higher yields', 'Lower elevation growth'],
     },
     {
-      icon: '☕',
+      icon: <EspressoIcon />,
       title: 'Perfect for Espresso',
       shortDescription: 'Robusta\'s bold characteristics make it ideal for espresso and creates excellent crema—the golden foam on top of a perfect shot.',
       detailedDescription: 'Robusta beans create a rich, thick crema—the golden-brown foam that crowns a perfect espresso shot. The crema traps aromatic compounds, enhancing the drinking experience. Robusta\'s low acidity and heavy body make it ideal for espresso blends, providing structure and depth.',
@@ -379,7 +431,7 @@ const WhyRobusta = () => {
               >
                 <div className="flip-card-inner">
                   <div className="flip-card-front">
-                    <div className="text-6xl mb-5">{feature.icon}</div>
+                    <div className="mb-5 flex justify-center">{feature.icon}</div>
                     <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
                       {feature.title}
                     </h3>

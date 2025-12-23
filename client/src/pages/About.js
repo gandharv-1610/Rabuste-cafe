@@ -4,6 +4,42 @@ import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
 import api from '../api/axios';
 
+// SVG Icon Components
+const GrabAndGoIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M13 2L3 14H12L11 22L21 10H12L13 2Z" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CozyBoldIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M3 21H21" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M5 21V11C5 7.13401 8.13401 4 12 4C15.866 4 19 7.13401 19 11V21" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 21C12 21 8.5 17 8.5 14.5C8.5 12.567 10.067 11 12 11C13.933 11 15.5 12.567 15.5 14.5C15.5 17 12 21 12 21Z" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 11V9" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const CommunityFirstIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M9 11C11.2091 11 13 9.20914 13 7C13 4.79086 11.2091 3 9 3C6.79086 3 5 4.79086 5 7C5 9.20914 6.79086 11 9 11Z" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+const ArtCultureIcon = ({ className = "w-16 h-16" }) => (
+  <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className={className}>
+    <rect x="5" y="5" width="14" height="10" rx="1" stroke="#FF8C00" strokeWidth="2" strokeLinejoin="round"/>
+    <path d="M5 12L9 8L13 12L16 9L19 12" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M7 15L5 21" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M17 15L19 21" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M12 2V5" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M4 15H20" stroke="#FF8C00" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
 const About = () => {
   const [backgroundMedia, setBackgroundMedia] = React.useState(null);
 
@@ -53,25 +89,25 @@ const About = () => {
 
   const values = [
     {
-      icon: '⚡',
+      icon: <GrabAndGoIcon />,
       title: 'Grab-and-Go Excellence',
       description: 'We believe premium coffee shouldn\'t require a long wait. Our grab-and-go model brings specialty Robusta coffee to your busy lifestyle without compromising on quality or flavor.',
       details: 'Our streamlined service model ensures you get barista-quality coffee in minutes. Every cup is crafted with precision, using our signature Robusta beans that are ground fresh and brewed to perfection. Whether you\'re rushing to work or taking a quick break, we deliver excellence at speed.',
     },
     {
-      icon: '🏠',
+      icon: <CozyBoldIcon />,
       title: 'Cozy & Bold',
       description: 'Our space is designed to be warm and inviting—a perfect contrast to the boldness of our coffee. It\'s a place where you can pause, reflect, and enjoy a moment of strength and comfort.',
       details: 'Step into a space where modern minimalism meets cozy warmth. Our café features carefully curated lighting, comfortable seating, and art installations that create an atmosphere of both energy and tranquility. The bold flavors of our coffee are complemented by a space that invites you to stay, work, or simply be.',
     },
     {
-      icon: '🤝',
+      icon: <CommunityFirstIcon />,
       title: 'Community First',
       description: 'Beyond coffee, we\'re building a community of bold thinkers, creative souls, and coffee enthusiasts who appreciate uncompromising quality and authentic experiences.',
       details: 'Rabuste Coffee is more than a café—it\'s a gathering place for those who value authenticity and bold choices. We host regular events, support local artists, and create opportunities for meaningful connections. Our community includes entrepreneurs, artists, students, and anyone who appreciates the strength and character of Robusta coffee.',
     },
     {
-      icon: '🎨',
+      icon: <ArtCultureIcon />,
       title: 'Art & Culture',
       description: 'We integrate fine art into our café experience, creating a cultural hub where coffee and creativity intersect. Each visit offers both a caffeine boost and an artistic discovery.',
       details: 'Our walls feature rotating exhibitions from emerging and established artists, creating a dynamic gallery space. We believe that great coffee and great art both stimulate the senses and inspire conversation. Our art program includes monthly exhibitions, artist talks, and collaborative events that celebrate creativity in all its forms.',
@@ -256,7 +292,7 @@ const About = () => {
                 variants={itemVariants}
                 className="modern-card p-8 group"
               >
-                <div className="text-5xl mb-4 transform group-hover:scale-110 transition-transform duration-300">
+                <div className="mb-4 flex justify-center transform group-hover:scale-110 transition-transform duration-300">
                   {value.icon}
                 </div>
                 <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">

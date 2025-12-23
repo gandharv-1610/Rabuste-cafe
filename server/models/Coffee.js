@@ -12,8 +12,8 @@ const coffeeSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    enum: ['Coffee', 'Snacks', 'Merchandise', 'Other'],
-    default: 'Coffee'
+    default: 'Coffee',
+    trim: true
   },
   strength: {
     type: String,
