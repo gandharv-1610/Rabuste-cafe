@@ -28,15 +28,22 @@ async function getWorkingModel(testConnection = false) {
     return { model: cachedModel, modelName: cachedModelName };
   }
 
-  // Try models in order of preference (most available first)
+  // Try newer Gemini 2.0/2.5 models first (better limits and performance)
+  // Then fallback to 1.5 models if newer ones aren't available
   const modelsToTry = [
-    'gemini-1.5-flash',
+    'gemini-2.0-flash',        // Latest - best performance and limits
+    'gemini-2.5-flash',        // Latest stable version
+    'gemini-2.0-flash-exp',    // Experimental version
+    'gemini-2.0-flash-lite',   // Lite version
+    'gemini-2.5-flash-lite',   // Lite stable version
+    'gemini-1.5-flash',        // Fallback to 1.5 series
     'gemini-1.5-flash-latest',
     'gemini-1.5-pro',
     'gemini-1.5-pro-latest',
     'gemini-pro'
   ];
 
+  // Try models in order - newer 2.0/2.5 models first, then fallback to 1.5
   for (const modelName of modelsToTry) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
@@ -51,7 +58,14 @@ async function getWorkingModel(testConnection = false) {
       // Cache the working model
       cachedModel = model;
       cachedModelName = modelName;
-      console.log(`✓ Using Gemini model: ${modelName}`);
+      // Log model selection with priority info
+      if (modelName.startsWith('gemini-2.')) {
+        console.log(`✓ Using Gemini model: ${modelName} (Latest Generation - Best Performance)`);
+      } else if (modelName === 'gemini-1.5-flash') {
+        console.log(`✓ Using Gemini model: ${modelName} (Stable - Fast & Efficient)`);
+      } else {
+        console.log(`✓ Using Gemini model: ${modelName} (Fallback)`);
+      }
       return { model, modelName };
     } catch (error) {
       console.log(`✗ ${modelName} not available: ${error.message}`);
