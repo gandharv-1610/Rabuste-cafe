@@ -151,9 +151,10 @@ const CoffeeCategory = () => {
                   transition={{ delay: idx * 0.1 }}
                   className={`flip-card ${isFlipped ? 'flipped' : ''}`}
                   style={{ minHeight: '400px', height: '400px' }}
-                  onTouchStart={(e) => e.preventDefault()}
-                  onClick={(e) => {
+                  onTouchEnd={(e) => {
+                    // Only handle touch on mobile devices
                     if (window.innerWidth < 768 || 'ontouchstart' in window) {
+                      e.preventDefault();
                       e.stopPropagation();
                       setFlippedCards(prev => {
                         const newSet = new Set(prev);
@@ -164,6 +165,17 @@ const CoffeeCategory = () => {
                         }
                         return newSet;
                       });
+                    }
+                  }}
+                  onClick={(e) => {
+                    // Handle click on desktop (hover doesn't work on touch devices)
+                    if (window.innerWidth >= 768 && !('ontouchstart' in window)) {
+                      // Desktop hover handles flip, so we don't need click handler
+                      return;
+                    }
+                    // For mobile, touchEnd handles it, but keep this as fallback
+                    if (window.innerWidth < 768 || 'ontouchstart' in window) {
+                      e.stopPropagation();
                     }
                   }}
                 >
