@@ -9,6 +9,7 @@ import CoffeeMenu from './pages/CoffeeMenu';
 import CoffeeCategory from './pages/CoffeeCategory';
 import ShakesCategory from './pages/ShakesCategory';
 import SidesCategory from './pages/SidesCategory';
+import TeaCategory from './pages/TeaCategory';
 import ArtGallery from './pages/ArtGallery';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
@@ -34,6 +35,7 @@ function App() {
           <Route path="/coffee/category" element={<CoffeeCategory />} />
           <Route path="/coffee/shakes" element={<ShakesCategory />} />
           <Route path="/coffee/sides" element={<SidesCategory />} />
+          <Route path="/coffee/tea" element={<TeaCategory />} />
           <Route path="/art" element={<ArtGallery />} />
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/franchise" element={<Franchise />} />

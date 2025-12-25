@@ -12,6 +12,7 @@ const CoffeeMenu = () => {
   const [coffees, setCoffees] = useState([]);
   const [shakes, setShakes] = useState([]);
   const [sides, setSides] = useState([]);
+  const [tea, setTea] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundMedia, setBackgroundMedia] = useState(null);
 
@@ -59,15 +60,17 @@ const CoffeeMenu = () => {
 
   const fetchAllItems = async () => {
     try {
-      const [coffeeRes, shakesRes, sidesRes] = await Promise.all([
+      const [coffeeRes, shakesRes, sidesRes, teaRes] = await Promise.all([
         api.get('/coffee', { params: { category: 'Coffee', _t: Date.now() } }),
         api.get('/coffee', { params: { category: 'Shakes', _t: Date.now() } }),
-        api.get('/coffee', { params: { category: 'Sides', _t: Date.now() } })
+        api.get('/coffee', { params: { category: 'Sides', _t: Date.now() } }),
+        api.get('/coffee', { params: { category: 'Tea', _t: Date.now() } })
       ]);
       
       setCoffees(coffeeRes.data || []);
       setShakes(shakesRes.data || []);
       setSides(sidesRes.data || []);
+      setTea(teaRes.data || []);
     } catch (error) {
       console.error('Error fetching items:', error);
     } finally {
@@ -103,6 +106,7 @@ const CoffeeMenu = () => {
   const coffeeSliderItems = getSliderItems(coffees);
   const shakesSliderItems = getSliderItems(shakes);
   const sidesSliderItems = getSliderItems(sides);
+  const teaSliderItems = getSliderItems(tea);
 
   return (
     <div className="pt-20 min-h-screen">
@@ -138,7 +142,7 @@ const CoffeeMenu = () => {
             Our Menu
           </h1>
           <p className="text-xl text-coffee-light">
-            Explore our curated selection of coffee, shakes, and sides
+            Explore our curated selection of coffee, tea, shakes, and sides
           </p>
         </motion.div>
       </section>
@@ -183,12 +187,27 @@ const CoffeeMenu = () => {
             />
           </motion.div>
 
-          {/* Sides Category Slider */}
+          {/* Tea Category Slider */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
+          >
+            <InfiniteSlider
+              items={teaSliderItems}
+              title="Tea"
+              onNavigate={() => navigate('/coffee/tea')}
+              speed={0.5}
+            />
+          </motion.div>
+
+          {/* Sides Category Slider */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.6 }}
           >
             <InfiniteSlider
               items={sidesSliderItems}

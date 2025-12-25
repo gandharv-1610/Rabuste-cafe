@@ -10,10 +10,10 @@ const coffeeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  // Main category: Coffee, Shakes, Sides
+  // Main category: Coffee, Shakes, Sides, Tea
   category: {
     type: String,
-    enum: ['Coffee', 'Shakes', 'Sides'],
+    enum: ['Coffee', 'Shakes', 'Sides', 'Tea'],
     required: true,
     trim: true
   },

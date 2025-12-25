@@ -417,7 +417,7 @@ const PasswordChange = () => {
 const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingCoffee, setEditingCoffee] = useState(null);
-  const defaultCategories = ['Coffee', 'Shakes', 'Sides'];
+  const defaultCategories = ['Coffee', 'Tea', 'Shakes', 'Sides'];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
