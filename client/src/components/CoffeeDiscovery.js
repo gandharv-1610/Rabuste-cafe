@@ -167,9 +167,28 @@ const CoffeeDiscovery = () => {
                     <span className="inline-block bg-coffee-amber/30 text-coffee-amber px-3 py-1 rounded-full text-sm font-medium">
                       {recommendation.strength}
                     </span>
-                    <span className="text-lg font-semibold text-coffee-gold">
-                      ₹{recommendation.price}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-coffee-light">Blend:</span>
+                        {(recommendation.priceBlend && parseFloat(recommendation.priceBlend) > 0) ? (
+                          <span className="text-lg font-semibold text-coffee-gold">
+                            ₹{parseFloat(recommendation.priceBlend).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-coffee-light text-sm">N/A</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-coffee-light">Robusta Special:</span>
+                        {(recommendation.priceRobustaSpecial && parseFloat(recommendation.priceRobustaSpecial) > 0) ? (
+                          <span className="text-lg font-semibold text-coffee-gold">
+                            ₹{parseFloat(recommendation.priceRobustaSpecial).toFixed(2)}
+                          </span>
+                        ) : (
+                          <span className="text-coffee-light text-sm">N/A</span>
+                        )}
+                      </div>
+                    </div>
                   </div>
                   {recommendation.description && (
                     <p className="text-coffee-light text-sm mb-2">

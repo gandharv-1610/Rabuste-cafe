@@ -10,6 +10,12 @@ router.get('/', async (req, res) => {
     if (req.query.category) {
       filter.category = req.query.category;
     }
+    if (req.query.subcategory) {
+      filter.subcategory = req.query.subcategory;
+    }
+    if (req.query.milkType) {
+      filter.milkType = req.query.milkType;
+    }
     const coffees = await Coffee.find(filter).sort({ order: 1, createdAt: -1 });
     res.json(coffees);
   } catch (error) {

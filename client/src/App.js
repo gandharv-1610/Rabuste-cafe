@@ -6,6 +6,9 @@ import Home from './pages/Home';
 import About from './pages/About';
 import WhyRobusta from './pages/WhyRobusta';
 import CoffeeMenu from './pages/CoffeeMenu';
+import CoffeeCategory from './pages/CoffeeCategory';
+import ShakesCategory from './pages/ShakesCategory';
+import SidesCategory from './pages/SidesCategory';
 import ArtGallery from './pages/ArtGallery';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
@@ -28,6 +31,9 @@ function App() {
           <Route path="/about" element={<About />} />
           <Route path="/why-robusta" element={<WhyRobusta />} />
           <Route path="/coffee" element={<CoffeeMenu />} />
+          <Route path="/coffee/category" element={<CoffeeCategory />} />
+          <Route path="/coffee/shakes" element={<ShakesCategory />} />
+          <Route path="/coffee/sides" element={<SidesCategory />} />
           <Route path="/art" element={<ArtGallery />} />
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/franchise" element={<Franchise />} />
