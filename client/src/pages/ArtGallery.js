@@ -251,11 +251,12 @@ const ArtGallery = () => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="grid md:grid-cols-2 gap-8">
-              <div className="aspect-square bg-coffee-brown/40 rounded-lg flex items-center justify-center">
+            <div className="grid md:grid-cols-2 gap-8 flex-1 min-h-0 relative">
+              {/* Fixed Image Container */}
+              <div className="sticky top-1/2 -translate-y-1/2 self-center aspect-square bg-coffee-brown/40 rounded-lg flex items-center justify-center flex-shrink-0 h-fit">
                 {selectedArt.image ? (
                   <img
                     src={`${selectedArt.image}?v=${selectedArt.updatedAt || Date.now()}`}
@@ -266,7 +267,8 @@ const ArtGallery = () => {
                   <span className="text-8xl">🎨</span>
                 )}
               </div>
-              <div>
+              {/* Scrollable Content Container */}
+              <div className="overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-coffee-brown scrollbar-track-coffee-darker h-full">
                 <div className="flex items-start justify-between mb-4">
                   <h2 className="text-3xl font-heading font-bold text-coffee-amber">
                     {selectedArt.title}

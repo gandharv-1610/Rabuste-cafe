@@ -79,33 +79,45 @@ const CoffeeCategory = () => {
       {/* Filters */}
       <section className="py-8 px-4 bg-coffee-brown/20">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap gap-4 justify-center">
-            {/* Subcategory Filter */}
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Temperature</label>
-              <select
-                value={subcategoryFilter}
-                onChange={(e) => setSubcategoryFilter(e.target.value)}
-                className="bg-coffee-darker border-2 border-coffee-brown text-coffee-cream px-4 py-2 rounded-lg focus:outline-none focus:border-coffee-amber"
-              >
-                <option value="All">All</option>
-                <option value="Hot">Hot</option>
-                <option value="Cold">Cold</option>
-              </select>
+          <div className="flex flex-col md:flex-row flex-wrap gap-6 justify-center items-center">
+            {/* Temperature Filter */}
+            <div className="flex flex-col items-center gap-3">
+              <label className="text-coffee-amber font-semibold text-sm uppercase tracking-wide">Temperature</label>
+              <div className="flex gap-2 bg-coffee-darker/50 p-1.5 rounded-full border border-coffee-brown/30">
+                {['All', 'Hot', 'Cold'].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setSubcategoryFilter(option)}
+                    className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
+                      subcategoryFilter === option
+                        ? 'bg-coffee-amber text-coffee-darker shadow-lg shadow-coffee-amber/30 scale-105'
+                        : 'text-coffee-cream hover:bg-coffee-brown/40 hover:text-coffee-amber'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Milk Type Filter */}
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Milk Type</label>
-              <select
-                value={milkFilter}
-                onChange={(e) => setMilkFilter(e.target.value)}
-                className="bg-coffee-darker border-2 border-coffee-brown text-coffee-cream px-4 py-2 rounded-lg focus:outline-none focus:border-coffee-amber"
-              >
-                <option value="All">All</option>
-                <option value="Milk">With Milk</option>
-                <option value="Non-Milk">Non-Milk</option>
-              </select>
+            <div className="flex flex-col items-center gap-3">
+              <label className="text-coffee-amber font-semibold text-sm uppercase tracking-wide">Milk Type</label>
+              <div className="flex gap-2 bg-coffee-darker/50 p-1.5 rounded-full border border-coffee-brown/30">
+                {['All', 'Milk', 'Non-Milk'].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setMilkFilter(option === 'Milk' ? 'Milk' : option === 'Non-Milk' ? 'Non-Milk' : 'All')}
+                    className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-300 ${
+                      milkFilter === option
+                        ? 'bg-coffee-amber text-coffee-darker shadow-lg shadow-coffee-amber/30 scale-105'
+                        : 'text-coffee-cream hover:bg-coffee-brown/40 hover:text-coffee-amber'
+                    }`}
+                  >
+                    {option === 'Milk' ? 'With Milk' : option}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
