@@ -135,7 +135,9 @@ Respond with ONLY valid JSON (no markdown):
               itemName: aiItem.name,
               recommendation: aiItem.name,
               strength: aiItem.strength,
-              price: aiItem.price,
+              price: aiItem.priceBlend || aiItem.price || 0, // Use Blend price as default
+              priceBlend: aiItem.priceBlend || 0,
+              priceRobustaSpecial: aiItem.priceRobustaSpecial || 0,
               description: aiItem.description,
               flavorNotes: aiItem.flavorNotes || [],
               image: aiItem.image || aiItem.cloudinary_url || '',
@@ -257,7 +259,9 @@ function getSmartRecommendation(coffeeItems, mood, timeOfDay, energyLevel) {
     itemName: bestMatch.name,
     recommendation: bestMatch.name,
     strength: bestMatch.strength,
-    price: bestMatch.price,
+    price: bestMatch.priceBlend || bestMatch.price || 0, // Use Blend price as default, fallback to price for backward compatibility
+    priceBlend: bestMatch.priceBlend || 0,
+    priceRobustaSpecial: bestMatch.priceRobustaSpecial || 0,
     description: bestMatch.description,
     flavorNotes: bestMatch.flavorNotes || [],
     image: bestMatch.image || bestMatch.cloudinary_url || '',
@@ -285,7 +289,11 @@ const getFallbackResponse = async (message) => {
       if (coffeeItems.length > 0) {
         response += "Coffee:\n";
         coffeeItems.forEach(item => {
-          response += `- ${item.name} (${item.strength}) - ₹${item.price}\n`;
+          if (item.priceBlend && item.priceRobustaSpecial) {
+            response += `- ${item.name} (${item.strength}) - Blend: ₹${item.priceBlend}, Robusta Special: ₹${item.priceRobustaSpecial}\n`;
+          } else {
+            response += `- ${item.name} (${item.strength}) - ₹${item.price || '0.00'}\n`;
+          }
         });
       }
       
@@ -436,7 +444,12 @@ router.post('/chatbot', async (req, res) => {
 
     if (!genAI) {
       // Enhanced fallback response with comprehensive site information
-      const coffeeList = menuItems.filter(item => item.category === 'Coffee').slice(0, 5).map(item => `- ${item.name} (${item.strength}, ₹${item.price})`).join('\n');
+      const coffeeList = menuItems.filter(item => item.category === 'Coffee').slice(0, 5).map(item => {
+        if (item.priceBlend && item.priceRobustaSpecial) {
+          return `- ${item.name} (${item.strength}, Blend: ₹${item.priceBlend}, Robusta Special: ₹${item.priceRobustaSpecial})`;
+        }
+        return `- ${item.name} (${item.strength}, ₹${item.price || '0.00'})`;
+      }).join('\n');
       const otherItemsList = menuItems.filter(item => item.category !== 'Coffee').slice(0, 3).map(item => `- ${item.name} (${item.category}, ₹${item.price})`).join('\n');
       
       let response = `Welcome to Rabuste Coffee! We're a specialty café serving EXCLUSIVELY Robusta coffee.\n\n`;
@@ -479,7 +492,9 @@ router.post('/chatbot', async (req, res) => {
         name: item.name,
         description: item.description,
         strength: item.strength,
-        price: item.price,
+        price: item.priceBlend || item.price || 0, // Use Blend price as default
+        priceBlend: item.priceBlend || 0,
+        priceRobustaSpecial: item.priceRobustaSpecial || 0,
         flavorNotes: item.flavorNotes || [],
         isBestseller: item.isBestseller
       }));
@@ -557,7 +572,12 @@ OUR STORY (brief timeline):
 CURRENT MENU ITEMS (ONLY SUGGEST FROM THIS EXACT LIST - DO NOT INVENT ITEMS):
 
 COFFEE ITEMS (All are Robusta coffee):
-${coffeeItems.map(item => `- ${item.name}: ${item.description} (Strength: ${item.strength}, Price: ₹${item.price}${item.flavorNotes.length > 0 ? `, Notes: ${item.flavorNotes.join(', ')}` : ''}${item.isBestseller ? ', ⭐ BESTSELLER' : ''})`).join('\n')}
+${coffeeItems.map(item => {
+  const priceText = item.priceBlend && item.priceRobustaSpecial 
+    ? `Blend: ₹${item.priceBlend}, Robusta Special: ₹${item.priceRobustaSpecial}`
+    : `Price: ₹${item.price || '0.00'}`;
+  return `- ${item.name}: ${item.description} (Strength: ${item.strength}, ${priceText}${item.flavorNotes.length > 0 ? `, Notes: ${item.flavorNotes.join(', ')}` : ''}${item.isBestseller ? ', ⭐ BESTSELLER' : ''})`;
+}).join('\n')}
 
 OTHER ITEMS (Sides, Pizza, etc.):
 ${otherItems.map(item => `- ${item.name} (${item.category}): ${item.description} (Price: ₹${item.price})`).join('\n')}

@@ -417,16 +417,18 @@ const PasswordChange = () => {
 const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingCoffee, setEditingCoffee] = useState(null);
-  const [customCategory, setCustomCategory] = useState('');
-  const [useCustomCategory, setUseCustomCategory] = useState(false);
-  const defaultCategories = ['Coffee', 'Pizza', 'Sides'];
+  const defaultCategories = ['Coffee', 'Shakes', 'Sides'];
   const [formData, setFormData] = useState({
     name: '',
     description: '',
     category: 'Coffee',
+    subcategory: '',
+    milkType: '',
     strength: 'Medium',
     flavorNotes: '',
     price: '',
+    priceBlend: '',
+    priceRobustaSpecial: '',
     isBestseller: false,
     image: '',
     cloudinary_url: '',
@@ -444,14 +446,25 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const finalCategory = useCustomCategory && customCategory.trim() ? customCategory.trim() : formData.category;
     const coffeeData = {
       ...formData,
-      category: finalCategory,
-      price: parseFloat(formData.price) || 0,
+      price: formData.category === 'Coffee' ? undefined : (parseFloat(formData.price) || 0),
+      priceBlend: formData.category === 'Coffee' ? (formData.priceBlend && formData.priceBlend.trim() ? parseFloat(formData.priceBlend) : undefined) : undefined,
+      priceRobustaSpecial: formData.category === 'Coffee' ? (formData.priceRobustaSpecial && formData.priceRobustaSpecial.trim() ? parseFloat(formData.priceRobustaSpecial) : undefined) : undefined,
       flavorNotes: formData.flavorNotes.split(',').map(f => f.trim()).filter(f => f),
-      // Only include strength if category is Coffee
-      ...(finalCategory === 'Coffee' ? { strength: formData.strength } : { strength: undefined })
+      // Only include strength, subcategory, and milkType if category is Coffee
+      ...(formData.category === 'Coffee' 
+        ? { 
+            strength: formData.strength,
+            subcategory: formData.subcategory || null,
+            milkType: formData.milkType || null
+          } 
+        : { 
+            strength: undefined,
+            subcategory: null,
+            milkType: null
+          }
+      )
     };
 
     try {
@@ -462,15 +475,17 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       }
       setShowForm(false);
       setEditingCoffee(null);
-      setCustomCategory('');
-      setUseCustomCategory(false);
       setFormData({ 
         name: '', 
         description: '', 
         category: 'Coffee',
+        subcategory: '',
+        milkType: '',
         strength: 'Medium', 
         flavorNotes: '', 
         price: '',
+        priceBlend: '',
+        priceRobustaSpecial: '',
         isBestseller: false,
         image: '',
         cloudinary_url: '',
@@ -485,17 +500,17 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
 
   const handleEdit = (coffee) => {
     setEditingCoffee(coffee);
-    const category = coffee.category || 'Coffee';
-    const isCustomCategory = !defaultCategories.includes(category);
-    setUseCustomCategory(isCustomCategory);
-    setCustomCategory(isCustomCategory ? category : '');
     setFormData({
       name: coffee.name,
       description: coffee.description,
-      category: isCustomCategory ? 'Custom' : category,
+      category: coffee.category || 'Coffee',
+      subcategory: coffee.subcategory || '',
+      milkType: coffee.milkType || '',
       strength: coffee.strength || 'Medium',
       flavorNotes: coffee.flavorNotes?.join(', ') || '',
       price: coffee.price?.toString() || '',
+      priceBlend: coffee.priceBlend?.toString() || '',
+      priceRobustaSpecial: coffee.priceRobustaSpecial?.toString() || '',
       isBestseller: coffee.isBestseller || false,
       image: coffee.image || coffee.cloudinary_url || '',
       cloudinary_url: coffee.cloudinary_url || '',
@@ -528,16 +543,18 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               name: '', 
               description: '', 
               category: 'Coffee',
+              subcategory: '',
+              milkType: '',
               strength: 'Medium', 
               flavorNotes: '', 
               price: '',
+              priceBlend: '',
+              priceRobustaSpecial: '',
               isBestseller: false,
               image: '',
               cloudinary_url: '',
               cloudinary_public_id: ''
             });
-            setCustomCategory('');
-            setUseCustomCategory(false);
           }}
           className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
         >
@@ -554,30 +571,49 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               value={formData.category}
               onChange={(e) => {
                 const value = e.target.value;
-                setFormData({ ...formData, category: value });
-                setUseCustomCategory(value === 'Custom');
-                if (value !== 'Custom') {
-                  setCustomCategory('');
-                }
+                setFormData({ 
+                  ...formData, 
+                  category: value,
+                  // Reset subcategory and milkType when category changes
+                  subcategory: value === 'Coffee' ? formData.subcategory : '',
+                  milkType: value === 'Coffee' ? formData.milkType : ''
+                });
               }}
               className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-2"
             >
               {defaultCategories.map(cat => (
                 <option key={cat} value={cat}>{cat}</option>
               ))}
-              <option value="Custom">Custom Category</option>
             </select>
-            {useCustomCategory && (
-              <input
-                type="text"
-                required
-                value={customCategory}
-                onChange={(e) => setCustomCategory(e.target.value)}
-                placeholder="Enter category name"
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mt-2"
-              />
-            )}
           </div>
+          {formData.category === 'Coffee' && (
+            <>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Temperature</label>
+                <select
+                  value={formData.subcategory}
+                  onChange={(e) => setFormData({ ...formData, subcategory: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                >
+                  <option value="">Select Temperature</option>
+                  <option value="Hot">Hot</option>
+                  <option value="Cold">Cold</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Milk Type</label>
+                <select
+                  value={formData.milkType}
+                  onChange={(e) => setFormData({ ...formData, milkType: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                >
+                  <option value="">Select Milk Type</option>
+                  <option value="Milk">With Milk</option>
+                  <option value="Non-Milk">Non-Milk</option>
+                </select>
+              </div>
+            </>
+          )}
           <div>
             <label className="block text-coffee-amber font-semibold mb-2">Name *</label>
             <input
@@ -598,7 +634,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
             />
           </div>
-          {(useCustomCategory ? customCategory === 'Coffee' : formData.category === 'Coffee') && (
+          {formData.category === 'Coffee' && (
             <>
               <div>
                 <label className="block text-coffee-amber font-semibold mb-2">Strength *</label>
@@ -626,19 +662,48 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               </div>
             </>
           )}
-          <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Price *</label>
-            <input
-              type="number"
-              required
-              step="0.01"
-              min="0"
-              value={formData.price}
-              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              placeholder="0.00"
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-            />
-          </div>
+          {formData.category === 'Coffee' ? (
+            <>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Price - Blend</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.priceBlend}
+                  onChange={(e) => setFormData({ ...formData, priceBlend: e.target.value })}
+                  placeholder="0.00 (optional)"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Price - Robusta Special</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.priceRobustaSpecial}
+                  onChange={(e) => setFormData({ ...formData, priceRobustaSpecial: e.target.value })}
+                  placeholder="0.00 (optional)"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+            </>
+          ) : (
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Price *</label>
+              <input
+                type="number"
+                required
+                step="0.01"
+                min="0"
+                value={formData.price}
+                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                placeholder="0.00"
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+          )}
           <ImageUpload
             onUploadComplete={handleImageUpload}
             folder="rabuste-coffee/menu"
@@ -664,8 +729,6 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               onClick={() => {
                 setShowForm(false);
                 setEditingCoffee(null);
-                setCustomCategory('');
-                setUseCustomCategory(false);
               }}
               className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold"
             >

@@ -10,9 +10,25 @@ const coffeeSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  // Main category: Coffee, Shakes, Sides
   category: {
     type: String,
-    default: 'Coffee',
+    enum: ['Coffee', 'Shakes', 'Sides'],
+    required: true,
+    trim: true
+  },
+  // For Coffee category: Hot or Cold
+  subcategory: {
+    type: String,
+    enum: ['Hot', 'Cold', null],
+    default: null,
+    trim: true
+  },
+  // For Coffee category: Milk or Non-Milk
+  milkType: {
+    type: String,
+    enum: ['Milk', 'Non-Milk', null],
+    default: null,
     trim: true
   },
   strength: {
@@ -26,9 +42,23 @@ const coffeeSchema = new mongoose.Schema({
     type: [String],
     default: []
   },
+  // For Coffee: Two prices (Blend and Robusta Special) - both optional
+  // For Shakes/Sides: Single price
   price: {
     type: Number,
-    required: true,
+    required: function() {
+      return this.category !== 'Coffee';
+    },
+    min: 0,
+    default: 0
+  },
+  priceBlend: {
+    type: Number,
+    min: 0,
+    default: 0
+  },
+  priceRobustaSpecial: {
+    type: Number,
     min: 0,
     default: 0
   },
