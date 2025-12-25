@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
@@ -15,11 +15,82 @@ const CoffeeMenu = () => {
   const [tea, setTea] = useState([]);
   const [loading, setLoading] = useState(true);
   const [backgroundMedia, setBackgroundMedia] = useState(null);
+  const [activeCategory, setActiveCategory] = useState(null);
+  const categoryRefs = {
+    coffee: useRef(null),
+    shakes: useRef(null),
+    tea: useRef(null),
+    sides: useRef(null),
+  };
+
+  // Category configuration with subtitles and colors
+  const categories = [
+    {
+      id: 'coffee',
+      title: 'Coffee',
+      subtitle: 'Bold brews & handcrafted classics',
+      accentColor: 'coffee-amber',
+      route: '/coffee/category',
+      ref: categoryRefs.coffee
+    },
+    {
+      id: 'shakes',
+      title: 'Shakes',
+      subtitle: 'Creamy delights & refreshing blends',
+      accentColor: 'pink-400',
+      route: '/coffee/shakes',
+      ref: categoryRefs.shakes
+    },
+    {
+      id: 'tea',
+      title: 'Tea',
+      subtitle: 'Aromatic infusions & soothing moments',
+      accentColor: 'green-400',
+      route: '/coffee/tea',
+      ref: categoryRefs.tea
+    },
+    {
+      id: 'sides',
+      title: 'Sides',
+      subtitle: 'Perfect pairings & savory treats',
+      accentColor: 'coffee-gold',
+      route: '/coffee/sides',
+      ref: categoryRefs.sides
+    }
+  ];
 
   useEffect(() => {
     fetchAllItems();
     fetchBackground();
   }, []);
+
+  // Intersection Observer for active category highlighting
+  useEffect(() => {
+    const observers = categories.map((category) => {
+      if (!category.ref.current) return null;
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+              setActiveCategory(category.id);
+            }
+          });
+        },
+        {
+          threshold: [0.3, 0.5, 0.7],
+          rootMargin: '-100px 0px -50% 0px'
+        }
+      );
+
+      observer.observe(category.ref.current);
+      return observer;
+    });
+
+    return () => {
+      observers.forEach((observer) => observer?.disconnect());
+    };
+  }, [coffees, shakes, tea, sides]);
 
   const fetchBackground = async () => {
     try {
@@ -108,8 +179,63 @@ const CoffeeMenu = () => {
   const sidesSliderItems = getSliderItems(sides);
   const teaSliderItems = getSliderItems(tea);
 
+  const handleCategoryClick = (route) => {
+    // Smooth transition effect
+    document.body.style.transition = 'opacity 0.3s ease';
+    document.body.style.opacity = '0.95';
+    setTimeout(() => {
+      navigate(route);
+      setTimeout(() => {
+        document.body.style.opacity = '1';
+      }, 100);
+    }, 150);
+  };
+
+  const scrollToCategory = (categoryId) => {
+    const ref = categoryRefs[categoryId];
+    if (ref?.current) {
+      ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
-    <div className="pt-20 min-h-screen">
+    <div className="pt-20 min-h-screen relative">
+      {/* Sticky Category Switcher */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="sticky top-20 z-30 bg-coffee-darkest/95 backdrop-blur-md border-b border-coffee-brown/20 shadow-lg"
+      >
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex flex-wrap items-center justify-center gap-2 md:gap-4">
+            {categories.map((category) => {
+              const isActive = activeCategory === category.id;
+              const accentColors = {
+                coffee: { bg: '#FF6F00', text: '#0F0805' },
+                shakes: { bg: '#F472B6', text: '#0F0805' },
+                tea: { bg: '#4ADE80', text: '#0F0805' },
+                sides: { bg: '#FFB300', text: '#0F0805' }
+              };
+              const accent = accentColors[category.id] || accentColors.coffee;
+              
+              return (
+                <button
+                  key={category.id}
+                  onClick={() => scrollToCategory(category.id)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-300 ${
+                    isActive
+                      ? 'text-coffee-darkest shadow-lg scale-105'
+                      : 'text-coffee-light hover:text-coffee-amber hover:bg-coffee-brown/20'
+                  }`}
+                  style={isActive ? { backgroundColor: accent.bg, color: accent.text } : {}}
+                >
+                  {category.title}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </motion.div>
       {/* Hero Section */}
       <section className="relative py-20 px-4 min-h-[60vh] flex items-center justify-center overflow-hidden">
         {backgroundMedia && backgroundMedia.mediaType === 'video' ? (
@@ -155,64 +281,177 @@ const CoffeeMenu = () => {
       </section>
 
       {/* Category Sliders Section */}
-      <section className="py-20 px-4 max-w-7xl mx-auto">
-        <div className="space-y-16">
+      <section className="py-12 md:py-20 px-4 max-w-7xl mx-auto">
+        <div className="space-y-20 md:space-y-28">
           {/* Coffee Category Slider */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            ref={categoryRefs.coffee}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative"
           >
+            {/* Section Header */}
+            <div className="mb-10 md:mb-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-coffee-amber mb-3 tracking-tight">
+                  Coffee
+                </h2>
+                <p className="text-lg md:text-xl text-coffee-light/80 font-light tracking-wide">
+                  Bold brews & handcrafted classics
+                </p>
+                <motion.div
+                  className="mx-auto mt-4 h-1 w-24 bg-gradient-to-r from-transparent via-coffee-amber to-transparent rounded-full"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                />
+              </motion.div>
+            </div>
+
             <InfiniteSlider
               items={coffeeSliderItems}
               title="Coffee"
-              onNavigate={() => navigate('/coffee/category')}
+              onNavigate={() => handleCategoryClick('/coffee/category')}
               speed={0.6}
             />
           </motion.div>
 
+          {/* Divider */}
+          <div className="relative h-px bg-gradient-to-r from-transparent via-coffee-brown/30 to-transparent" />
+
           {/* Shakes Category Slider */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            ref={categoryRefs.shakes}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative"
           >
+            {/* Section Header */}
+            <div className="mb-10 md:mb-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-pink-400 mb-3 tracking-tight">
+                  Shakes
+                </h2>
+                <p className="text-lg md:text-xl text-coffee-light/80 font-light tracking-wide">
+                  Creamy delights & refreshing blends
+                </p>
+                <motion.div
+                  className="mx-auto mt-4 h-1 w-24 bg-gradient-to-r from-transparent via-pink-400 to-transparent rounded-full"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                />
+              </motion.div>
+            </div>
+
             <InfiniteSlider
               items={shakesSliderItems}
               title="Shakes"
-              onNavigate={() => navigate('/coffee/shakes')}
+              onNavigate={() => handleCategoryClick('/coffee/shakes')}
               speed={0.54}
             />
           </motion.div>
 
+          {/* Divider */}
+          <div className="relative h-px bg-gradient-to-r from-transparent via-coffee-brown/30 to-transparent" />
+
           {/* Tea Category Slider */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            ref={categoryRefs.tea}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.4 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative"
           >
+            {/* Section Header */}
+            <div className="mb-10 md:mb-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-green-400 mb-3 tracking-tight">
+                  Tea
+                </h2>
+                <p className="text-lg md:text-xl text-coffee-light/80 font-light tracking-wide">
+                  Aromatic infusions & soothing moments
+                </p>
+                <motion.div
+                  className="mx-auto mt-4 h-1 w-24 bg-gradient-to-r from-transparent via-green-400 to-transparent rounded-full"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                />
+              </motion.div>
+            </div>
+
             <InfiniteSlider
               items={teaSliderItems}
               title="Tea"
-              onNavigate={() => navigate('/coffee/tea')}
+              onNavigate={() => handleCategoryClick('/coffee/tea')}
               speed={0.5}
             />
           </motion.div>
 
+          {/* Divider */}
+          <div className="relative h-px bg-gradient-to-r from-transparent via-coffee-brown/30 to-transparent" />
+
           {/* Sides Category Slider */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            ref={categoryRefs.sides}
+            initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6, delay: 0.6 }}
+            viewport={{ once: true, margin: '-100px' }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
+            className="relative"
           >
+            {/* Section Header */}
+            <div className="mb-10 md:mb-12 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.2 }}
+              >
+                <h2 className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-coffee-gold mb-3 tracking-tight">
+                  Sides
+                </h2>
+                <p className="text-lg md:text-xl text-coffee-light/80 font-light tracking-wide">
+                  Perfect pairings & savory treats
+                </p>
+                <motion.div
+                  className="mx-auto mt-4 h-1 w-24 bg-gradient-to-r from-transparent via-coffee-gold to-transparent rounded-full"
+                  initial={{ scaleX: 0 }}
+                  whileInView={{ scaleX: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.8, delay: 0.4 }}
+                />
+              </motion.div>
+            </div>
+
             <InfiniteSlider
               items={sidesSliderItems}
               title="Sides"
-              onNavigate={() => navigate('/coffee/sides')}
+              onNavigate={() => handleCategoryClick('/coffee/sides')}
               speed={0.45}
             />
           </motion.div>
