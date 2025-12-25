@@ -204,7 +204,7 @@ const WhyRobusta = () => {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            Understanding the bold choice behind our exclusive coffee selection
+            Understanding the bold choice behind our Robusta coffee promotion
           </motion.p>
         </motion.div>
       </section>
@@ -484,7 +484,7 @@ const WhyRobusta = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
           >
-            Why Rabuste Serves Only Robusta
+            Why Rabuste Promotes Robusta
           </motion.h2>
           <motion.p 
             className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
@@ -493,7 +493,7 @@ const WhyRobusta = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            We've made a conscious decision to focus exclusively on Robusta coffee because we believe in its unmatched potential. By dedicating ourselves to a single variety, we can master every aspect of Robusta brewing, from bean selection to extraction techniques.
+            We've made a conscious decision to champion Robusta coffee because we believe in its unmatched potential. By dedicating ourselves to promoting this exceptional variety, we can showcase every aspect of Robusta's excellence, from bean selection to extraction techniques.
           </motion.p>
           <motion.p 
             className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
@@ -502,7 +502,7 @@ const WhyRobusta = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.4 }}
           >
-            This singular focus allows us to become true experts in Robusta coffee, offering you the finest expressions of this bold variety. Our baristas are trained specifically in Robusta preparation, understanding how to extract the perfect balance of strength, flavor, and crema.
+            Our commitment to Robusta allows us to become true advocates for this bold variety, offering you the finest expressions of its unique character. Our baristas are trained specifically in Robusta preparation, understanding how to extract the perfect balance of strength, flavor, and crema that makes Robusta special.
           </motion.p>
           <motion.p 
             className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed"
@@ -511,7 +511,7 @@ const WhyRobusta = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.5 }}
           >
-            When you choose Rabuste, you're choosing a coffee experience that's unapologetically strong, authentically bold, and expertly crafted. We're not just serving coffee—we're championing a variety that deserves recognition and celebrating the bold choice to be different.
+            When you choose Rabuste, you're choosing a coffee experience that's unapologetically strong, authentically bold, and expertly crafted. We're not just serving coffee—we're promoting a variety that deserves recognition and celebrating the bold choice to champion something exceptional.
           </motion.p>
         </motion.div>
       </section>
