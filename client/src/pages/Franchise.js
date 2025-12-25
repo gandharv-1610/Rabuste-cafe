@@ -126,22 +126,38 @@ const Franchise = () => {
 
   const benefits = [
     {
-      icon: '🚀',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
       title: 'Proven Concept',
       description: 'Join a scalable café model with a unique positioning in the specialty coffee market.',
     },
     {
-      icon: '💎',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+        </svg>
+      ),
       title: 'Brand Value',
       description: 'Be part of a brand that celebrates bold Robusta coffee and premium experiences.',
     },
     {
-      icon: '🎯',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
       title: 'Multi-Faceted Business',
       description: 'Operate a café that combines coffee, art, workshops, and community engagement.',
     },
     {
-      icon: '📈',
+      icon: (
+        <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
       title: 'Growth Potential',
       description: 'Tap into the growing specialty coffee market with a differentiated offering.',
     },
@@ -229,10 +245,12 @@ const Franchise = () => {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="bg-coffee-brown/20 rounded-lg p-6"
+                className="bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-dark/20 rounded-2xl p-6 border border-coffee-amber/20 hover:border-coffee-amber/40 transition-all duration-300 group"
               >
-                <div className="text-4xl mb-4">{benefit.icon}</div>
-                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
+                <div className="mb-4 flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-coffee-amber/20 to-coffee-gold/20 border border-coffee-amber/30 text-coffee-amber group-hover:from-coffee-amber/30 group-hover:to-coffee-gold/30 transition-all duration-300 shadow-lg group-hover:shadow-xl group-hover:scale-110">
+                  {benefit.icon}
+                </div>
+                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3 group-hover:text-coffee-gold transition-colors">
                   {benefit.title}
                 </h3>
                 <p className="text-coffee-light leading-relaxed">
