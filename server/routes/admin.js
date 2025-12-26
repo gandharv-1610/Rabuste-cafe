@@ -5,6 +5,7 @@ const Art = require('../models/Art');
 const Workshop = require('../models/Workshop');
 const WorkshopRegistration = require('../models/WorkshopRegistration');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
+const Order = require('../models/Order');
 const auth = require('../middleware/auth');
 
 // All admin routes below this line require valid admin JWT
@@ -93,6 +94,152 @@ router.delete('/registrations/:id', async (req, res) => {
     await WorkshopRegistration.findByIdAndDelete(req.params.id);
     res.json({ message: 'Registration deleted successfully' });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Order Analytics
+router.get('/orders/analytics', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    
+    // Date range filter
+    const dateFilter = {};
+    if (startDate || endDate) {
+      dateFilter.createdAt = {};
+      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
+      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+    } else {
+      // Default to today if no date range
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const tomorrow = new Date(today);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      dateFilter.createdAt = { $gte: today, $lt: tomorrow };
+    }
+
+    // Total orders today
+    const totalOrders = await Order.countDocuments(dateFilter);
+
+    // Orders per hour
+    const ordersPerHour = await Order.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: { $hour: '$createdAt' },
+          count: { $sum: 1 },
+          totalRevenue: { $sum: '$total' }
+        }
+      },
+      { $sort: { _id: 1 } },
+      {
+        $project: {
+          hour: '$_id',
+          count: 1,
+          totalRevenue: { $round: ['$totalRevenue', 2] }
+        }
+      }
+    ]);
+
+    // Most ordered items
+    const mostOrderedItems = await Order.aggregate([
+      { $match: dateFilter },
+      { $unwind: '$items' },
+      {
+        $group: {
+          _id: '$items.itemId',
+          name: { $first: '$items.name' },
+          totalQuantity: { $sum: '$items.quantity' },
+          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
+        }
+      },
+      { $sort: { totalQuantity: -1 } },
+      { $limit: 10 },
+      {
+        $project: {
+          itemId: '$_id',
+          name: 1,
+          totalQuantity: 1,
+          totalRevenue: { $round: ['$totalRevenue', 2] }
+        }
+      }
+    ]);
+
+    // Average preparation time
+    const avgPrepTime = await Order.aggregate([
+      { $match: { ...dateFilter, estimatedPrepTime: { $gt: 0 } } },
+      {
+        $group: {
+          _id: null,
+          avgPrepTime: { $avg: '$estimatedPrepTime' }
+        }
+      }
+    ]);
+
+    // Peak ordering time
+    const peakTime = await Order.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: { $hour: '$createdAt' },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      { $limit: 1 }
+    ]);
+
+    // Orders by status
+    const ordersByStatus = await Order.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: '$status',
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Total revenue
+    const totalRevenue = await Order.aggregate([
+      { $match: dateFilter },
+      {
+        $group: {
+          _id: null,
+          total: { $sum: '$total' },
+          subtotal: { $sum: '$subtotal' },
+          tax: { $sum: '$tax' }
+        }
+      }
+    ]);
+
+    res.json({
+      totalOrders,
+      ordersPerHour: ordersPerHour.map(item => ({
+        hour: item.hour,
+        count: item.count,
+        totalRevenue: item.totalRevenue
+      })),
+      mostOrderedItems: mostOrderedItems.map(item => ({
+        itemId: item.itemId,
+        name: item.name,
+        totalQuantity: item.totalQuantity,
+        totalRevenue: item.totalRevenue
+      })),
+      averagePrepTime: avgPrepTime.length > 0 ? Math.round(avgPrepTime[0].avgPrepTime) : 0,
+      peakOrderingTime: peakTime.length > 0 ? peakTime[0]._id : null,
+      ordersByStatus: ordersByStatus.reduce((acc, item) => {
+        acc[item._id] = item.count;
+        return acc;
+      }, {}),
+      totalRevenue: totalRevenue.length > 0 ? {
+        total: Math.round(totalRevenue[0].total * 100) / 100,
+        subtotal: Math.round(totalRevenue[0].subtotal * 100) / 100,
+        tax: Math.round(totalRevenue[0].tax * 100) / 100
+      } : { total: 0, subtotal: 0, tax: 0 }
+    });
+  } catch (error) {
+    console.error('Analytics error:', error);
     res.status(500).json({ message: error.message });
   }
 });

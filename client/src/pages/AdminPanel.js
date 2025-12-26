@@ -4,6 +4,8 @@ import { motion } from 'framer-motion';
 import api from '../api/axios';
 import ImageUpload from '../components/ImageUpload';
 import VideoUpload from '../components/VideoUpload';
+import OrdersManagement from '../components/OrdersManagement';
+import OrderAnalytics from '../components/OrderAnalytics';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
@@ -121,8 +123,16 @@ const AdminPanel = () => {
     }
   };
 
+  const [soundEnabled, setSoundEnabled] = useState(() => {
+    const saved = localStorage.getItem('rabuste_sound_enabled');
+    return saved ? JSON.parse(saved) : true;
+  });
+
   const tabs = [
     { id: 'dashboard', label: 'Dashboard' },
+    { id: 'orders', label: 'Orders' },
+    { id: 'counter', label: 'Counter Order' },
+    { id: 'analytics', label: 'Analytics' },
     { id: 'coffee', label: 'Coffee Menu' },
     { id: 'art', label: 'Art Gallery' },
     { id: 'workshops', label: 'Workshops' },
@@ -131,6 +141,12 @@ const AdminPanel = () => {
     { id: 'siteMedia', label: 'Site Media' },
     { id: 'settings', label: 'Settings' },
   ];
+
+  const handleSoundToggle = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    localStorage.setItem('rabuste_sound_enabled', JSON.stringify(newValue));
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('rabuste_admin_token');
@@ -200,6 +216,31 @@ const AdminPanel = () => {
               </div>
             )}
           </>
+        )}
+
+        {/* Orders Management */}
+        {activeTab === 'orders' && (
+          <OrdersManagement
+            soundEnabled={soundEnabled}
+            onSoundToggle={handleSoundToggle}
+          />
+        )}
+
+        {/* Counter Order */}
+        {activeTab === 'counter' && (
+          <div className="text-center py-8">
+            <button
+              onClick={() => navigate('/counter')}
+              className="px-6 py-3 bg-coffee-amber text-coffee-darker rounded-lg font-bold hover:bg-coffee-gold text-lg"
+            >
+              Open Counter Order Page
+            </button>
+          </div>
+        )}
+
+        {/* Order Analytics */}
+        {activeTab === 'analytics' && (
+          <OrderAnalytics />
         )}
 
         {/* Coffee Management */}
@@ -429,6 +470,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
     price: '',
     priceBlend: '',
     priceRobustaSpecial: '',
+    prepTime: '5',
     isBestseller: false,
     image: '',
     cloudinary_url: '',
@@ -451,6 +493,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       price: formData.category === 'Coffee' ? undefined : (parseFloat(formData.price) || 0),
       priceBlend: formData.category === 'Coffee' ? (formData.priceBlend && formData.priceBlend.trim() ? parseFloat(formData.priceBlend) : undefined) : undefined,
       priceRobustaSpecial: formData.category === 'Coffee' ? (formData.priceRobustaSpecial && formData.priceRobustaSpecial.trim() ? parseFloat(formData.priceRobustaSpecial) : undefined) : undefined,
+      prepTime: parseFloat(formData.prepTime) || 5,
       flavorNotes: formData.flavorNotes.split(',').map(f => f.trim()).filter(f => f),
       // Only include strength, subcategory, and milkType if category is Coffee
       ...(formData.category === 'Coffee' 
@@ -486,6 +529,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
         price: '',
         priceBlend: '',
         priceRobustaSpecial: '',
+        prepTime: '5',
         isBestseller: false,
         image: '',
         cloudinary_url: '',
@@ -511,6 +555,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       price: coffee.price?.toString() || '',
       priceBlend: coffee.priceBlend?.toString() || '',
       priceRobustaSpecial: coffee.priceRobustaSpecial?.toString() || '',
+      prepTime: coffee.prepTime?.toString() || '5',
       isBestseller: coffee.isBestseller || false,
       image: coffee.image || coffee.cloudinary_url || '',
       cloudinary_url: coffee.cloudinary_url || '',
@@ -550,6 +595,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
               price: '',
               priceBlend: '',
               priceRobustaSpecial: '',
+              prepTime: '5',
               isBestseller: false,
               image: '',
               cloudinary_url: '',
@@ -688,21 +734,51 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
                   className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
                 />
               </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Prep Time (minutes) *</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  required
+                  value={formData.prepTime}
+                  onChange={(e) => setFormData({ ...formData, prepTime: e.target.value })}
+                  placeholder="5"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-coffee-light mt-1">Estimated preparation time in minutes</p>
+              </div>
             </>
           ) : (
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Price *</label>
-              <input
-                type="number"
-                required
-                step="0.01"
-                min="0"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                placeholder="0.00"
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
+            <>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Price *</label>
+                <input
+                  type="number"
+                  required
+                  step="0.01"
+                  min="0"
+                  value={formData.price}
+                  onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                  placeholder="0.00"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Prep Time (minutes) *</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  required
+                  value={formData.prepTime}
+                  onChange={(e) => setFormData({ ...formData, prepTime: e.target.value })}
+                  placeholder="5"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-coffee-light mt-1">Estimated preparation time in minutes</p>
+              </div>
+            </>
           )}
           <ImageUpload
             onUploadComplete={handleImageUpload}

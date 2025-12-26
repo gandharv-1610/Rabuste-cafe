@@ -47,6 +47,8 @@ try {
   app.use('/api/upload', require('./routes/upload'));
   app.use('/api/site-media', require('./routes/siteMedia'));
   app.use('/api/offers', require('./routes/offers'));
+  app.use('/api/orders', require('./routes/orders'));
+  app.use('/api/payment', require('./routes/payment'));
   console.log('✅ All routes loaded');
 } catch (error) {
   console.error('❌ Error loading routes:', error);

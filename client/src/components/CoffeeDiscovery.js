@@ -76,67 +76,97 @@ const CoffeeDiscovery = () => {
       {/* Compact Form Grid */}
       <div className="max-w-3xl mx-auto">
         <div className="grid md:grid-cols-3 gap-4 mb-5">
-          <div className="select-wrapper">
+          <div className="select-wrapper relative">
             <label className="block text-xs font-semibold text-coffee-amber/90 mb-1.5 flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Your Mood
             </label>
-            <select
-              value={mood}
-              onChange={(e) => setMood(e.target.value)}
-              className="w-full bg-coffee-brown/80 border-2 border-coffee-brown/70 text-coffee-cream rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/50 focus:border-coffee-amber transition-all duration-200 shadow-md hover:shadow-lg hover:border-coffee-amber/60"
-            >
-              <option value="" className="bg-coffee-darkest text-coffee-light">Select mood</option>
-              <option value="Relaxed" className="bg-coffee-darkest text-coffee-cream">Relaxed</option>
-              <option value="Focused" className="bg-coffee-darkest text-coffee-cream">Focused</option>
-              <option value="Energetic" className="bg-coffee-darkest text-coffee-cream">Energetic</option>
-              <option value="Stressed" className="bg-coffee-darkest text-coffee-cream">Stressed</option>
-              <option value="Happy" className="bg-coffee-darkest text-coffee-cream">Happy</option>
-              <option value="Tired" className="bg-coffee-darkest text-coffee-cream">Tired</option>
-              <option value="Creative" className="bg-coffee-darkest text-coffee-cream">Creative</option>
-            </select>
+            <div className="relative">
+              <select
+                value={mood}
+                onChange={(e) => setMood(e.target.value)}
+                className="w-full bg-gradient-to-br from-coffee-brown/90 to-coffee-dark/90 border-2 border-coffee-amber/30 text-coffee-cream rounded-2xl px-4 py-3.5 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/60 focus:border-coffee-amber transition-all duration-300 shadow-lg hover:shadow-xl hover:border-coffee-amber/50 hover:bg-gradient-to-br hover:from-coffee-brown hover:to-coffee-dark appearance-none cursor-pointer backdrop-blur-sm"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF8C00' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 1rem center',
+                  backgroundSize: '1rem',
+                  backgroundColor: 'rgba(90, 68, 50, 0.9)'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1A0F0A', color: '#D7CCC8' }}>Select mood</option>
+                <option value="Relaxed" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>😌 Relaxed</option>
+                <option value="Focused" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🎯 Focused</option>
+                <option value="Energetic" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>⚡ Energetic</option>
+                <option value="Stressed" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>😰 Stressed</option>
+                <option value="Happy" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>😊 Happy</option>
+                <option value="Tired" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>😴 Tired</option>
+                <option value="Creative" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>✨ Creative</option>
+              </select>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-coffee-amber/5 to-transparent pointer-events-none"></div>
+            </div>
           </div>
 
-          <div className="select-wrapper">
+          <div className="select-wrapper relative">
             <label className="block text-xs font-semibold text-coffee-amber/90 mb-1.5 flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               Time of Day
             </label>
-            <select
-              value={timeOfDay}
-              onChange={(e) => setTimeOfDay(e.target.value)}
-              className="w-full bg-coffee-brown/80 border-2 border-coffee-brown/70 text-coffee-cream rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/50 focus:border-coffee-amber transition-all duration-200 shadow-md hover:shadow-lg hover:border-coffee-amber/60"
-            >
-              <option value="" className="bg-coffee-darkest text-coffee-light">Select time</option>
-              <option value="Early Morning (6-9 AM)" className="bg-coffee-darkest text-coffee-cream">Early Morning</option>
-              <option value="Morning (9 AM-12 PM)" className="bg-coffee-darkest text-coffee-cream">Morning</option>
-              <option value="Afternoon (12-5 PM)" className="bg-coffee-darkest text-coffee-cream">Afternoon</option>
-              <option value="Evening (5-9 PM)" className="bg-coffee-darkest text-coffee-cream">Evening</option>
-              <option value="Night (9 PM+)" className="bg-coffee-darkest text-coffee-cream">Night</option>
-            </select>
+            <div className="relative">
+              <select
+                value={timeOfDay}
+                onChange={(e) => setTimeOfDay(e.target.value)}
+                className="w-full bg-gradient-to-br from-coffee-brown/90 to-coffee-dark/90 border-2 border-coffee-amber/30 text-coffee-cream rounded-2xl px-4 py-3.5 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/60 focus:border-coffee-amber transition-all duration-300 shadow-lg hover:shadow-xl hover:border-coffee-amber/50 hover:bg-gradient-to-br hover:from-coffee-brown hover:to-coffee-dark appearance-none cursor-pointer backdrop-blur-sm"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF8C00' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 1rem center',
+                  backgroundSize: '1rem',
+                  backgroundColor: 'rgba(90, 68, 50, 0.9)'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1A0F0A', color: '#D7CCC8' }}>Select time</option>
+                <option value="Early Morning (6-9 AM)" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🌅 Early Morning</option>
+                <option value="Morning (9 AM-12 PM)" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>☀️ Morning</option>
+                <option value="Afternoon (12-5 PM)" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🌤️ Afternoon</option>
+                <option value="Evening (5-9 PM)" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🌆 Evening</option>
+                <option value="Night (9 PM+)" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🌙 Night</option>
+              </select>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-coffee-amber/5 to-transparent pointer-events-none"></div>
+            </div>
           </div>
 
-          <div className="select-wrapper">
+          <div className="select-wrapper relative">
             <label className="block text-xs font-semibold text-coffee-amber/90 mb-1.5 flex items-center gap-1.5">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
               Energy Level
             </label>
-            <select
-              value={energyLevel}
-              onChange={(e) => setEnergyLevel(e.target.value)}
-              className="w-full bg-coffee-brown/80 border-2 border-coffee-brown/70 text-coffee-cream rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/50 focus:border-coffee-amber transition-all duration-200 shadow-md hover:shadow-lg hover:border-coffee-amber/60"
-            >
-              <option value="" className="bg-coffee-darkest text-coffee-light">Select energy</option>
-              <option value="Low - Need a boost" className="bg-coffee-darkest text-coffee-cream">Low</option>
-              <option value="Moderate - Steady state" className="bg-coffee-darkest text-coffee-cream">Moderate</option>
-              <option value="High - Already energized" className="bg-coffee-darkest text-coffee-cream">High</option>
-            </select>
+            <div className="relative">
+              <select
+                value={energyLevel}
+                onChange={(e) => setEnergyLevel(e.target.value)}
+                className="w-full bg-gradient-to-br from-coffee-brown/90 to-coffee-dark/90 border-2 border-coffee-amber/30 text-coffee-cream rounded-2xl px-4 py-3.5 pr-10 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-coffee-amber/60 focus:border-coffee-amber transition-all duration-300 shadow-lg hover:shadow-xl hover:border-coffee-amber/50 hover:bg-gradient-to-br hover:from-coffee-brown hover:to-coffee-dark appearance-none cursor-pointer backdrop-blur-sm"
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF8C00' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 1rem center',
+                  backgroundSize: '1rem',
+                  backgroundColor: 'rgba(90, 68, 50, 0.9)'
+                }}
+              >
+                <option value="" style={{ backgroundColor: '#1A0F0A', color: '#D7CCC8' }}>Select energy</option>
+                <option value="Low - Need a boost" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🔋 Low</option>
+                <option value="Moderate - Steady state" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>⚡ Moderate</option>
+                <option value="High - Already energized" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>🔥 High</option>
+              </select>
+              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-coffee-amber/5 to-transparent pointer-events-none"></div>
+            </div>
           </div>
         </div>
 
