@@ -81,6 +81,12 @@ const coffeeSchema = new mongoose.Schema({
   order: {
     type: Number,
     default: 0
+  },
+  prepTime: {
+    type: Number,
+    min: 0,
+    default: 5, // Default 5 minutes
+    required: true
   }
 }, {
   timestamps: true

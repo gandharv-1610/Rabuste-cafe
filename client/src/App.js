@@ -13,6 +13,8 @@ import TeaCategory from './pages/TeaCategory';
 import ArtGallery from './pages/ArtGallery';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
+import Order from './pages/Order';
+import CounterOrder from './pages/CounterOrder';
 import AdminPanel from './pages/AdminPanel';
 import AdminLogin from './pages/AdminLogin';
 import './App.css';
@@ -39,6 +41,15 @@ function App() {
           <Route path="/art" element={<ArtGallery />} />
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/franchise" element={<Franchise />} />
+          <Route path="/order" element={<Order />} />
+          <Route
+            path="/counter"
+            element={
+              <ProtectedRoute>
+                <CounterOrder />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/admin/login" element={<AdminLogin />} />
           <Route
             path="/admin"
