@@ -17,8 +17,17 @@ import {
 const OrderAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Default to last 30 days to show more data
+  const getDefaultStartDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 30);
+    return date.toISOString().split('T')[0];
+  };
+  
   const [dateRange, setDateRange] = useState({
-    startDate: new Date().toISOString().split('T')[0],
+    startDate: getDefaultStartDate(),
     endDate: new Date().toISOString().split('T')[0]
   });
 
@@ -28,15 +37,19 @@ const OrderAnalytics = () => {
 
   const fetchAnalytics = async () => {
     setLoading(true);
+    setError(null);
     try {
       const params = new URLSearchParams({
         startDate: dateRange.startDate,
         endDate: dateRange.endDate
       });
       const response = await api.get(`/admin/orders/analytics?${params}`);
+      console.log('Analytics data received:', response.data);
       setAnalytics(response.data);
     } catch (error) {
       console.error('Error fetching analytics:', error);
+      setError(error.response?.data?.message || error.message || 'Failed to fetch analytics');
+      setAnalytics(null);
     } finally {
       setLoading(false);
     }
@@ -52,8 +65,28 @@ const OrderAnalytics = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="bg-red-900/20 border border-red-500 rounded-lg p-4 text-red-300">
+        <p className="font-semibold">Error loading analytics:</p>
+        <p>{error}</p>
+        <button
+          onClick={fetchAnalytics}
+          className="mt-2 px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   if (!analytics) {
-    return <div className="text-coffee-light">No analytics data available</div>;
+    return (
+      <div className="text-coffee-light text-center py-8">
+        <p>No analytics data available for the selected date range.</p>
+        <p className="text-sm mt-2">Try adjusting the date range or check if orders exist.</p>
+      </div>
+    );
   }
 
   const ordersPerHourData = analytics.ordersPerHour.map(item => ({
@@ -71,7 +104,7 @@ const OrderAnalytics = () => {
   return (
     <div className="space-y-6">
       {/* Date Range Selector */}
-      <div className="flex gap-4 items-end">
+      <div className="flex gap-4 items-end flex-wrap">
         <div>
           <label className="block text-sm text-coffee-amber mb-1">Start Date</label>
           <input
@@ -95,6 +128,24 @@ const OrderAnalytics = () => {
           className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold"
         >
           Refresh
+        </button>
+        <button
+          onClick={() => {
+            const today = new Date().toISOString().split('T')[0];
+            setDateRange({ startDate: getDefaultStartDate(), endDate: today });
+          }}
+          className="px-4 py-2 bg-coffee-brown/60 text-coffee-cream rounded-lg font-semibold hover:bg-coffee-brown/80"
+        >
+          Last 30 Days
+        </button>
+        <button
+          onClick={() => {
+            const today = new Date().toISOString().split('T')[0];
+            setDateRange({ startDate: today, endDate: today });
+          }}
+          className="px-4 py-2 bg-coffee-brown/60 text-coffee-cream rounded-lg font-semibold hover:bg-coffee-brown/80"
+        >
+          Today
         </button>
       </div>
 

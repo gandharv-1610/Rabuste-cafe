@@ -107,19 +107,31 @@ router.get('/orders/analytics', async (req, res) => {
     const dateFilter = {};
     if (startDate || endDate) {
       dateFilter.createdAt = {};
-      if (startDate) dateFilter.createdAt.$gte = new Date(startDate);
-      if (endDate) dateFilter.createdAt.$lte = new Date(endDate);
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0); // Start of day
+        dateFilter.createdAt.$gte = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // End of day
+        dateFilter.createdAt.$lte = end;
+      }
     } else {
-      // Default to today if no date range
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const tomorrow = new Date(today);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      dateFilter.createdAt = { $gte: today, $lt: tomorrow };
+      // Default to last 30 days if no date range specified
+      const end = new Date();
+      end.setHours(23, 59, 59, 999);
+      const start = new Date();
+      start.setDate(start.getDate() - 30);
+      start.setHours(0, 0, 0, 0);
+      dateFilter.createdAt = { $gte: start, $lte: end };
     }
 
-    // Total orders today
+    console.log('Analytics date filter:', JSON.stringify(dateFilter, null, 2));
+
+    // Total orders in date range
     const totalOrders = await Order.countDocuments(dateFilter);
+    console.log(`Total orders found: ${totalOrders}`);
 
     // Orders per hour
     const ordersPerHour = await Order.aggregate([
@@ -213,7 +225,7 @@ router.get('/orders/analytics', async (req, res) => {
       }
     ]);
 
-    res.json({
+    const response = {
       totalOrders,
       ordersPerHour: ordersPerHour.map(item => ({
         hour: item.hour,
@@ -237,7 +249,16 @@ router.get('/orders/analytics', async (req, res) => {
         subtotal: Math.round(totalRevenue[0].subtotal * 100) / 100,
         tax: Math.round(totalRevenue[0].tax * 100) / 100
       } : { total: 0, subtotal: 0, tax: 0 }
+    };
+    
+    console.log('Analytics response:', {
+      totalOrders: response.totalOrders,
+      ordersPerHourCount: response.ordersPerHour.length,
+      mostOrderedItemsCount: response.mostOrderedItems.length,
+      totalRevenue: response.totalRevenue.total
     });
+    
+    res.json(response);
   } catch (error) {
     console.error('Analytics error:', error);
     res.status(500).json({ message: error.message });

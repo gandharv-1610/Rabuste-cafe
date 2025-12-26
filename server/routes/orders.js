@@ -119,30 +119,115 @@ router.post('/', async (req, res) => {
     const tax = subtotal * 0.05;
     const total = subtotal + tax;
 
-    const order = new Order({
-      tableNumber: tableNumber || '',
-      items: enrichedItems,
-      subtotal,
-      tax,
-      total,
-      customerEmail: customerEmail || '',
-      customerName: customerName || '',
-      notes: notes || '',
-      orderSource: source,
-      paymentStatus: source === 'Counter' ? 'Paid' : 'Pending',
-      paymentMethod: source === 'Counter' ? 'Cash' : 'Razorpay'
-    });
+    // Generate order number and token number upfront
+    const { getNextOrderNumber, getNextTokenNumber } = require('../models/OrderCounter');
+    
+    // Find a unique order number by checking against database
+    let orderNumber = null;
+    let tokenNumber = await getNextTokenNumber();
+    const maxAttempts = 20;
+    let attempts = 0;
 
-    // Calculate estimated prep time
-    order.calculatePrepTime();
+    // Keep generating order numbers until we find one that doesn't exist
+    while (!orderNumber && attempts < maxAttempts) {
+      attempts++;
+      const candidateNumber = await getNextOrderNumber();
+      
+      // Check if this order number already exists
+      const existingOrder = await Order.findOne({ orderNumber: candidateNumber });
+      
+      if (!existingOrder) {
+        // This number is available, use it
+        orderNumber = candidateNumber;
+        console.log(`✅ Found unique order number: ${orderNumber} (after ${attempts} attempt(s))`);
+      } else {
+        console.log(`⚠️ Order number ${candidateNumber} already exists, trying next number...`);
+        // Continue loop to get next number
+      }
+    }
 
-    await order.save();
+    if (!orderNumber) {
+      throw new Error('Failed to generate unique order number after multiple attempts');
+    }
+
+    // Create order with the unique order number
+    let savedOrder = null;
+    let order = null;
+    
+    try {
+      order = new Order({
+        orderNumber,
+        tokenNumber,
+        tableNumber: tableNumber || '',
+        items: enrichedItems,
+        subtotal,
+        tax,
+        total,
+        customerEmail: customerEmail || '',
+        customerName: customerName || '',
+        notes: notes || '',
+        orderSource: source,
+        paymentStatus: source === 'Counter' ? 'Paid' : 'Pending',
+        paymentMethod: source === 'Counter' ? 'Cash' : 'Razorpay'
+      });
+
+      // Calculate estimated prep time
+      order.calculatePrepTime();
+
+      // Save the order
+      await order.save();
+      savedOrder = order;
+      console.log(`✅ Order created successfully with order number: ${orderNumber}`);
+    } catch (saveError) {
+      console.error(`❌ Error saving order with number ${orderNumber}:`, {
+        code: saveError.code,
+        message: saveError.message
+      });
+      
+      // Check if error is about orderId (old index issue)
+      if (saveError.code === 11000 && saveError.keyPattern && saveError.keyPattern.orderId) {
+        console.error('❌ Error: Old orderId index found in database. Attempting to drop it...');
+        try {
+          await Order.collection.dropIndex('orderId_1');
+          console.log('✅ Dropped old orderId_1 index. Please try creating the order again.');
+          // Retry saving with the same order
+          await order.save();
+          savedOrder = order;
+          console.log(`✅ Order saved successfully after dropping old index`);
+        } catch (dropError) {
+          console.error('❌ Could not drop orderId_1 index. Please manually drop it from MongoDB:', dropError.message);
+          throw new Error('Database index error: Please contact administrator to drop the old orderId_1 index from the orders collection.');
+        }
+      }
+      // If it's still a duplicate (race condition), try one more time with a new number
+      else if (saveError.code === 11000 && order && saveError.keyPattern && saveError.keyPattern.orderNumber) {
+        console.log(`🔄 Race condition detected, generating new order number...`);
+        const newOrderNumber = await getNextOrderNumber();
+        const existingCheck = await Order.findOne({ orderNumber: newOrderNumber });
+        
+        if (!existingCheck) {
+          // Try again with the new number
+          order.orderNumber = newOrderNumber;
+          await order.save();
+          savedOrder = order;
+          console.log(`✅ Order saved with new order number: ${newOrderNumber}`);
+        } else {
+          throw new Error('Unable to create order due to persistent duplicate order numbers');
+        }
+      } else {
+        throw saveError;
+      }
+    }
+
+    if (!savedOrder) {
+      throw new Error('Failed to create order after multiple retries');
+    }
 
     // Populate for response
-    const populatedOrder = await Order.findById(order._id)
+    const populatedOrder = await Order.findById(savedOrder._id)
       .populate('items.itemId', 'name image cloudinary_url prepTime');
 
-    console.log('Order created successfully:', order.orderNumber);
+    console.log('Order created successfully:', savedOrder.orderNumber);
     res.status(201).json(populatedOrder);
   } catch (error) {
     console.error('Order creation error:', error);
