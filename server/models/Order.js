@@ -138,10 +138,11 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate unique order number and token before saving
+// Generate unique order number and token before saving (only if not already set)
 orderSchema.pre('save', async function(next) {
   try {
-    // Lazy load to avoid circular dependency
+    // Only generate if order number or token number is missing
+    // This allows the route handler to set them explicitly
     if (!this.orderNumber || !this.tokenNumber || this.tokenNumber === 0) {
       const { getNextOrderNumber, getNextTokenNumber } = require('./OrderCounter');
       
@@ -193,5 +194,31 @@ orderSchema.index({ tokenNumber: 1 });
 orderSchema.index({ orderSource: 1 });
 orderSchema.index({ paymentStatus: 1 });
 
-module.exports = mongoose.model('Order', orderSchema);
+const Order = mongoose.model('Order', orderSchema);
+
+// Drop old orderId index if it exists (leftover from previous schema)
+// This runs once when the model is first loaded
+(async () => {
+  try {
+    // Wait for connection if not ready
+    if (mongoose.connection.readyState === 0) {
+      await new Promise((resolve) => {
+        mongoose.connection.once('connected', resolve);
+      });
+    }
+    
+    // Try to drop the old index
+    await Order.collection.dropIndex('orderId_1');
+    console.log('✅ Dropped old orderId_1 index');
+  } catch (err) {
+    // Index doesn't exist or already dropped - that's fine
+    if (err.code === 27 || err.codeName === 'IndexNotFound') {
+      console.log('ℹ️ orderId_1 index not found (already removed or never existed)');
+    } else {
+      console.log('ℹ️ Could not drop orderId_1 index:', err.message);
+    }
+  }
+})();
+
+module.exports = Order;
 
