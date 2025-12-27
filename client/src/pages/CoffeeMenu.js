@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
@@ -16,6 +16,7 @@ const CoffeeMenu = () => {
   const [loading, setLoading] = useState(true);
   const [backgroundMedia, setBackgroundMedia] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
+  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
   const categoryRefs = {
     coffee: useRef(null),
     shakes: useRef(null),
@@ -273,12 +274,76 @@ const CoffeeMenu = () => {
         </motion.div>
       </section>
 
-      {/* AI Coffee Discovery */}
-      <section className="py-12 px-4">
-        <div className="max-w-6xl mx-auto">
-          <CoffeeDiscovery />
-        </div>
-      </section>
+      {/* Fixed AI Discovery Button */}
+      {!isDiscoveryOpen && (
+        <button
+          onClick={() => setIsDiscoveryOpen(true)}
+          className="fixed right-4 md:right-6 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker px-4 md:px-6 py-3 md:py-4 rounded-l-full rounded-r-full shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center gap-2 md:gap-3 font-bold text-sm md:text-base group"
+          style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.3)' }}
+        >
+          <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+          </svg>
+          <span className="hidden md:inline">AI Discovery</span>
+          <span className="md:hidden">AI</span>
+          <motion.div
+            className="absolute inset-0 rounded-full bg-coffee-gold opacity-0 group-hover:opacity-20"
+            animate={{ scale: [1, 1.2, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          />
+        </button>
+      )}
+
+      {/* Animated Discovery Sidebar */}
+      <AnimatePresence>
+        {isDiscoveryOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setIsDiscoveryOpen(false)}
+              className="fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
+            />
+            
+            {/* Sidebar Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full md:w-[500px] lg:w-[600px] bg-coffee-darkest z-50 shadow-2xl overflow-y-auto"
+              style={{ boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)' }}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-coffee-darkest border-b border-coffee-amber/20 p-4 md:p-6 flex items-center justify-between z-10 backdrop-blur-sm">
+                <h2 className="text-xl md:text-2xl font-heading font-bold text-coffee-amber flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  AI Coffee Discovery
+                </h2>
+                <button
+                  onClick={() => setIsDiscoveryOpen(false)}
+                  className="p-2 rounded-full hover:bg-coffee-brown/30 text-coffee-light hover:text-coffee-amber transition-colors duration-200"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 md:p-6">
+                <CoffeeDiscovery />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* Category Sliders Section */}
       <section className="py-12 md:py-20 px-4 max-w-7xl mx-auto">
