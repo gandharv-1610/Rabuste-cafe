@@ -4,6 +4,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import ReceiptModal from '../components/ReceiptModal';
+import CustomerLoginModal from '../components/CustomerLoginModal';
+import { 
+  getCustomerSession, 
+  setCustomerSession, 
+  isCustomerLoggedIn,
+  getCustomerMobile,
+  getCustomerName,
+  getCustomerEmail
+} from '../utils/customerAuth';
 
 const Order = () => {
   const navigate = useNavigate();
@@ -12,24 +21,61 @@ const Order = () => {
   const [cart, setCart] = useState([]);
   const [favorites, setFavorites] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('All');
+  const [temperatureFilter, setTemperatureFilter] = useState('All'); // All, Hot, Cold
+  const [milkFilter, setMilkFilter] = useState('All'); // All, Milk, Non-Milk
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [customerMobile, setCustomerMobile] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [mobileError, setMobileError] = useState('');
+  const [nameError, setNameError] = useState('');
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [loginForFavorite, setLoginForFavorite] = useState(null); // itemId to favorite after login
+  const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' or 'counter'
 
-  // Load favorites from localStorage
+  // Load customer session and favorites on mount
   useEffect(() => {
-    const savedFavorites = localStorage.getItem('rabuste_favorites');
-    if (savedFavorites) {
-      try {
-        setFavorites(JSON.parse(savedFavorites));
-      } catch (e) {
-        console.error('Error loading favorites:', e);
-      }
+    const session = getCustomerSession();
+    if (session) {
+      // Pre-fill customer info from session
+      setCustomerMobile(session.mobile || '');
+      setCustomerName(session.name || '');
+      setCustomerEmail(session.email || '');
+      
+      // Load favorites from server
+      loadFavoritesFromServer(session.mobile);
+    } else {
+      // Show login modal when user visits order page without being logged in
+      setShowLoginModal(true);
     }
   }, []);
+
+  // Load favorites from server
+  const loadFavoritesFromServer = async (mobile) => {
+    if (!mobile) return;
+    
+    try {
+      const response = await api.get(`/customers/${mobile}/favorites`);
+      if (response.data.favorites) {
+        setFavorites(response.data.favorites.map(fav => fav.toString()));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
+      // Fallback to localStorage if server fails
+      const savedFavorites = localStorage.getItem('rabuste_favorites');
+      if (savedFavorites) {
+        try {
+          setFavorites(JSON.parse(savedFavorites));
+        } catch (e) {
+          console.error('Error loading favorites from localStorage:', e);
+        }
+      }
+    }
+  };
 
   // Fetch menu items
   useEffect(() => {
@@ -47,18 +93,111 @@ const Order = () => {
     }
   };
 
-  // Save favorites to localStorage
-  const saveFavorites = (newFavorites) => {
+  // Save favorites to server and localStorage
+  const saveFavorites = async (newFavorites, mobile = null) => {
+    // Save to localStorage as backup
     localStorage.setItem('rabuste_favorites', JSON.stringify(newFavorites));
     setFavorites(newFavorites);
+    
+    // Save to server if logged in
+    const customerMobile = mobile || getCustomerMobile();
+    if (customerMobile) {
+      try {
+        // Sync all favorites to server
+        const currentFavorites = [...newFavorites];
+        // Get current server favorites
+        const serverResponse = await api.get(`/customers/${customerMobile}/favorites`);
+        const serverFavorites = (serverResponse.data.favorites || []).map(f => f.toString());
+        
+        // Add missing favorites
+        for (const favId of currentFavorites) {
+          if (!serverFavorites.includes(favId)) {
+            await api.post(`/customers/${customerMobile}/favorites`, {
+              itemId: favId,
+              action: 'add'
+            });
+          }
+        }
+        
+        // Remove favorites not in current list
+        for (const favId of serverFavorites) {
+          if (!currentFavorites.includes(favId)) {
+            await api.post(`/customers/${customerMobile}/favorites`, {
+              itemId: favId,
+              action: 'remove'
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error syncing favorites to server:', error);
+        // Continue with localStorage only
+      }
+    }
   };
 
   // Toggle favorite
-  const toggleFavorite = (itemId) => {
-    const newFavorites = favorites.includes(itemId)
+  const toggleFavorite = async (itemId, skipLoginCheck = false) => {
+    // Check if user is logged in (unless skipLoginCheck is true)
+    if (!skipLoginCheck && !isCustomerLoggedIn()) {
+      // Prompt login for favorites
+      setLoginForFavorite(itemId);
+      setShowLoginModal(true);
+      return;
+    }
+
+    const isFavorite = favorites.includes(itemId);
+    const newFavorites = isFavorite
       ? favorites.filter(id => id !== itemId)
       : [...favorites, itemId];
-    saveFavorites(newFavorites);
+    
+    const customerMobile = getCustomerMobile();
+    
+    // Update local state immediately
+    setFavorites(newFavorites);
+    localStorage.setItem('rabuste_favorites', JSON.stringify(newFavorites));
+    
+    // Update server
+    if (customerMobile) {
+      try {
+        await api.post(`/customers/${customerMobile}/favorites`, {
+          itemId,
+          action: isFavorite ? 'remove' : 'add'
+        });
+      } catch (error) {
+        console.error('Error updating favorite:', error);
+        // Revert local state on error
+        setFavorites(favorites);
+        localStorage.setItem('rabuste_favorites', JSON.stringify(favorites));
+      }
+    }
+  };
+
+  // Handle login success
+  const handleLoginSuccess = async (customer) => {
+    // Update session
+    setCustomerSession(customer);
+    
+    // Pre-fill customer info
+    setCustomerMobile(customer.mobile || '');
+    setCustomerName(customer.name || '');
+    setCustomerEmail(customer.email || '');
+    
+    // Load favorites from server
+    if (customer.mobile) {
+      await loadFavoritesFromServer(customer.mobile);
+    }
+    
+    // If login was triggered by favorite action, complete it
+    if (loginForFavorite) {
+      const itemId = loginForFavorite;
+      setLoginForFavorite(null);
+      // Toggle favorite after login (skip login check since we just logged in)
+      setTimeout(() => {
+        toggleFavorite(itemId, true);
+      }, 100);
+    }
+    
+    setShowLoginModal(false);
   };
 
   // Add to cart
@@ -142,10 +281,131 @@ const Order = () => {
     };
   }, []);
 
+  // Validate mobile number
+  const validateMobile = (mobile) => {
+    const cleaned = mobile.replace(/[\s-]/g, '');
+    // Indian mobile: 10 digits starting with 6-9, optionally with +91 or 91
+    return /^(\+91|91)?[6-9]\d{9}$/.test(cleaned);
+  };
+
+  // Debounce customer lookup and auto-populate details
+  useEffect(() => {
+    const timeoutId = setTimeout(async () => {
+      const phone = customerMobile;
+      if (!phone || phone.trim().length < 10) {
+        return;
+      }
+
+      // Only search if we have at least 10 digits
+      const cleaned = phone.replace(/[\s-]/g, '');
+      if (cleaned.length < 10) {
+        return;
+      }
+
+      setIsLoadingCustomer(true);
+      try {
+        const response = await api.get(`/customers/lookup/${phone}`);
+        if (response.data.exists && response.data.customer) {
+          const customer = response.data.customer;
+          // Auto-populate customer details only if fields are empty or match previous customer
+          // This prevents overwriting user's manual input
+          if (!customerName || customerName === customer.name) {
+            setCustomerName(customer.name || '');
+          }
+          if (!customerEmail || customerEmail === customer.email) {
+            setCustomerEmail(customer.email || '');
+          }
+          console.log('Customer details auto-populated:', customer.name);
+        }
+      } catch (error) {
+        // Silently fail - don't show error for lookup failures
+        console.log('Customer lookup failed (not found or invalid):', error.message);
+      } finally {
+        setIsLoadingCustomer(false);
+      }
+    }, 500); // Wait 500ms after user stops typing
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [customerMobile]);
+
   // Place order and initiate payment
   const handlePlaceOrder = async () => {
+    // Reset errors
+    setMobileError('');
+    setNameError('');
+
     if (cart.length === 0) {
       alert('Your cart is empty');
+      return;
+    }
+
+    // Check if user is logged in
+    const session = getCustomerSession();
+    let finalMobile = customerMobile.trim();
+    let finalName = customerName.trim();
+    let finalEmail = customerEmail.trim();
+
+    // If logged in, use session data
+    if (session) {
+      finalMobile = session.mobile || finalMobile;
+      finalName = session.name || finalName;
+      finalEmail = session.email || finalEmail;
+      
+      // Update form fields to match session
+      setCustomerMobile(finalMobile);
+      setCustomerName(finalName);
+      setCustomerEmail(finalEmail);
+    }
+
+    // Validate required fields
+    if (!finalMobile || !finalMobile.trim()) {
+      setMobileError('Mobile number is required');
+      return;
+    }
+
+    if (!validateMobile(finalMobile)) {
+      setMobileError('Please enter a valid Indian mobile number (10 digits)');
+      return;
+    }
+
+    // Check if customer exists - if yes, only phone needed; if no, name also needed
+    if (!session) {
+      try {
+        const lookupResponse = await api.get(`/customers/lookup/${finalMobile}`);
+        if (lookupResponse.data.exists && lookupResponse.data.customer) {
+          // Existing customer - only phone needed, auto-fill name
+          const customer = lookupResponse.data.customer;
+          finalName = customer.name;
+          finalEmail = customer.email || finalEmail;
+          setCustomerName(finalName);
+          setCustomerEmail(finalEmail);
+          
+          // Auto-login the user
+          setCustomerSession(customer);
+        } else {
+          // New customer - name required
+          if (!finalName || !finalName.trim()) {
+            setNameError('Name is required for new customers');
+            return;
+          }
+        }
+      } catch (error) {
+        // If lookup fails, require name
+        if (!finalName || !finalName.trim()) {
+          setNameError('Name is required');
+          return;
+        }
+      }
+    }
+
+    if (!finalName || !finalName.trim()) {
+      setNameError('Name is required');
+      return;
+    }
+
+    if (finalName.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
       return;
     }
 
@@ -166,10 +426,12 @@ const Order = () => {
           quantity: item.quantity,
           priceType: item.priceType
         })),
-        customerName: customerName || '',
-        customerEmail: customerEmail || '',
+        customerMobile: finalMobile,
+        customerName: finalName,
+        customerEmail: finalEmail || '',
         notes: notes || '',
-        orderSource: 'QR'
+        orderSource: 'QR',
+        paymentMethod: paymentMethod // 'online' or 'counter'
       };
 
       console.log('Placing order with data:', orderData);
@@ -177,62 +439,72 @@ const Order = () => {
       const orderResponse = await api.post('/orders', orderData);
       const order = orderResponse.data;
 
-      // Create Razorpay payment order
-      const paymentResponse = await api.post('/payment/create-order', {
-        amount: total,
-        orderId: order._id,
-        customerName: customerName || '',
-        customerEmail: customerEmail || ''
-      });
+      // Handle payment based on selected method
+      if (paymentMethod === 'counter') {
+        // Pay at Counter - order is created with pending payment
+        // It will appear in admin panel for confirmation
+        setOrderPlaced(order);
+        setCart([]);
+        setShowReceipt(true);
+      } else {
+        // Pay Online - proceed with Razorpay
+        // Create Razorpay payment order
+        const paymentResponse = await api.post('/payment/create-order', {
+          amount: total,
+          orderId: order._id,
+          customerName: customerName || '',
+          customerEmail: customerEmail || ''
+        });
 
-      // Initialize Razorpay checkout
-      const options = {
-        key: paymentResponse.data.key,
-        amount: paymentResponse.data.amount,
-        currency: paymentResponse.data.currency,
-        name: 'Rabuste Coffee',
-        description: `Order #${order.orderNumber}`,
-        order_id: paymentResponse.data.id,
-        handler: async function (response) {
-          try {
-            // Verify payment
-            const verifyResponse = await api.post('/payment/verify-payment', {
-              razorpay_order_id: response.razorpay_order_id,
-              razorpay_payment_id: response.razorpay_payment_id,
-              razorpay_signature: response.razorpay_signature,
-              orderId: order._id
-            });
+        // Initialize Razorpay checkout
+        const options = {
+          key: paymentResponse.data.key,
+          amount: paymentResponse.data.amount,
+          currency: paymentResponse.data.currency,
+          name: 'Rabuste Coffee',
+          description: `Order #${order.orderNumber}`,
+          order_id: paymentResponse.data.id,
+          handler: async function (response) {
+            try {
+              // Verify payment
+              const verifyResponse = await api.post('/payment/verify-payment', {
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                orderId: order._id
+              });
 
-            if (verifyResponse.data.success) {
-              // Fetch updated order
-              const updatedOrder = await api.get(`/orders/${order._id}`);
-              setOrderPlaced(updatedOrder.data);
-              setCart([]);
-              setShowReceipt(true);
-            } else {
-              alert('Payment verification failed. Please contact support.');
+              if (verifyResponse.data.success) {
+                // Fetch updated order
+                const updatedOrder = await api.get(`/orders/${order._id}`);
+                setOrderPlaced(updatedOrder.data);
+                setCart([]);
+                setShowReceipt(true);
+              } else {
+                alert('Payment verification failed. Please contact support.');
+              }
+            } catch (error) {
+              console.error('Payment verification error:', error);
+              alert('Payment verification failed. Please contact support with your order number.');
             }
-          } catch (error) {
-            console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support with your order number.');
+          },
+          prefill: {
+            name: customerName || '',
+            email: customerEmail || ''
+          },
+          theme: {
+            color: '#FF8C00'
+          },
+          modal: {
+            ondismiss: function() {
+              alert('Payment cancelled. Your order has been created but payment is pending.');
+            }
           }
-        },
-        prefill: {
-          name: customerName || '',
-          email: customerEmail || ''
-        },
-        theme: {
-          color: '#FF8C00'
-        },
-        modal: {
-          ondismiss: function() {
-            alert('Payment cancelled. Your order has been created but payment is pending.');
-          }
-        }
-      };
+        };
 
-      const razorpay = new window.Razorpay(options);
-      razorpay.open();
+        const razorpay = new window.Razorpay(options);
+        razorpay.open();
+      }
     } catch (error) {
       console.error('Error placing order:', error);
       console.error('Error response:', error.response?.data);
@@ -243,9 +515,25 @@ const Order = () => {
 
   // Filter menu items
   const filteredItems = menuItems.filter(item => {
-    if (selectedCategory === 'All') return true;
-    if (selectedCategory === 'Favorites') return favorites.includes(item._id);
-    return item.category === selectedCategory;
+    // Category filter
+    if (selectedCategory === 'All') {
+      return true;
+    }
+    if (selectedCategory === 'Favorites') {
+      return favorites.includes(item._id);
+    }
+    if (item.category !== selectedCategory) return false;
+    
+    // Apply temperature and milk filters only when Coffee category is selected
+    if (selectedCategory === 'Coffee' && item.category === 'Coffee') {
+      if (temperatureFilter !== 'All' && item.subcategory !== temperatureFilter) {
+        return false;
+      }
+      if (milkFilter !== 'All' && item.milkType !== milkFilter) {
+        return false;
+      }
+    }
+    return true;
   });
 
   const categories = ['All', 'Coffee', 'Shakes', 'Sides', 'Tea', 'Favorites'];
@@ -273,12 +561,20 @@ const Order = () => {
                 Scan QR code to order • Payment required
               </p>
             </div>
-            <button
-              onClick={() => navigate('/')}
-              className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold"
-            >
-              Go Home
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => navigate('/your-orders')}
+                className="px-4 py-2 bg-coffee-brown/60 text-coffee-cream rounded-lg font-semibold hover:bg-coffee-brown/80"
+              >
+                Your Orders
+              </button>
+              <button
+                onClick={() => navigate('/')}
+                className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold"
+              >
+                Go Home
+              </button>
+            </div>
           </div>
         </div>
       </section>
@@ -301,7 +597,7 @@ const Order = () => {
           {/* Menu Section */}
           <div className="lg:col-span-2">
             {/* Category Filter */}
-            <div className="mb-6 flex flex-wrap gap-2">
+            <div className="mb-4 flex flex-wrap gap-2">
               {categories.map(cat => (
                 <button
                   key={cat}
@@ -316,6 +612,49 @@ const Order = () => {
                 </button>
               ))}
             </div>
+
+            {/* Temperature and Milk Filters (only for Coffee category) */}
+            {selectedCategory === 'Coffee' && (
+              <div className="mb-6 flex flex-wrap gap-4 bg-coffee-brown/20 rounded-lg p-4 border border-coffee-brown/50">
+                <div className="flex items-center gap-2">
+                  <label className="text-coffee-amber font-semibold text-sm">Temperature:</label>
+                  <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
+                    {['All', 'Hot', 'Cold'].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setTemperatureFilter(option)}
+                        className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
+                          temperatureFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                        }`}
+                      >
+                        {option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <label className="text-coffee-amber font-semibold text-sm">Milk Type:</label>
+                  <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
+                    {['All', 'Milk', 'Non-Milk'].map((option) => (
+                      <button
+                        key={option}
+                        onClick={() => setMilkFilter(option)}
+                        className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
+                          milkFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                        }`}
+                      >
+                        {option === 'Milk' ? 'With Milk' : option}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Favorites Section */}
             {selectedCategory === 'Favorites' && favorites.length === 0 && (
@@ -361,9 +700,40 @@ const Order = () => {
                             {isFavorite ? '⭐' : '☆'}
                           </button>
                         </div>
-                        <p className="text-sm text-coffee-light mb-3 line-clamp-2">
+                        <p className="text-sm text-coffee-light mb-2 line-clamp-2">
                           {item.description}
                         </p>
+                        
+                        {/* Strength and Flavor Notes for Coffee */}
+                        {isCoffee && (
+                          <div className="mb-3 space-y-1.5">
+                            {item.strength && (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-coffee-light/70">Strength:</span>
+                                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
+                                  item.strength === 'Mild' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                  item.strength === 'Medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                                  item.strength === 'Strong' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                                  'bg-red-500/20 text-red-400 border border-red-500/30'
+                                }`}>
+                                  {item.strength}
+                                </span>
+                              </div>
+                            )}
+                            {item.flavorNotes && item.flavorNotes.length > 0 && (
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="text-xs text-coffee-light/70">Flavor Notes:</span>
+                                <div className="flex flex-wrap gap-1">
+                                  {item.flavorNotes.map((note, noteIdx) => (
+                                    <span key={noteIdx} className="text-xs px-2 py-0.5 bg-coffee-amber/20 text-coffee-amber rounded border border-coffee-amber/30">
+                                      {note}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
                         
                         {/* Prices */}
                         <div className="mb-3">
@@ -505,13 +875,51 @@ const Order = () => {
 
                   {/* Customer Info */}
                   <div className="space-y-3 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Your name (optional)"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                    />
+                    <div>
+                      <div className="relative">
+                        <input
+                          type="tel"
+                          placeholder="Mobile number * (10 digits)"
+                          value={customerMobile}
+                          onChange={(e) => {
+                            setCustomerMobile(e.target.value);
+                            setMobileError('');
+                          }}
+                          className={`w-full bg-coffee-brown/40 border ${
+                            mobileError ? 'border-red-500' : 'border-coffee-brown'
+                          } text-coffee-cream rounded-lg px-3 py-2 text-sm pr-10`}
+                          maxLength={13}
+                        />
+                        {isLoadingCustomer && (
+                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                            <div className="w-4 h-4 border-2 border-coffee-amber border-t-transparent rounded-full animate-spin"></div>
+                          </div>
+                        )}
+                      </div>
+                      {mobileError && (
+                        <p className="text-red-400 text-xs mt-1">{mobileError}</p>
+                      )}
+                      {customerMobile.length >= 10 && customerName && !isLoadingCustomer && (
+                        <p className="text-green-400 text-xs mt-1">✓ Customer details loaded</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder="Your name *"
+                        value={customerName}
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          setNameError('');
+                        }}
+                        className={`w-full bg-coffee-brown/40 border ${
+                          nameError ? 'border-red-500' : 'border-coffee-brown'
+                        } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                      />
+                      {nameError && (
+                        <p className="text-red-400 text-xs mt-1">{nameError}</p>
+                      )}
+                    </div>
                     <input
                       type="email"
                       placeholder="Email for receipt (optional)"
@@ -528,11 +936,47 @@ const Order = () => {
                     />
                   </div>
 
+                  {/* Payment Method Selection */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-coffee-amber mb-2">
+                      Payment Method *
+                    </label>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('online')}
+                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                          paymentMethod === 'online'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                        }`}
+                      >
+                        💳 Pay Online
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod('counter')}
+                        className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                          paymentMethod === 'counter'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                        }`}
+                      >
+                        🏪 Pay at Counter
+                      </button>
+                    </div>
+                    <p className="text-xs text-coffee-light/70 mt-2">
+                      {paymentMethod === 'counter' 
+                        ? 'Order will be confirmed after payment at counter'
+                        : 'Secure online payment via Razorpay'}
+                    </p>
+                  </div>
+
                   <button
                     onClick={handlePlaceOrder}
                     className="w-full bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker py-3 rounded-lg font-bold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg"
                   >
-                    Place Order
+                    {paymentMethod === 'counter' ? 'Place Order (Pay at Counter)' : 'Place Order & Pay'}
                   </button>
                 </>
               )}
@@ -540,6 +984,22 @@ const Order = () => {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      <CustomerLoginModal
+        isOpen={showLoginModal}
+        onClose={() => {
+          // Only allow closing if user is logged in or if it was triggered by favorite action
+          if (isCustomerLoggedIn() || loginForFavorite) {
+            setShowLoginModal(false);
+            setLoginForFavorite(null);
+          }
+          // If user closes without logging in, they can still browse but will need to login to order
+        }}
+        onSuccess={handleLoginSuccess}
+        requireName={false}
+        title={loginForFavorite ? "Login to Save Favorites" : "Login to Place Order"}
+      />
 
       <Chatbot />
     </div>

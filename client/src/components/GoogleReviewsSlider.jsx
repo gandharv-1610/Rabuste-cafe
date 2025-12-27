@@ -36,14 +36,14 @@ const GoogleReviewsSlider = ({ placeId }) => {
     
     if (!API_KEY) {
       console.error('GoogleReviewsSlider: API_KEY is missing');
-      setError('Google Maps API key is not configured');
+      setError('Google Maps API key is not configured. Please add REACT_APP_GOOGLE_MAPS_API_KEY to client/.env file. Get your key from: https://console.cloud.google.com/');
       setLoading(false);
       return;
     }
 
     if (!PLACE_ID) {
       console.error('GoogleReviewsSlider: PLACE_ID is missing');
-      setError('Google Place ID is not configured. Please set REACT_APP_GOOGLE_PLACE_ID in your .env file');
+      setError('Google Place ID is not configured. Please set REACT_APP_GOOGLE_PLACE_ID in client/.env file. Get your Place ID from: https://developers.google.com/maps/documentation/places/web-service/place-id');
       setLoading(false);
       return;
     }
@@ -181,13 +181,32 @@ const GoogleReviewsSlider = ({ placeId }) => {
             const statusText = Object.keys(window.google.maps.places.PlacesServiceStatus).find(
               key => window.google.maps.places.PlacesServiceStatus[key] === status
             );
-            setError(`Failed to fetch reviews: ${statusText || status}`);
+            
+            // Provide helpful error messages
+            let errorMsg = `Failed to fetch reviews: ${statusText || status}`;
+            if (status === window.google.maps.places.PlacesServiceStatus.REQUEST_DENIED) {
+              errorMsg = 'Places API request denied. Please check: 1) Places API is enabled in Google Cloud Console, 2) API key has Places API access, 3) Billing is enabled.';
+            } else if (status === window.google.maps.places.PlacesServiceStatus.INVALID_REQUEST) {
+              errorMsg = 'Invalid Place ID. Please verify REACT_APP_GOOGLE_PLACE_ID in client/.env file is correct.';
+            } else if (status === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+              errorMsg = 'Places API quota exceeded. Please check your Google Cloud Console for usage limits.';
+            }
+            
+            setError(errorMsg);
             setLoading(false);
           }
         });
       } catch (err) {
         console.error('Error fetching Google reviews:', err);
-        setError('Failed to load reviews. Please try again later.');
+        let errorMsg = 'Failed to load reviews. ';
+        if (err.message?.includes('script') || err.message?.includes('load')) {
+          errorMsg += 'Failed to load Google Maps script. Please check: 1) API key is correct, 2) Maps JavaScript API is enabled, 3) No network/CORS issues.';
+        } else if (err.message?.includes('API')) {
+          errorMsg += 'API error. Please verify your Google Maps API key and ensure Places API is enabled in Google Cloud Console.';
+        } else {
+          errorMsg += 'Please check your browser console for details and verify your API configuration.';
+        }
+        setError(errorMsg);
         setLoading(false);
       }
     };

@@ -2,7 +2,22 @@ const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
 const Coffee = require('../models/Coffee');
+const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
+
+// Normalize mobile number helper
+const normalizeMobile = (mobile) => {
+  if (!mobile) return null;
+  let normalized = mobile.replace(/[\s-]/g, '');
+  if (/^[6-9]\d{9}$/.test(normalized)) {
+    return '+91' + normalized;
+  } else if (normalized.startsWith('+91')) {
+    return normalized;
+  } else if (normalized.startsWith('91') && normalized.length === 12) {
+    return '+' + normalized;
+  }
+  return normalized;
+};
 
 // Get all orders (Admin only)
 router.get('/', auth, async (req, res) => {
@@ -10,17 +25,25 @@ router.get('/', auth, async (req, res) => {
     const { status, tableNumber, startDate, endDate } = req.query;
     const filter = {};
     
+    // Show orders that are either:
+    // 1. Paid (completed payment)
+    // 2. Pending payment with Cash method (Pay at Counter - needs confirmation)
+    filter.$or = [
+      { paymentStatus: 'Paid' },
+      { paymentStatus: 'Pending', paymentMethod: 'Cash' }
+    ];
+    
     if (status) filter.status = status;
     if (tableNumber) filter.tableNumber = tableNumber;
     if (startDate || endDate) {
       filter.createdAt = {};
       if (startDate) filter.createdAt.$gte = new Date(startDate);
-      if (endDate) filter.createdAt.$lte = new Date(endDate);
+      if (endDate)       filter.createdAt.$lte = new Date(endDate);
     }
 
     const orders = await Order.find(filter)
       .sort({ createdAt: -1 })
-      .populate('items.itemId', 'name image cloudinary_url prepTime')
+      .populate('items.itemId', 'name image cloudinary_url prepTime category subcategory milkType strength flavorNotes description')
       .limit(100);
     
     res.json(orders);
@@ -48,15 +71,55 @@ router.get('/:id', async (req, res) => {
 // Create new order (Public - for QR ordering)
 router.post('/', async (req, res) => {
   try {
-    const { items, customerEmail, customerName, notes, orderSource, tableNumber } = req.body;
+    const { items, customerMobile, customerName, customerEmail, notes, orderSource, tableNumber, paymentMethod } = req.body;
 
-    console.log('Order request received:', { orderSource, itemsCount: items?.length, items });
+    console.log('Order request received:', { orderSource, itemsCount: items?.length, customerMobile });
 
+    // Validate required fields
     if (!items || items.length === 0) {
       return res.status(400).json({ message: 'Items are required' });
     }
 
+    if (!customerMobile || !customerMobile.trim()) {
+      return res.status(400).json({ message: 'Mobile number is required' });
+    }
+
+    if (!customerName || !customerName.trim()) {
+      return res.status(400).json({ message: 'Name is required' });
+    }
+
+    const normalizedMobile = normalizeMobile(customerMobile);
+    
+    if (!normalizedMobile || !/^\+91[6-9]\d{9}$/.test(normalizedMobile)) {
+      return res.status(400).json({ message: 'Please provide a valid Indian mobile number' });
+    }
+
     const source = orderSource || 'QR';
+
+    // Get or create customer
+    let customer = await Customer.findOne({ mobile: normalizedMobile });
+    
+    if (!customer) {
+      // Create new customer
+      customer = new Customer({
+        mobile: normalizedMobile,
+        name: customerName.trim(),
+        email: customerEmail ? customerEmail.trim().toLowerCase() : ''
+      });
+      await customer.save();
+      console.log('✅ New customer created:', customer.mobile);
+    } else {
+      // Update existing customer info if provided
+      if (customerName && customerName.trim() && customer.name !== customerName.trim()) {
+        customer.name = customerName.trim();
+      }
+      if (customerEmail && customerEmail.trim() && customer.email !== customerEmail.trim().toLowerCase()) {
+        customer.email = customerEmail.trim().toLowerCase();
+      }
+      if (customer.isModified()) {
+        await customer.save();
+      }
+    }
 
     // Validate and enrich items with current prices and prep times
     const enrichedItems = [];
@@ -109,7 +172,12 @@ router.post('/', async (req, res) => {
         quantity: item.quantity,
         price: price,
         priceType: priceType,
-        prepTime: menuItem.prepTime || 5
+        prepTime: menuItem.prepTime || 5,
+        subcategory: menuItem.subcategory || null,
+        milkType: menuItem.milkType || null,
+        strength: menuItem.strength || null,
+        flavorNotes: menuItem.flavorNotes || [],
+        description: menuItem.description || ''
       });
 
       subtotal += price * item.quantity;
@@ -163,12 +231,14 @@ router.post('/', async (req, res) => {
         subtotal,
         tax,
         total,
-        customerEmail: customerEmail || '',
-        customerName: customerName || '',
+        customerMobile: normalizedMobile,
+        customer: customer._id,
+        customerEmail: customerEmail ? customerEmail.trim().toLowerCase() : customer.email || '',
+        customerName: customerName.trim(),
         notes: notes || '',
         orderSource: source,
-        paymentStatus: source === 'Counter' ? 'Paid' : 'Pending',
-        paymentMethod: source === 'Counter' ? 'Cash' : 'Razorpay'
+        paymentStatus: source === 'Counter' ? 'Paid' : (paymentMethod === 'counter' ? 'Pending' : 'Pending'),
+        paymentMethod: source === 'Counter' ? 'Cash' : (paymentMethod === 'counter' ? 'Cash' : 'Razorpay')
       });
 
       // Calculate estimated prep time
@@ -177,7 +247,12 @@ router.post('/', async (req, res) => {
       // Save the order
       await order.save();
       savedOrder = order;
-      console.log(`✅ Order created successfully with order number: ${orderNumber}`);
+
+      // Update customer with new order
+      customer.addOrder(order._id, order.total);
+      await customer.save();
+
+      console.log(`✅ Order created successfully with order number: ${orderNumber} for customer: ${customer.mobile}`);
     } catch (saveError) {
       console.error(`❌ Error saving order with number ${orderNumber}:`, {
         code: saveError.code,
@@ -264,6 +339,55 @@ router.put('/:id/status', auth, async (req, res) => {
       order.completedAt = new Date();
     }
 
+    await order.save();
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Confirm payment for counter orders (Admin only)
+router.put('/:id/confirm-payment', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (order.paymentStatus !== 'Pending' || order.paymentMethod !== 'Cash') {
+      return res.status(400).json({ message: 'This order does not require payment confirmation' });
+    }
+
+    order.paymentStatus = 'Paid';
+    await order.save();
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update estimated prep time (Admin only)
+router.put('/:id/estimated-prep-time', auth, async (req, res) => {
+  try {
+    const { estimatedPrepTime } = req.body;
+    
+    if (estimatedPrepTime === undefined || estimatedPrepTime === null) {
+      return res.status(400).json({ message: 'Estimated prep time is required' });
+    }
+
+    const minutes = parseInt(estimatedPrepTime);
+    if (isNaN(minutes) || minutes < 0) {
+      return res.status(400).json({ message: 'Estimated prep time must be a non-negative number' });
+    }
+
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    order.estimatedPrepTime = minutes;
     await order.save();
 
     res.json(order);

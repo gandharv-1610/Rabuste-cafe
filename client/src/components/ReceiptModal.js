@@ -195,6 +195,11 @@ const ReceiptModal = ({ order, onClose }) => {
                 {order.paymentStatus || 'Pending'} {order.paymentStatus === 'Paid' && `(${order.paymentMethod || 'Cash'})`}
               </span>
             </div>
+            {order.paymentStatus === 'Pending' && order.paymentMethod === 'Cash' && (
+              <div className="mt-2 p-2 bg-yellow-500/20 border border-yellow-500/50 rounded text-xs text-yellow-400">
+                ⚠️ Please pay at counter. Order will be confirmed after payment.
+              </div>
+            )}
           </div>
 
           {/* Items */}

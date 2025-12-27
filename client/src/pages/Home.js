@@ -811,8 +811,11 @@ const Home = () => {
                 ) : (
                   <div className="h-full min-h-[400px] flex items-center justify-center bg-coffee-brown/40">
                     <div className="text-center p-8">
-                      <p className="text-coffee-light mb-4">
+                      <p className="text-coffee-light mb-2">
                         Map view requires Google Maps API key
+                      </p>
+                      <p className="text-coffee-light/70 text-sm mb-4">
+                        Add REACT_APP_GOOGLE_MAPS_API_KEY to client/.env file
                       </p>
                       <a
                         href="https://www.google.com/maps/search/?api=1&query=RABUSTE,+Dimpal+Row+House,+15,+Gymkhana+Rd,+Piplod,+Surat,+Gujarat+395007"

@@ -48,6 +48,7 @@ try {
   app.use('/api/site-media', require('./routes/siteMedia'));
   app.use('/api/offers', require('./routes/offers'));
   app.use('/api/orders', require('./routes/orders'));
+  app.use('/api/customers', require('./routes/customers'));
   app.use('/api/payment', require('./routes/payment'));
   console.log('✅ All routes loaded');
 } catch (error) {

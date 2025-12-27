@@ -29,6 +29,29 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     default: 5,
     min: 0
+  },
+  subcategory: {
+    type: String,
+    enum: ['Hot', 'Cold', null],
+    default: null
+  },
+  milkType: {
+    type: String,
+    enum: ['Milk', 'Non-Milk', null],
+    default: null
+  },
+  strength: {
+    type: String,
+    enum: ['Mild', 'Medium', 'Strong', 'Extra Strong', null],
+    default: null
+  },
+  flavorNotes: {
+    type: [String],
+    default: []
+  },
+  description: {
+    type: String,
+    default: ''
   }
 }, { _id: false });
 
@@ -118,6 +141,16 @@ const orderSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  customerMobile: {
+    type: String,
+    trim: true,
+    required: true
+  },
+  customer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Customer',
+    default: null
+  },
   customerEmail: {
     type: String,
     trim: true,
@@ -127,7 +160,7 @@ const orderSchema = new mongoose.Schema({
   customerName: {
     type: String,
     trim: true,
-    default: ''
+    required: true
   },
   notes: {
     type: String,
@@ -193,6 +226,8 @@ orderSchema.index({ orderNumber: 1 });
 orderSchema.index({ tokenNumber: 1 });
 orderSchema.index({ orderSource: 1 });
 orderSchema.index({ paymentStatus: 1 });
+orderSchema.index({ customerMobile: 1 });
+orderSchema.index({ customer: 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

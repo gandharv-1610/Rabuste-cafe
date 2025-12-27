@@ -3,9 +3,10 @@
 ## ✅ What Was Fixed
 
 1. **Updated Package Version**: Upgraded `@google/generative-ai` from 0.2.1 to 0.24.1 (latest)
-2. **Updated Model Name**: Changed from `gemini-pro` to `gemini-1.5-flash` (faster, more available)
-3. **Added Error Handling**: Better error messages to help diagnose issues
-4. **Added API Key Validation**: Checks if API key is configured before making requests
+2. **Primary Model**: Using `gemini-2.0-flash` (Text-out model with best performance and limits)
+3. **Smart Fallback System**: Automatically tries multiple models if primary is unavailable
+4. **Added Error Handling**: Better error messages to help diagnose issues
+5. **Added API Key Validation**: Checks if API key is configured before making requests
 
 ## 🚀 Next Steps
 
@@ -38,10 +39,15 @@
 ### Issue 2: "Model not available" error
 
 **Solution**: 
-- Try changing the model name in `server/routes/ai.js`:
-  - Line 30: Change `gemini-1.5-flash` to `gemini-pro`
-  - Line 143: Change `gemini-1.5-flash` to `gemini-pro`
-- Some API keys may only have access to `gemini-pro`
+- The system automatically tries multiple models in order:
+  1. `gemini-2.0-flash` (primary - Text-out model)
+  2. `gemini-2.0-flash-exp` (experimental)
+  3. `gemini-2.5-flash` (alternative)
+  4. `gemini-1.5-flash` (fallback)
+  5. `gemini-1.5-pro` (fallback)
+  6. `gemini-pro` (final fallback)
+- If all models fail, check your API key permissions in Google Cloud Console
+- Some API keys may only have access to older models like `gemini-pro`
 
 ### Issue 3: "API quota exceeded" error
 
@@ -71,7 +77,7 @@ You can test if your API key works by running this in Node.js:
 ```javascript
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const genAI = new GoogleGenerativeAI('YOUR_API_KEY_HERE');
-const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
 
 model.generateContent('Hello')
   .then(result => {
@@ -82,21 +88,25 @@ model.generateContent('Hello')
   });
 ```
 
-## 📝 Alternative Model Names
+## 📝 Model Priority Order
 
-If `gemini-1.5-flash` doesn't work, try these alternatives:
+The system tries models in this order (automatically falls back if unavailable):
 
-- `gemini-pro` - Original Gemini model (most compatible)
-- `gemini-1.5-pro` - More capable but slower
-- `gemini-1.5-flash` - Fastest (current default)
+1. **`gemini-2.0-flash`** - PRIMARY: Text-out model with best performance and limits
+2. **`gemini-2.0-flash-exp`** - Experimental version
+3. **`gemini-2.5-flash`** - Alternative stable version
+4. **`gemini-1.5-flash`** - Fast fallback
+5. **`gemini-1.5-pro`** - More capable fallback
+6. **`gemini-pro`** - Original model (most compatible)
 
 ## 🆘 Still Not Working?
 
 1. Check the server console for detailed error messages
 2. Verify the API key format in your `.env` file
-3. Try using `gemini-pro` instead of `gemini-1.5-flash`
+3. The system automatically tries multiple models - check which one is being used in server logs
 4. Test your API key at https://makersuite.google.com/app/apikey
 5. Check your Google Cloud Console for API usage and quotas
+6. Verify you have access to Gemini 2.0 models in your Google Cloud project
 
 ## 📞 Need Help?
 

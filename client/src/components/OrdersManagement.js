@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import ReceiptModal from './ReceiptModal';
@@ -8,7 +8,10 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
   const [loading, setLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
-  const [lastOrderCount, setLastOrderCount] = useState(0);
+  const [editingPrepTime, setEditingPrepTime] = useState(null);
+  const [prepTimeValue, setPrepTimeValue] = useState('');
+  const lastOrderIdsRef = useRef(new Set());
+  const isInitialLoadRef = useRef(true);
 
   useEffect(() => {
     fetchOrders();
@@ -18,11 +21,33 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
 
   useEffect(() => {
     // Play sound when new order arrives
-    if (orders.length > 0 && orders.length > lastOrderCount && soundEnabled) {
-      playOrderSound();
+    if (orders.length > 0 && soundEnabled) {
+      const currentOrderIds = new Set(orders.map(order => order._id));
+      
+      // Skip sound on initial load
+      if (isInitialLoadRef.current) {
+        isInitialLoadRef.current = false;
+        lastOrderIdsRef.current = currentOrderIds;
+        return;
+      }
+      
+      // Check if there are any new orders (orders that weren't in lastOrderIds)
+      const newOrderIds = Array.from(currentOrderIds).filter(id => !lastOrderIdsRef.current.has(id));
+      
+      if (newOrderIds.length > 0) {
+        // Play sound for new orders
+        console.log('🔔 New order detected! Playing sound...', newOrderIds.length, 'new order(s)');
+        playOrderSound();
+      }
+      
+      // Update lastOrderIds to track current state
+      lastOrderIdsRef.current = currentOrderIds;
+    } else if (orders.length > 0) {
+      // Initialize on first load (even if sound is disabled)
+      lastOrderIdsRef.current = new Set(orders.map(order => order._id));
+      isInitialLoadRef.current = false;
     }
-    setLastOrderCount(orders.length);
-  }, [orders.length, soundEnabled, lastOrderCount]);
+  }, [orders, soundEnabled]);
 
   // Create a simple beep sound using Web Audio API
   const playBeep = () => {
@@ -70,6 +95,23 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
       console.error('Error updating order status:', error);
       alert('Failed to update order status');
     }
+  };
+
+  const updateEstimatedPrepTime = async (orderId, minutes) => {
+    try {
+      await api.put(`/orders/${orderId}/estimated-prep-time`, { estimatedPrepTime: parseInt(minutes) });
+      setEditingPrepTime(null);
+      setPrepTimeValue('');
+      fetchOrders();
+    } catch (error) {
+      console.error('Error updating estimated prep time:', error);
+      alert('Failed to update estimated prep time');
+    }
+  };
+
+  const handleEditPrepTime = (order) => {
+    setEditingPrepTime(order._id);
+    setPrepTimeValue(order.estimatedPrepTime || '');
   };
 
   const viewReceipt = async (order) => {
@@ -152,8 +194,54 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                   <div className="space-y-1 text-sm text-coffee-light">
                     <p>Table: <span className="font-semibold text-coffee-cream">{order.tableNumber}</span></p>
                     <p>Time: {formatDate(order.createdAt)}</p>
-                    {order.estimatedPrepTime > 0 && (
-                      <p>Est. Prep: <span className="text-coffee-amber">{order.estimatedPrepTime} min</span></p>
+                    {editingPrepTime === order._id ? (
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          min="0"
+                          value={prepTimeValue}
+                          onChange={(e) => setPrepTimeValue(e.target.value)}
+                          className="w-20 px-2 py-1 bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded text-sm"
+                          placeholder="Minutes"
+                          autoFocus
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter') {
+                              updateEstimatedPrepTime(order._id, prepTimeValue);
+                            } else if (e.key === 'Escape') {
+                              setEditingPrepTime(null);
+                              setPrepTimeValue('');
+                            }
+                          }}
+                        />
+                        <button
+                          onClick={() => updateEstimatedPrepTime(order._id, prepTimeValue)}
+                          className="px-2 py-1 bg-green-500/20 text-green-400 rounded text-xs font-semibold hover:bg-green-500/30"
+                        >
+                          ✓
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingPrepTime(null);
+                            setPrepTimeValue('');
+                          }}
+                          className="px-2 py-1 bg-red-500/20 text-red-400 rounded text-xs font-semibold hover:bg-red-500/30"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <p>
+                          Est. Prep: <span className="text-coffee-amber">{order.estimatedPrepTime || 0} min</span>
+                        </p>
+                        <button
+                          onClick={() => handleEditPrepTime(order)}
+                          className="px-2 py-1 bg-coffee-amber/20 text-coffee-amber rounded text-xs font-semibold hover:bg-coffee-amber/30"
+                          title="Edit estimated prep time"
+                        >
+                          ✏️
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -187,9 +275,30 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                 </div>
               </div>
 
+              {/* Payment Status for Counter Orders */}
+              {order.paymentStatus === 'Pending' && order.paymentMethod === 'Cash' && (
+                <div className="mb-3 p-3 bg-yellow-500/20 border border-yellow-500/50 rounded-lg">
+                  <p className="text-yellow-400 font-semibold text-sm mb-2">⚠️ Payment Pending - Pay at Counter</p>
+                  <button
+                    onClick={async () => {
+                      try {
+                        await api.put(`/orders/${order._id}/confirm-payment`);
+                        fetchOrders();
+                      } catch (error) {
+                        console.error('Error confirming payment:', error);
+                        alert('Failed to confirm payment');
+                      }
+                    }}
+                    className="w-full px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-semibold hover:bg-green-500/30 border border-green-500/50"
+                  >
+                    ✓ Confirm Payment Received
+                  </button>
+                </div>
+              )}
+
               {/* Status Actions */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-coffee-brown/50">
-                {order.status === 'Pending' && (
+                {order.status === 'Pending' && order.paymentStatus === 'Paid' && (
                   <button
                     onClick={() => updateOrderStatus(order._id, 'Preparing')}
                     className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg font-semibold hover:bg-blue-500/30"
