@@ -13,13 +13,65 @@ const CounterOrder = () => {
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
+  const [customerMobile, setCustomerMobile] = useState('');
   const [customerName, setCustomerName] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
   const [notes, setNotes] = useState('');
+  const [isLookingUpCustomer, setIsLookingUpCustomer] = useState(false);
+  const [customerExists, setCustomerExists] = useState(false);
+  const [mobileError, setMobileError] = useState('');
+  const [nameError, setNameError] = useState('');
 
   useEffect(() => {
     fetchMenuItems();
   }, []);
+
+  // Validate mobile number
+  const validateMobile = (mobile) => {
+    const cleaned = mobile.replace(/[\s-]/g, '');
+    return /^(\+91|91)?[6-9]\d{9}$/.test(cleaned);
+  };
+
+  // Lookup customer by mobile
+  const handleMobileLookup = async () => {
+    if (!customerMobile || !customerMobile.trim()) {
+      setMobileError('Please enter mobile number');
+      return;
+    }
+
+    if (!validateMobile(customerMobile)) {
+      setMobileError('Please enter a valid Indian mobile number (10 digits)');
+      return;
+    }
+
+    setIsLookingUpCustomer(true);
+    setMobileError('');
+
+    try {
+      const response = await api.get(`/customers/lookup/${customerMobile.trim()}`);
+
+      const { customer, exists } = response.data;
+
+      if (exists && customer) {
+        // Existing customer - auto-populate name and email
+        setCustomerExists(true);
+        setCustomerName(customer.name || '');
+        setCustomerEmail(customer.email || customerEmail);
+        setNameError('');
+      } else {
+        // New customer - name is required
+        setCustomerExists(false);
+        setCustomerName('');
+        setCustomerEmail('');
+        setNameError('Please enter customer name');
+      }
+    } catch (error) {
+      console.error('Customer lookup error:', error);
+      setMobileError(error.response?.data?.message || 'Failed to lookup customer');
+    } finally {
+      setIsLookingUpCustomer(false);
+    }
+  };
 
   const fetchMenuItems = async () => {
     try {
@@ -100,8 +152,33 @@ const CounterOrder = () => {
 
   // Place order (Counter - no payment needed)
   const handlePlaceOrder = async () => {
+    // Reset errors
+    setMobileError('');
+    setNameError('');
+
     if (cart.length === 0) {
       alert('Cart is empty');
+      return;
+    }
+
+    // Validate required fields
+    if (!customerMobile || !customerMobile.trim()) {
+      setMobileError('Mobile number is required');
+      return;
+    }
+
+    if (!validateMobile(customerMobile)) {
+      setMobileError('Please enter a valid Indian mobile number (10 digits)');
+      return;
+    }
+
+    if (!customerName || !customerName.trim()) {
+      setNameError('Name is required');
+      return;
+    }
+
+    if (customerName.trim().length < 2) {
+      setNameError('Name must be at least 2 characters');
       return;
     }
 
@@ -112,8 +189,9 @@ const CounterOrder = () => {
           quantity: item.quantity,
           priceType: item.priceType
         })),
-        customerName: customerName || '',
-        customerEmail: customerEmail || '',
+        customerMobile: customerMobile.trim(),
+        customerName: customerName.trim(),
+        customerEmail: customerEmail ? customerEmail.trim() : '',
         notes: notes || '',
         orderSource: 'Counter'
       };
@@ -122,6 +200,12 @@ const CounterOrder = () => {
       setOrderPlaced(response.data);
       setCart([]);
       setShowReceipt(true);
+      
+      // Reset form but keep mobile for next order
+      setCustomerName('');
+      setCustomerEmail('');
+      setNotes('');
+      setCustomerExists(false);
     } catch (error) {
       console.error('Error placing order:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to place order.';
@@ -174,9 +258,11 @@ const CounterOrder = () => {
           onClose={() => {
             setShowReceipt(false);
             setOrderPlaced(null);
+            // Keep mobile for next order, reset others
             setCustomerName('');
             setCustomerEmail('');
             setNotes('');
+            setCustomerExists(false);
           }}
         />
       )}
@@ -365,13 +451,56 @@ const CounterOrder = () => {
 
                   {/* Customer Info */}
                   <div className="space-y-3 mb-4">
-                    <input
-                      type="text"
-                      placeholder="Customer name (optional)"
-                      value={customerName}
-                      onChange={(e) => setCustomerName(e.target.value)}
-                      className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                    />
+                    <div>
+                      <div className="flex gap-2 mb-1">
+                        <input
+                          type="tel"
+                          placeholder="Mobile number *"
+                          value={customerMobile}
+                          onChange={(e) => {
+                            setCustomerMobile(e.target.value);
+                            setMobileError('');
+                            setCustomerExists(false);
+                            setCustomerName('');
+                          }}
+                          className={`flex-1 bg-coffee-brown/40 border ${
+                            mobileError ? 'border-red-500' : 'border-coffee-brown'
+                          } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                          maxLength={13}
+                        />
+                        <button
+                          onClick={handleMobileLookup}
+                          disabled={isLookingUpCustomer || !customerMobile.trim()}
+                          className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg text-sm font-semibold hover:bg-coffee-gold disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {isLookingUpCustomer ? '...' : 'Lookup'}
+                        </button>
+                      </div>
+                      {mobileError && (
+                        <p className="text-red-400 text-xs">{mobileError}</p>
+                      )}
+                      {customerExists && (
+                        <p className="text-green-400 text-xs">✓ Customer found</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        type="text"
+                        placeholder={customerExists ? "Customer name * (auto-filled)" : "Customer name *"}
+                        value={customerName}
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          setNameError('');
+                        }}
+                        className={`w-full bg-coffee-brown/40 border ${
+                          nameError ? 'border-red-500' : 'border-coffee-brown'
+                        } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                        disabled={customerExists && customerName}
+                      />
+                      {nameError && (
+                        <p className="text-red-400 text-xs mt-1">{nameError}</p>
+                      )}
+                    </div>
                     <input
                       type="email"
                       placeholder="Email for receipt (optional)"

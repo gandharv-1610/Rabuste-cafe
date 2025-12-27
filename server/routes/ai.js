@@ -5,6 +5,11 @@ const Coffee = require('../models/Coffee');
 const Art = require('../models/Art');
 const Workshop = require('../models/Workshop');
 
+// Primary Gemini Model: gemini-2.0-flash (Text-out model)
+// This model provides the best performance and limits for text generation
+// The system automatically falls back to other models if this is unavailable
+const PRIMARY_MODEL = 'gemini-2.0-flash';
+
 const GEMINI_API_KEY = process.env.GOOGLE_GEMINI_API_KEY;
 
 if (!GEMINI_API_KEY) {
@@ -28,12 +33,12 @@ async function getWorkingModel(testConnection = false) {
     return { model: cachedModel, modelName: cachedModelName };
   }
 
-  // Try newer Gemini 2.0/2.5 models first (better limits and performance)
-  // Then fallback to 1.5 models if newer ones aren't available
+  // Primary model: gemini-2.0-flash (Text-out model with best performance and limits)
+  // Fallback to other models if primary is unavailable
   const modelsToTry = [
-    'gemini-2.0-flash',        // Latest - best performance and limits
-    'gemini-2.5-flash',        // Latest stable version
-    'gemini-2.0-flash-exp',    // Experimental version
+    PRIMARY_MODEL,             // PRIMARY: Latest Text-out model - best performance and limits
+    'gemini-2.0-flash-exp',     // Experimental version of 2.0-flash
+    'gemini-2.5-flash',        // Alternative stable version
     'gemini-2.0-flash-lite',   // Lite version
     'gemini-2.5-flash-lite',   // Lite stable version
     'gemini-1.5-flash',        // Fallback to 1.5 series
@@ -59,10 +64,12 @@ async function getWorkingModel(testConnection = false) {
       cachedModel = model;
       cachedModelName = modelName;
       // Log model selection with priority info
-      if (modelName.startsWith('gemini-2.')) {
+      if (modelName === 'gemini-2.0-flash') {
+        console.log(`✓ Using Gemini model: ${modelName} (PRIMARY - Text-out model with best performance and limits)`);
+      } else if (modelName.startsWith('gemini-2.')) {
         console.log(`✓ Using Gemini model: ${modelName} (Latest Generation - Best Performance)`);
       } else if (modelName === 'gemini-1.5-flash') {
-        console.log(`✓ Using Gemini model: ${modelName} (Stable - Fast & Efficient)`);
+        console.log(`✓ Using Gemini model: ${modelName} (Fallback - Stable & Fast)`);
       } else {
         console.log(`✓ Using Gemini model: ${modelName} (Fallback)`);
       }
@@ -166,7 +173,15 @@ Respond with ONLY valid JSON (no markdown):
     let errorMessage = 'Error generating recommendation';
     let statusCode = 500;
     
-    if (error.message.includes('API key') || error.message.includes('invalid') || error.response?.status === 401) {
+    // Check for suspended API key
+    const isSuspended = error.message?.includes('suspended') || 
+                       error.message?.includes('CONSUMER_SUSPENDED') ||
+                       error.response?.data?.error?.message?.includes('suspended');
+    
+    if (isSuspended) {
+      errorMessage = 'Your Gemini API key has been SUSPENDED. Please create a new API key at https://makersuite.google.com/app/apikey and update server/.env file.';
+      statusCode = 403;
+    } else if (error.message.includes('API key') || error.message.includes('invalid') || error.response?.status === 401) {
       errorMessage = 'Invalid API key. Please check your GOOGLE_GEMINI_API_KEY in the .env file. Get a key at: https://makersuite.google.com/app/apikey';
       statusCode = 401;
     } else if (error.message.includes('quota') || error.message.includes('limit') || error.response?.status === 429) {
@@ -702,7 +717,15 @@ Provide a helpful response using ONLY the information provided above. If the use
     let errorMessage = 'Error processing message';
     let statusCode = 500;
     
-    if (error.message.includes('API key') || error.message.includes('invalid') || error.response?.status === 401) {
+    // Check for suspended API key
+    const isSuspended = error.message?.includes('suspended') || 
+                       error.message?.includes('CONSUMER_SUSPENDED') ||
+                       error.response?.data?.error?.message?.includes('suspended');
+    
+    if (isSuspended) {
+      errorMessage = 'Your Gemini API key has been SUSPENDED. Please create a new API key at https://makersuite.google.com/app/apikey and update server/.env file.';
+      statusCode = 403;
+    } else if (error.message.includes('API key') || error.message.includes('invalid') || error.response?.status === 401) {
       errorMessage = 'Invalid API key. Please check your GOOGLE_GEMINI_API_KEY in the .env file. Get a key at: https://makersuite.google.com/app/apikey';
       statusCode = 401;
     } else if (error.message.includes('quota') || error.message.includes('limit') || error.response?.status === 429) {
@@ -751,23 +774,61 @@ router.get('/test', async (req, res) => {
     });
   } catch (error) {
     console.error('API Test Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Gemini API test failed',
-      error: error.message,
-      errorDetails: {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data
-      },
-      troubleshooting: [
+    
+    // Check for suspended API key
+    const isSuspended = error.message?.includes('suspended') || 
+                       error.message?.includes('CONSUMER_SUSPENDED') ||
+                       error.response?.data?.error?.message?.includes('suspended');
+    
+    // Check for invalid API key
+    const isInvalid = error.message?.includes('invalid') || 
+                     error.message?.includes('API key') ||
+                     error.response?.status === 401;
+    
+    let errorMessage = 'Gemini API test failed';
+    let troubleshooting = [];
+    
+    if (isSuspended) {
+      errorMessage = 'Your Gemini API key has been SUSPENDED by Google. You need to create a new API key.';
+      troubleshooting = [
+        '🔴 CRITICAL: Your API key is suspended and cannot be reactivated',
+        '1. Get a NEW API key from: https://makersuite.google.com/app/apikey',
+        '2. Replace the old key in server/.env file: GOOGLE_GEMINI_API_KEY=your_new_key',
+        '3. Restart your server after updating the key',
+        '4. Common reasons for suspension: security concerns, billing issues, or policy violations'
+      ];
+    } else if (isInvalid) {
+      errorMessage = 'Invalid Gemini API key. Please check your API key configuration.';
+      troubleshooting = [
+        '1. Verify your API key at: https://makersuite.google.com/app/apikey',
+        '2. Ensure the key starts with "AIza"',
+        '3. Check if billing is enabled for your Google Cloud project',
+        '4. Verify the key is correctly set in server/.env file as GOOGLE_GEMINI_API_KEY=your_key_here',
+        '5. Make sure there are no spaces or quotes around the key in .env file'
+      ];
+    } else {
+      troubleshooting = [
         '1. Verify your API key at: https://makersuite.google.com/app/apikey',
         '2. Ensure the key starts with "AIza"',
         '3. Check if billing is enabled for your Google Cloud project',
         '4. Try creating a new API key if the current one is blocked',
         '5. Verify the key is correctly set in server/.env file as GOOGLE_GEMINI_API_KEY=your_key_here',
-        '6. Models tried: gemini-1.5-flash, gemini-1.5-pro, gemini-pro'
-      ]
+        '6. Models tried: gemini-2.0-flash (primary), gemini-2.5-flash, gemini-1.5-flash, gemini-1.5-pro, gemini-pro'
+      ];
+    }
+    
+    res.status(500).json({
+      success: false,
+      message: errorMessage,
+      error: error.message,
+      isSuspended: isSuspended,
+      isInvalid: isInvalid,
+      errorDetails: {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data
+      },
+      troubleshooting: troubleshooting
     });
   }
 });

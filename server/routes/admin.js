@@ -127,11 +127,14 @@ router.get('/orders/analytics', async (req, res) => {
       dateFilter.createdAt = { $gte: start, $lte: end };
     }
 
+    // Only include paid orders in analytics
+    dateFilter.paymentStatus = 'Paid';
+
     console.log('Analytics date filter:', JSON.stringify(dateFilter, null, 2));
 
-    // Total orders in date range
+    // Total orders in date range (only paid orders)
     const totalOrders = await Order.countDocuments(dateFilter);
-    console.log(`Total orders found: ${totalOrders}`);
+    console.log(`Total paid orders found: ${totalOrders}`);
 
     // Orders per hour
     const ordersPerHour = await Order.aggregate([

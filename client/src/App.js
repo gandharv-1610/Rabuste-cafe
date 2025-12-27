@@ -15,6 +15,7 @@ import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
 import Order from './pages/Order';
 import CounterOrder from './pages/CounterOrder';
+import YourOrders from './pages/YourOrders';
 import AdminPanel from './pages/AdminPanel';
 import AdminLogin from './pages/AdminLogin';
 import './App.css';
@@ -42,6 +43,7 @@ function App() {
           <Route path="/workshops" element={<Workshops />} />
           <Route path="/franchise" element={<Franchise />} />
           <Route path="/order" element={<Order />} />
+          <Route path="/your-orders" element={<YourOrders />} />
           <Route
             path="/counter"
             element={
