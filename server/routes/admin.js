@@ -7,6 +7,8 @@ const WorkshopRegistration = require('../models/WorkshopRegistration');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
 const Order = require('../models/Order');
 const auth = require('../middleware/auth');
+const analyticsService = require('../services/analyticsService');
+const aiInsightsService = require('../services/aiInsightsService');
 
 // All admin routes below this line require valid admin JWT
 router.use(auth);
@@ -98,172 +100,72 @@ router.delete('/registrations/:id', async (req, res) => {
   }
 });
 
-// Order Analytics
+// Enhanced Order Analytics (with advanced metrics)
 router.get('/orders/analytics', async (req, res) => {
   try {
     const { startDate, endDate } = req.query;
-    
-    // Date range filter
-    const dateFilter = {};
-    if (startDate || endDate) {
-      dateFilter.createdAt = {};
-      if (startDate) {
-        const start = new Date(startDate);
-        start.setHours(0, 0, 0, 0); // Start of day
-        dateFilter.createdAt.$gte = start;
-      }
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); // End of day
-        dateFilter.createdAt.$lte = end;
-      }
-    } else {
-      // Default to last 30 days if no date range specified
-      const end = new Date();
-      end.setHours(23, 59, 59, 999);
-      const start = new Date();
-      start.setDate(start.getDate() - 30);
-      start.setHours(0, 0, 0, 0);
-      dateFilter.createdAt = { $gte: start, $lte: end };
-    }
-
-    // Only include paid orders in analytics
-    dateFilter.paymentStatus = 'Paid';
-
-    console.log('Analytics date filter:', JSON.stringify(dateFilter, null, 2));
-
-    // Total orders in date range (only paid orders)
-    const totalOrders = await Order.countDocuments(dateFilter);
-    console.log(`Total paid orders found: ${totalOrders}`);
-
-    // Orders per hour
-    const ordersPerHour = await Order.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: { $hour: '$createdAt' },
-          count: { $sum: 1 },
-          totalRevenue: { $sum: '$total' }
-        }
-      },
-      { $sort: { _id: 1 } },
-      {
-        $project: {
-          hour: '$_id',
-          count: 1,
-          totalRevenue: { $round: ['$totalRevenue', 2] }
-        }
-      }
-    ]);
-
-    // Most ordered items
-    const mostOrderedItems = await Order.aggregate([
-      { $match: dateFilter },
-      { $unwind: '$items' },
-      {
-        $group: {
-          _id: '$items.itemId',
-          name: { $first: '$items.name' },
-          totalQuantity: { $sum: '$items.quantity' },
-          totalRevenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } }
-        }
-      },
-      { $sort: { totalQuantity: -1 } },
-      { $limit: 10 },
-      {
-        $project: {
-          itemId: '$_id',
-          name: 1,
-          totalQuantity: 1,
-          totalRevenue: { $round: ['$totalRevenue', 2] }
-        }
-      }
-    ]);
-
-    // Average preparation time
-    const avgPrepTime = await Order.aggregate([
-      { $match: { ...dateFilter, estimatedPrepTime: { $gt: 0 } } },
-      {
-        $group: {
-          _id: null,
-          avgPrepTime: { $avg: '$estimatedPrepTime' }
-        }
-      }
-    ]);
-
-    // Peak ordering time
-    const peakTime = await Order.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: { $hour: '$createdAt' },
-          count: { $sum: 1 }
-        }
-      },
-      { $sort: { count: -1 } },
-      { $limit: 1 }
-    ]);
-
-    // Orders by status
-    const ordersByStatus = await Order.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: '$status',
-          count: { $sum: 1 }
-        }
-      }
-    ]);
-
-    // Total revenue
-    const totalRevenue = await Order.aggregate([
-      { $match: dateFilter },
-      {
-        $group: {
-          _id: null,
-          total: { $sum: '$total' },
-          subtotal: { $sum: '$subtotal' },
-          tax: { $sum: '$tax' }
-        }
-      }
-    ]);
-
-    const response = {
-      totalOrders,
-      ordersPerHour: ordersPerHour.map(item => ({
-        hour: item.hour,
-        count: item.count,
-        totalRevenue: item.totalRevenue
-      })),
-      mostOrderedItems: mostOrderedItems.map(item => ({
-        itemId: item.itemId,
-        name: item.name,
-        totalQuantity: item.totalQuantity,
-        totalRevenue: item.totalRevenue
-      })),
-      averagePrepTime: avgPrepTime.length > 0 ? Math.round(avgPrepTime[0].avgPrepTime) : 0,
-      peakOrderingTime: peakTime.length > 0 ? peakTime[0]._id : null,
-      ordersByStatus: ordersByStatus.reduce((acc, item) => {
-        acc[item._id] = item.count;
-        return acc;
-      }, {}),
-      totalRevenue: totalRevenue.length > 0 ? {
-        total: Math.round(totalRevenue[0].total * 100) / 100,
-        subtotal: Math.round(totalRevenue[0].subtotal * 100) / 100,
-        tax: Math.round(totalRevenue[0].tax * 100) / 100
-      } : { total: 0, subtotal: 0, tax: 0 }
-    };
-    
-    console.log('Analytics response:', {
-      totalOrders: response.totalOrders,
-      ordersPerHourCount: response.ordersPerHour.length,
-      mostOrderedItemsCount: response.mostOrderedItems.length,
-      totalRevenue: response.totalRevenue.total
-    });
-    
-    res.json(response);
+    const analyticsData = await analyticsService.getEnhancedAnalytics(startDate, endDate);
+    res.json(analyticsData);
   } catch (error) {
     console.error('Analytics error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// AI Insights endpoint
+router.get('/analytics/insights', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const analyticsData = await analyticsService.getEnhancedAnalytics(startDate, endDate);
+    const insights = await aiInsightsService.generateInsights(analyticsData);
+    res.json({ insights });
+  } catch (error) {
+    console.error('AI Insights error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Forecast endpoint
+router.get('/analytics/forecast', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const endDateParam = endDate || new Date().toISOString().split('T')[0];
+    const analyticsData = await analyticsService.getEnhancedAnalytics(startDate, endDateParam);
+    const forecast = await aiInsightsService.generateForecast(analyticsData, new Date(endDateParam));
+    res.json({ forecast });
+  } catch (error) {
+    console.error('Forecast error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Conversational Analytics endpoint
+router.post('/analytics/ask', async (req, res) => {
+  try {
+    const { query, startDate, endDate } = req.body;
+    if (!query) {
+      return res.status(400).json({ message: 'Query is required' });
+    }
+    
+    const analyticsData = await analyticsService.getEnhancedAnalytics(startDate, endDate);
+    const result = await aiInsightsService.answerQuery(query, analyticsData);
+    res.json(result);
+  } catch (error) {
+    console.error('Ask Analytics error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Alerts endpoint
+router.get('/analytics/alerts', async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const analyticsData = await analyticsService.getEnhancedAnalytics(startDate, endDate);
+    const currentHour = new Date().getHours();
+    const alerts = aiInsightsService.generateAlerts(analyticsData, currentHour);
+    res.json({ alerts });
+  } catch (error) {
+    console.error('Alerts error:', error);
     res.status(500).json({ message: error.message });
   }
 });
