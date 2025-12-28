@@ -93,35 +93,63 @@ router.post('/coffee-discovery', async (req, res) => {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    // Fetch actual menu items from database
+    // Fetch all menu items from database (Coffee, Shakes, Sides, Tea)
     const menuItems = await Coffee.find().sort({ order: 1, createdAt: -1 });
-    const coffeeItems = menuItems.filter(item => item.category === 'Coffee');
 
-    if (coffeeItems.length === 0) {
+    if (menuItems.length === 0) {
       return res.status(404).json({ 
-        message: 'No coffee items found in menu. Please add items to the menu first.' 
+        message: 'No menu items found. Please add items to the menu first.' 
       });
     }
 
     // Smart rule-based recommendation system (works without AI)
-    let recommendation = getSmartRecommendation(coffeeItems, mood, timeOfDay, energyLevel);
+    let recommendation = getSmartRecommendation(menuItems, mood, timeOfDay, energyLevel);
     
     // Try to enhance with AI if available (optional enhancement)
     if (genAI) {
       try {
         const { model, modelName } = await getWorkingModel();
 
-        const prompt = `Based on these preferences, recommend ONE coffee from this menu:
+        // Format menu items with their categories and relevant details
+        const menuFormatted = menuItems.map(item => {
+          let itemInfo = `${item.name} [${item.category}]`;
+          if (item.category === 'Coffee' && item.strength) {
+            itemInfo += ` (${item.strength})`;
+          }
+          itemInfo += `: ${item.description}`;
+          if (item.flavorNotes && item.flavorNotes.length > 0) {
+            itemInfo += ` - Notes: ${item.flavorNotes.join(', ')}`;
+          }
+          if (item.isBestseller) {
+            itemInfo += ' ⭐ BESTSELLER';
+          }
+          return itemInfo;
+        }).join('\n');
+
+        const prompt = `Based on these preferences, recommend ONE item from this complete menu (Coffee, Shakes, Sides, Tea):
 - Mood: ${mood}
 - Time: ${timeOfDay}
 - Energy: ${energyLevel}
 
-Menu: ${coffeeItems.map(item => `${item.name} (${item.strength}): ${item.description}`).join('; ')}
+Complete Menu:
+${menuFormatted}
+
+IMPORTANT RECOMMENDATION RULES: 
+1. Choose from ALL categories (Coffee, Shakes, Sides, Tea) - do NOT limit yourself to only Coffee
+2. Consider the FULL menu when making recommendations - Shakes, Tea, and Sides can be excellent choices for various moods/times
+3. Vary your recommendations - if multiple items could work, choose a DIFFERENT one to provide variety
+4. Match the item to the user's specific mood, time of day, and energy level:
+   - Tired/Stressed + Low Energy = Strong Coffee
+   - Happy/Relaxed + Afternoon/Evening = Shakes or Tea
+   - Morning + Low Energy = Strong Coffee
+   - Evening/Night + High Energy = Tea or Mild Coffee
+   - Creative/Focused = Medium-Strong Coffee
+5. Consider ALL menu items equally - don't default to the same few coffee items
 
 Respond with ONLY valid JSON (no markdown):
 {
   "itemName": "exact menu item name",
-  "explanation": "brief 2-3 sentence explanation"
+  "explanation": "brief 2-3 sentence explanation why this item matches their preferences"
 }`;
 
         const result = await model.generateContent(prompt);
@@ -132,7 +160,7 @@ Respond with ONLY valid JSON (no markdown):
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (jsonMatch) {
           const aiRecommendation = JSON.parse(jsonMatch[0]);
-          const aiItem = coffeeItems.find(item => 
+          const aiItem = menuItems.find(item => 
             item.name.toLowerCase() === aiRecommendation.itemName?.toLowerCase()
           );
           
@@ -141,8 +169,9 @@ Respond with ONLY valid JSON (no markdown):
             recommendation = {
               itemName: aiItem.name,
               recommendation: aiItem.name,
-              strength: aiItem.strength,
-              price: aiItem.priceBlend || aiItem.price || 0, // Use Blend price as default
+              category: aiItem.category,
+              strength: aiItem.strength || null,
+              price: aiItem.priceBlend || aiItem.price || 0,
               priceBlend: aiItem.priceBlend || 0,
               priceRobustaSpecial: aiItem.priceRobustaSpecial || 0,
               description: aiItem.description,
@@ -203,60 +232,96 @@ Respond with ONLY valid JSON (no markdown):
 });
 
 // Smart rule-based recommendation (works without AI)
-function getSmartRecommendation(coffeeItems, mood, timeOfDay, energyLevel) {
-  if (!coffeeItems || coffeeItems.length === 0) {
+function getSmartRecommendation(menuItems, mood, timeOfDay, energyLevel) {
+  if (!menuItems || menuItems.length === 0) {
     return null;
   }
 
   // Scoring system for recommendation
-  const scores = coffeeItems.map(item => {
+  const scores = menuItems.map(item => {
     let score = 0;
+    const category = item.category?.toLowerCase() || '';
     const strength = item.strength?.toLowerCase() || '';
     const description = (item.description || '').toLowerCase();
+    const name = (item.name || '').toLowerCase();
     const moodLower = mood.toLowerCase();
     const timeLower = timeOfDay.toLowerCase();
     const energyLower = energyLevel.toLowerCase();
 
-    // Mood-based scoring
+    // Category-based scoring for variety
+    if (category === 'coffee') {
+      // Mood-based scoring for coffee
+      if (moodLower.includes('tired') || moodLower.includes('stressed')) {
+        if (strength === 'strong' || strength === 'extra strong') score += 3;
+        if (description.includes('energ') || description.includes('boost')) score += 2;
+      }
+      if (moodLower.includes('relaxed') || moodLower.includes('happy')) {
+        if (strength === 'mild' || strength === 'medium') score += 3;
+      }
+      if (moodLower.includes('focused') || moodLower.includes('creative')) {
+        if (strength === 'medium' || strength === 'strong') score += 2;
+      }
+      if (moodLower.includes('energetic')) {
+        if (strength === 'strong') score += 2;
+      }
+
+      // Time-based scoring for coffee
+      if (timeLower.includes('morning') || timeLower.includes('early')) {
+        if (strength === 'strong' || strength === 'extra strong') score += 2;
+      }
+      if (timeLower.includes('afternoon')) {
+        if (strength === 'medium') score += 2;
+      }
+      if (timeLower.includes('evening') || timeLower.includes('night')) {
+        if (strength === 'mild' || strength === 'medium') score += 2;
+        if (description.includes('decaf') || description.includes('relax')) score += 1;
+      }
+
+      // Energy level scoring for coffee
+      if (energyLower.includes('low') || energyLower.includes('need')) {
+        if (strength === 'strong' || strength === 'extra strong') score += 3;
+      }
+      if (energyLower.includes('moderate')) {
+        if (strength === 'medium') score += 2;
+      }
+      if (energyLower.includes('high') || energyLower.includes('already')) {
+        if (strength === 'mild') score += 2;
+      }
+    } else if (category === 'shakes') {
+      // Shakes are good for happy, relaxed moods, afternoon/evening, high energy
+      if (moodLower.includes('happy') || moodLower.includes('relaxed') || moodLower.includes('celeb')) score += 3;
+      if (timeLower.includes('afternoon') || timeLower.includes('evening')) score += 2;
+      if (energyLower.includes('high') || energyLower.includes('already')) score += 2;
+      if (description.includes('refreshing') || description.includes('cooling')) score += 2;
+    } else if (category === 'tea') {
+      // Tea is good for relaxed moods, evening/night, moderate energy
+      if (moodLower.includes('relaxed') || moodLower.includes('calm')) score += 3;
+      if (timeLower.includes('evening') || timeLower.includes('night')) score += 2;
+      if (energyLower.includes('moderate') || energyLower.includes('high')) score += 2;
+      if (description.includes('relax') || description.includes('calm')) score += 2;
+    } else if (category === 'sides') {
+      // Sides complement coffee well, good for any mood
+      score += 1; // Base score for variety
+      if (timeLower.includes('afternoon') || timeLower.includes('evening')) score += 1;
+    }
+
+    // General mood-based scoring (applies to all categories)
     if (moodLower.includes('tired') || moodLower.includes('stressed')) {
-      if (strength === 'strong' || strength === 'extra strong') score += 3;
-      if (description.includes('energ') || description.includes('boost')) score += 2;
+      if (description.includes('energ') || description.includes('boost') || name.includes('energ')) score += 2;
     }
-    if (moodLower.includes('relaxed') || moodLower.includes('happy')) {
-      if (strength === 'mild' || strength === 'medium') score += 3;
+    if (moodLower.includes('happy') || moodLower.includes('celeb')) {
+      if (description.includes('sweet') || description.includes('indulgent') || category === 'shakes') score += 2;
     }
-    if (moodLower.includes('focused') || moodLower.includes('creative')) {
-      if (strength === 'medium' || strength === 'strong') score += 2;
-    }
-    if (moodLower.includes('energetic')) {
-      if (strength === 'strong') score += 2;
-    }
-
-    // Time-based scoring
-    if (timeLower.includes('morning') || timeLower.includes('early')) {
-      if (strength === 'strong' || strength === 'extra strong') score += 2;
-    }
-    if (timeLower.includes('afternoon')) {
-      if (strength === 'medium') score += 2;
-    }
-    if (timeLower.includes('evening') || timeLower.includes('night')) {
-      if (strength === 'mild' || strength === 'medium') score += 2;
-      if (description.includes('decaf') || description.includes('relax')) score += 1;
-    }
-
-    // Energy level scoring
-    if (energyLower.includes('low') || energyLower.includes('need')) {
-      if (strength === 'strong' || strength === 'extra strong') score += 3;
-    }
-    if (energyLower.includes('moderate')) {
-      if (strength === 'medium') score += 2;
-    }
-    if (energyLower.includes('high') || energyLower.includes('already')) {
-      if (strength === 'mild') score += 2;
+    if (moodLower.includes('relaxed') || moodLower.includes('calm')) {
+      if (description.includes('relax') || description.includes('calm') || category === 'tea') score += 2;
     }
 
     // Bestseller boost
     if (item.isBestseller) score += 1;
+
+    // Variety boost: slightly favor items that aren't always selected
+    // This helps ensure variety by giving a small random-like boost
+    score += Math.random() * 0.5; // Small random factor for variety
 
     return { item, score };
   });
@@ -265,16 +330,22 @@ function getSmartRecommendation(coffeeItems, mood, timeOfDay, energyLevel) {
   scores.sort((a, b) => b.score - a.score);
   const bestMatch = scores[0].item;
   
-  // Generate explanation
+  // Generate explanation based on item category
   let explanation = `Based on your ${mood.toLowerCase()} mood, ${timeOfDay.toLowerCase()}, and ${energyLevel.toLowerCase()} energy level, we recommend ${bestMatch.name}. `;
   explanation += bestMatch.description + ' ';
-  explanation += `This ${bestMatch.strength} Robusta brew will perfectly match your current needs.`;
+  
+  if (bestMatch.category === 'Coffee') {
+    explanation += `This ${bestMatch.strength} Robusta brew will perfectly match your current needs.`;
+  } else {
+    explanation += `This ${bestMatch.category} option will perfectly match your current needs.`;
+  }
 
   return {
     itemName: bestMatch.name,
     recommendation: bestMatch.name,
-    strength: bestMatch.strength,
-    price: bestMatch.priceBlend || bestMatch.price || 0, // Use Blend price as default, fallback to price for backward compatibility
+    category: bestMatch.category,
+    strength: bestMatch.strength || null,
+    price: bestMatch.priceBlend || bestMatch.price || 0,
     priceBlend: bestMatch.priceBlend || 0,
     priceRobustaSpecial: bestMatch.priceRobustaSpecial || 0,
     description: bestMatch.description,
