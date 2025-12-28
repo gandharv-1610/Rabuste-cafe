@@ -41,6 +41,32 @@ router.post('/', async (req, res) => {
   try {
     const coffee = new Coffee(req.body);
     await coffee.save();
+    
+    // Send email notification to subscribed customers (async, don't block response)
+    // Only send if this is a new coffee item (not an update)
+    if (coffee.category === 'Coffee') {
+      const { getSubscribedCustomers } = require('../services/customerTagService');
+      const { sendCoffeeAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
+      
+      // Get customers with marketing consent, optionally filter by coffee_lover tag
+      const customers = await getSubscribedCustomers(['coffee_lover']);
+      
+      // If no coffee_lovers, send to all subscribed customers
+      const allCustomers = customers.length > 0 
+        ? customers 
+        : await getSubscribedCustomers();
+      
+      if (allCustomers.length > 0) {
+        sendBatchMarketingEmails(allCustomers, sendCoffeeAnnouncementEmail, coffee)
+          .then(results => {
+            console.log(`📧 Coffee announcement emails sent: ${results.success}/${results.total} successful`);
+          })
+          .catch(err => {
+            console.error('Error sending coffee announcement emails:', err);
+          });
+      }
+    }
+    
     res.status(201).json(coffee);
   } catch (error) {
     res.status(400).json({ message: error.message });

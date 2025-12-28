@@ -334,14 +334,9 @@ const Home = () => {
                         >
                           <div className="flex items-baseline gap-1.5">
                             <span className="text-4xl md:text-5xl font-heading font-black text-coffee-amber leading-none drop-shadow-lg" style={{ textShadow: '0 0 15px rgba(255, 111, 0, 0.25)' }}>
-                              {offer.discountUnit === 'percent' ? offer.discountValue : '₹'}
+                              {offer.discountUnit === 'percent' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
                             </span>
-                            {offer.discountUnit === 'percent' && (
-                              <span className="text-xl md:text-2xl font-heading font-bold text-coffee-gold">OFF</span>
-                            )}
-                            {offer.discountUnit !== 'percent' && (
-                              <span className="text-xl md:text-2xl font-heading font-bold text-coffee-gold">OFF</span>
-                            )}
+                            <span className="text-xl md:text-2xl font-heading font-bold text-coffee-gold">OFF</span>
                           </div>
                           <div className="mt-1 h-0.5 w-16 bg-gradient-to-r from-coffee-amber to-coffee-gold rounded-full"></div>
                         </motion.div>

@@ -19,6 +19,7 @@ const AdminPanel = () => {
   const [siteMedia, setSiteMedia] = useState([]);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [customerEngagementStats, setCustomerEngagementStats] = useState(null);
 
   useEffect(() => {
     fetchStats();
@@ -31,6 +32,7 @@ const AdminPanel = () => {
     if (activeTab === 'franchise') fetchEnquiries();
     if (activeTab === 'siteMedia') fetchSiteMedia();
     if (activeTab === 'offers') fetchOffers();
+    if (activeTab === 'customerEngagement') fetchCustomerEngagementStats();
   }, [activeTab]);
 
   const fetchStats = async () => {
@@ -123,6 +125,15 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchCustomerEngagementStats = async () => {
+    try {
+      const response = await api.get('/admin/customer-engagement/stats');
+      setCustomerEngagementStats(response.data);
+    } catch (error) {
+      console.error('Error fetching customer engagement stats:', error);
+    }
+  };
+
   const [soundEnabled, setSoundEnabled] = useState(() => {
     const saved = localStorage.getItem('rabuste_sound_enabled');
     return saved ? JSON.parse(saved) : true;
@@ -138,6 +149,7 @@ const AdminPanel = () => {
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
     { id: 'offers', label: 'Daily Offers' },
+    { id: 'customerEngagement', label: 'Customer Engagement' },
     { id: 'siteMedia', label: 'Site Media' },
     { id: 'settings', label: 'Settings' },
   ];
@@ -287,6 +299,14 @@ const AdminPanel = () => {
             offers={offers}
             loading={loading}
             onRefresh={fetchOffers}
+          />
+        )}
+
+        {/* Customer Engagement */}
+        {activeTab === 'customerEngagement' && (
+          <CustomerEngagement
+            stats={customerEngagementStats}
+            onRefresh={fetchCustomerEngagementStats}
           />
         )}
 
@@ -2255,6 +2275,263 @@ const OffersManagement = ({ offers, loading, onRefresh }) => {
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+// Customer Engagement Component
+const CustomerEngagement = ({ stats, onRefresh }) => {
+  const [notifying, setNotifying] = useState(false);
+  const [notificationType, setNotificationType] = useState('');
+  const [contentId, setContentId] = useState('');
+  const [filterTags, setFilterTags] = useState([]);
+  const [coffees, setCoffees] = useState([]);
+  const [offers, setOffers] = useState([]);
+  const [workshops, setWorkshops] = useState([]);
+
+  useEffect(() => {
+    fetchCoffees();
+    fetchOffers();
+    fetchWorkshops();
+  }, []);
+
+  const fetchCoffees = async () => {
+    try {
+      const response = await api.get('/coffee');
+      setCoffees(response.data);
+    } catch (error) {
+      console.error('Error fetching coffees:', error);
+    }
+  };
+
+  const fetchOffers = async () => {
+    try {
+      const response = await api.get('/offers');
+      setOffers(response.data);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    }
+  };
+
+  const fetchWorkshops = async () => {
+    try {
+      const response = await api.get('/workshops');
+      setWorkshops(response.data);
+    } catch (error) {
+      console.error('Error fetching workshops:', error);
+    }
+  };
+
+  const handleNotifySubscribers = async () => {
+    if (!notificationType || !contentId) {
+      alert('Please select notification type and content');
+      return;
+    }
+
+    if (!window.confirm(`Send email notification to all subscribed customers about this ${notificationType}?`)) {
+      return;
+    }
+
+    setNotifying(true);
+    try {
+      const response = await api.post('/admin/customer-engagement/notify-subscribers', {
+        type: notificationType,
+        contentId,
+        filterTags: filterTags.length > 0 ? filterTags : undefined
+      });
+
+      alert(`✅ ${response.data.message}`);
+      setNotificationType('');
+      setContentId('');
+      setFilterTags([]);
+    } catch (error) {
+      alert(`Error: ${error.response?.data?.message || error.message}`);
+    } finally {
+      setNotifying(false);
+    }
+  };
+
+  const availableTags = [
+    { value: 'new_customer', label: 'New Customers' },
+    { value: 'returning_customer', label: 'Returning Customers' },
+    { value: 'coffee_lover', label: 'Coffee Lovers' },
+    { value: 'workshop_interested', label: 'Workshop Interested' },
+    { value: 'high_value', label: 'High Value' },
+    { value: 'inactive_30_days', label: 'Inactive 30+ Days' }
+  ];
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Customer Engagement</h2>
+        <button
+          onClick={onRefresh}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Refresh Stats
+        </button>
+      </div>
+
+      {/* Statistics */}
+      {stats ? (
+        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <div className="bg-coffee-brown/20 rounded-lg p-6">
+            <h3 className="text-coffee-light text-sm mb-2">Total Customers</h3>
+            <p className="text-3xl font-bold text-coffee-amber">{stats.totalCustomers}</p>
+          </div>
+          <div className="bg-coffee-brown/20 rounded-lg p-6">
+            <h3 className="text-coffee-light text-sm mb-2">Subscribed Customers</h3>
+            <p className="text-3xl font-bold text-coffee-amber">{stats.subscribedCustomers}</p>
+            <p className="text-sm text-coffee-light mt-2">{stats.subscribedPercentage}% of total</p>
+          </div>
+          <div className="bg-coffee-brown/20 rounded-lg p-6">
+            <h3 className="text-coffee-light text-sm mb-2">Coffee Lovers</h3>
+            <p className="text-3xl font-bold text-coffee-amber">{stats.tagBreakdown?.coffee_lover || 0}</p>
+          </div>
+          <div className="bg-coffee-brown/20 rounded-lg p-6">
+            <h3 className="text-coffee-light text-sm mb-2">Workshop Interested</h3>
+            <p className="text-3xl font-bold text-coffee-amber">{stats.tagBreakdown?.workshop_interested || 0}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="text-center py-12">
+          <div className="text-coffee-amber text-xl mb-2">Loading stats...</div>
+        </div>
+      )}
+
+      {/* Tag Breakdown */}
+      {stats && (
+        <div className="bg-coffee-brown/20 rounded-lg p-6 mb-8">
+          <h3 className="text-xl font-display font-bold text-coffee-amber mb-4">Tag Breakdown</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            {availableTags.map(tag => (
+              <div key={tag.value} className="bg-coffee-brown/40 rounded p-4">
+                <p className="text-coffee-light text-sm mb-1">{tag.label}</p>
+                <p className="text-2xl font-bold text-coffee-amber">{stats.tagBreakdown?.[tag.value] || 0}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Manual Notification Trigger */}
+      <div className="bg-coffee-brown/20 rounded-lg p-6">
+        <h3 className="text-xl font-display font-bold text-coffee-amber mb-4">Manual Email Notification</h3>
+        <p className="text-coffee-light text-sm mb-4">
+          Send email notifications to subscribed customers. Emails are sent automatically when you create new content, but you can also trigger them manually here.
+        </p>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Notification Type *</label>
+            <select
+              value={notificationType}
+              onChange={(e) => {
+                setNotificationType(e.target.value);
+                setContentId('');
+              }}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+            >
+              <option value="">Select type</option>
+              <option value="coffee">New Coffee Item</option>
+              <option value="offer">Daily Offer</option>
+              <option value="workshop">Workshop</option>
+            </select>
+          </div>
+
+          {notificationType === 'coffee' && (
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Select Coffee Item *</label>
+              <select
+                value={contentId}
+                onChange={(e) => setContentId(e.target.value)}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="">Select coffee</option>
+                {coffees.filter(c => c.category === 'Coffee').map(coffee => (
+                  <option key={coffee._id} value={coffee._id}>{coffee.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {notificationType === 'offer' && (
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Select Offer *</label>
+              <select
+                value={contentId}
+                onChange={(e) => setContentId(e.target.value)}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="">Select offer</option>
+                {offers.map(offer => (
+                  <option key={offer._id} value={offer._id}>{offer.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {notificationType === 'workshop' && (
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Select Workshop *</label>
+              <select
+                value={contentId}
+                onChange={(e) => setContentId(e.target.value)}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="">Select workshop</option>
+                {workshops.map(workshop => (
+                  <option key={workshop._id} value={workshop._id}>{workshop.title}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          <div>
+            <label className="block text-coffee-amber font-semibold mb-2">Filter by Tags (Optional)</label>
+            <p className="text-xs text-coffee-light/70 mb-2">Leave empty to send to all subscribed customers</p>
+            <div className="flex flex-wrap gap-2">
+              {availableTags.map(tag => (
+                <label key={tag.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={filterTags.includes(tag.value)}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setFilterTags([...filterTags, tag.value]);
+                      } else {
+                        setFilterTags(filterTags.filter(t => t !== tag.value));
+                      }
+                    }}
+                    className="w-4 h-4 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded"
+                  />
+                  <span className="text-sm text-coffee-light">{tag.label}</span>
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <button
+            onClick={handleNotifySubscribers}
+            disabled={notifying || !notificationType || !contentId}
+            className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {notifying ? 'Sending...' : 'Notify Subscribers'}
+          </button>
+        </div>
+      </div>
+
+      {/* Important Notes */}
+      <div className="mt-8 bg-coffee-brown/10 border border-coffee-brown/50 rounded-lg p-4">
+        <h4 className="text-coffee-amber font-semibold mb-2">📧 Email System Notes</h4>
+        <ul className="text-sm text-coffee-light space-y-1 list-disc list-inside">
+          <li>Emails are sent automatically when you create new coffee items, offers, or workshops</li>
+          <li>Only customers with marketing consent (checked during order) receive emails</li>
+          <li>Customers can unsubscribe at any time via the link in emails</li>
+          <li>No spam - we respect user consent strictly</li>
+          <li>Tag-based filtering helps target relevant customers</li>
+        </ul>
       </div>
     </div>
   );

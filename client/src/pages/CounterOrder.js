@@ -21,6 +21,7 @@ const CounterOrder = () => {
   const [customerExists, setCustomerExists] = useState(false);
   const [mobileError, setMobileError] = useState('');
   const [nameError, setNameError] = useState('');
+  const [marketingConsent, setMarketingConsent] = useState(false); // Marketing email consent
 
   useEffect(() => {
     fetchMenuItems();
@@ -193,7 +194,8 @@ const CounterOrder = () => {
         customerName: customerName.trim(),
         customerEmail: customerEmail ? customerEmail.trim() : '',
         notes: notes || '',
-        orderSource: 'Counter'
+        orderSource: 'Counter',
+        marketingConsent: marketingConsent // Marketing email consent
       };
 
       const response = await api.post('/orders', orderData);
@@ -515,6 +517,23 @@ const CounterOrder = () => {
                       rows="2"
                       className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
                     />
+                    {/* Marketing Consent Checkbox */}
+                    <div className="mt-3">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={marketingConsent}
+                          onChange={(e) => setMarketingConsent(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded focus:ring-coffee-amber"
+                        />
+                        <span className="text-sm text-coffee-light">
+                          I would like to receive email updates about new coffees, offers, and workshops from Rabuste Coffee.
+                        </span>
+                      </label>
+                      <p className="text-xs text-coffee-light/60 mt-1 ml-6">
+                        You can unsubscribe at any time. We respect your privacy.
+                      </p>
+                    </div>
                   </div>
 
                   <button

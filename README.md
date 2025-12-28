@@ -81,6 +81,82 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **Workshop Confirmations**: Email notifications with confirmation codes
 - **Franchise Enquiry Notifications**: Email alerts for new franchise enquiries
 
+### 📧 Customer Email Engagement System
+
+A comprehensive, consent-based email marketing system designed to convert one-time customers into repeat customers through relevant, ethical email communications.
+
+#### Key Features
+
+- **✅ Explicit Consent Required**: Customers must explicitly opt-in during order placement
+- **📊 Auto-Generated Customer Tags**: Intelligent tagging system based on customer behavior:
+  - `new_customer` - First-time customers
+  - `returning_customer` - Customers with multiple orders
+  - `coffee_lover` - Customers who primarily order coffee items
+  - `workshop_interested` - Customers who registered for workshops
+  - `high_value` - Customers with total spend above threshold (default: ₹5000)
+  - `inactive_30_days` - Customers with no orders in last 30 days
+- **🎯 Targeted Email Campaigns**: Send relevant emails based on customer tags
+- **📨 Automatic Notifications**: Emails sent automatically when:
+  - New coffee items are added (prioritizes `coffee_lover` tag)
+  - New daily offers are created and activated
+  - New workshops are created and activated (prioritizes `workshop_interested` tag)
+- **🛡️ Privacy-First**: 
+  - No emails sent without explicit consent
+  - Unsubscribe link in every email
+  - No auto-subscription
+  - Respects user privacy strictly
+
+#### Email Types Supported
+
+1. **New Coffee Item Announcement**
+   - Triggered when admin creates a new coffee item
+   - Sent to customers with marketing consent
+   - Optionally filters by `coffee_lover` tag
+   - Includes coffee name, description, strength, flavor notes
+   - Call-to-action: "View Menu"
+
+2. **Daily Offer Announcement**
+   - Triggered when new offer is created and activated
+   - Sent to all subscribed customers
+   - Includes offer title, discount details, validity date
+   - Creates sense of urgency
+   - Call-to-action: "Order Now"
+
+3. **Workshop Announcement**
+   - Triggered when new workshop is created and activated
+   - Prioritizes customers with `workshop_interested` tag
+   - Includes workshop title, date, time, instructor, price
+   - Shows limited seats remaining
+   - Call-to-action: "Register Now"
+
+#### Admin Features
+
+- **Customer Engagement Dashboard**: 
+  - Total subscribed customers count
+  - Subscription percentage
+  - Breakdown by customer tags
+- **Manual Email Triggers**: 
+  - Send notifications manually for any content
+  - Filter by customer tags for targeted campaigns
+  - Preview email functionality
+- **Analytics**: Track email engagement and customer segments
+
+#### Implementation Details
+
+- **Consent Collection**: Checkbox during order placement (QR + Counter)
+- **Tag Auto-Update**: Tags updated automatically after each order
+- **Batch Email Sending**: Sequential sending with rate limiting to avoid overwhelming email service
+- **Error Handling**: Comprehensive error logging and graceful failures
+- **Future-Ready**: Extensible architecture for WhatsApp, SMS, loyalty points, and personalization
+
+#### Ethical Considerations
+
+- ✅ **Explicit Consent**: No auto-subscription, checkbox is unchecked by default
+- ✅ **Easy Unsubscribe**: Every email includes unsubscribe link
+- ✅ **No Spam**: Only relevant, consent-based emails
+- ✅ **Privacy Respect**: Never share customer data, strict consent enforcement
+- ✅ **Transparent**: Clear messaging about what customers will receive
+
 ## 🛠️ Tech Stack
 
 ### Frontend

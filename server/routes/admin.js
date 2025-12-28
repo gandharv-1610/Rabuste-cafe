@@ -6,9 +6,12 @@ const Workshop = require('../models/Workshop');
 const WorkshopRegistration = require('../models/WorkshopRegistration');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
 const Order = require('../models/Order');
+const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
 const analyticsService = require('../services/analyticsService');
 const aiInsightsService = require('../services/aiInsightsService');
+const { getSubscribedCustomers, getCustomersByTag } = require('../services/customerTagService');
+const { sendCoffeeAnnouncementEmail, sendOfferAnnouncementEmail, sendWorkshopAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
 
 // All admin routes below this line require valid admin JWT
 router.use(auth);
@@ -166,6 +169,170 @@ router.get('/analytics/alerts', async (req, res) => {
     res.json({ alerts });
   } catch (error) {
     console.error('Alerts error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// ============================================
+// CUSTOMER ENGAGEMENT ROUTES
+// ============================================
+
+// Get customer engagement statistics
+router.get('/customer-engagement/stats', async (req, res) => {
+  try {
+    const totalCustomers = await Customer.countDocuments();
+    const subscribedCustomers = await Customer.countDocuments({
+      marketingConsent: true,
+      email: { $exists: true, $ne: '' }
+    });
+    
+    // Get tag breakdown
+    const tagCounts = {};
+    const tags = ['new_customer', 'returning_customer', 'coffee_lover', 'workshop_interested', 'high_value', 'inactive_30_days'];
+    
+    for (const tag of tags) {
+      const count = await Customer.countDocuments({
+        tags: tag,
+        marketingConsent: true,
+        email: { $exists: true, $ne: '' }
+      });
+      tagCounts[tag] = count;
+    }
+    
+    const subscribedPercentage = totalCustomers > 0 
+      ? ((subscribedCustomers / totalCustomers) * 100).toFixed(1)
+      : 0;
+    
+    res.json({
+      totalCustomers,
+      subscribedCustomers,
+      subscribedPercentage: parseFloat(subscribedPercentage),
+      tagBreakdown: tagCounts
+    });
+  } catch (error) {
+    console.error('Customer engagement stats error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Preview email (for testing)
+router.post('/customer-engagement/preview-email', async (req, res) => {
+  try {
+    const { type, contentId } = req.body;
+    
+    if (!type || !['coffee', 'offer', 'workshop'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid email type' });
+    }
+    
+    // Get a sample customer (first subscribed customer)
+    const sampleCustomer = await Customer.findOne({
+      marketingConsent: true,
+      email: { $exists: true, $ne: '' }
+    }).select('name email').lean();
+    
+    if (!sampleCustomer) {
+      return res.status(404).json({ message: 'No subscribed customers found for preview' });
+    }
+    
+    let contentData;
+    
+    if (type === 'coffee') {
+      contentData = await Coffee.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Coffee item not found' });
+      }
+    } else if (type === 'offer') {
+      const Offer = require('../models/Offer');
+      contentData = await Offer.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+    } else if (type === 'workshop') {
+      contentData = await Workshop.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Workshop not found' });
+      }
+    }
+    
+    // Generate preview HTML (this would be the actual email template)
+    res.json({
+      success: true,
+      message: 'Email preview generated',
+      customer: sampleCustomer,
+      content: contentData
+    });
+  } catch (error) {
+    console.error('Preview email error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Manual trigger: Send email to all subscribed customers
+router.post('/customer-engagement/notify-subscribers', async (req, res) => {
+  try {
+    const { type, contentId, filterTags } = req.body;
+    
+    if (!type || !['coffee', 'offer', 'workshop'].includes(type)) {
+      return res.status(400).json({ message: 'Invalid email type' });
+    }
+    
+    if (!contentId) {
+      return res.status(400).json({ message: 'Content ID is required' });
+    }
+    
+    // Get content data
+    let contentData;
+    let emailFunction;
+    
+    if (type === 'coffee') {
+      contentData = await Coffee.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Coffee item not found' });
+      }
+      emailFunction = sendCoffeeAnnouncementEmail;
+    } else if (type === 'offer') {
+      const Offer = require('../models/Offer');
+      contentData = await Offer.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Offer not found' });
+      }
+      emailFunction = sendOfferAnnouncementEmail;
+    } else if (type === 'workshop') {
+      contentData = await Workshop.findById(contentId);
+      if (!contentData) {
+        return res.status(404).json({ message: 'Workshop not found' });
+      }
+      emailFunction = sendWorkshopAnnouncementEmail;
+    }
+    
+    // Get customers based on filter tags
+    let customers;
+    if (filterTags && filterTags.length > 0) {
+      customers = await getSubscribedCustomers(filterTags);
+    } else {
+      customers = await getSubscribedCustomers();
+    }
+    
+    if (customers.length === 0) {
+      return res.status(404).json({ message: 'No subscribed customers found' });
+    }
+    
+    // Send emails (async, don't block response)
+    sendBatchMarketingEmails(customers, emailFunction, contentData)
+      .then(results => {
+        console.log(`📧 Manual notification sent: ${results.success}/${results.total} successful`);
+      })
+      .catch(err => {
+        console.error('Error sending manual notification:', err);
+      });
+    
+    res.json({
+      success: true,
+      message: `Email notification queued for ${customers.length} subscribers`,
+      subscribersCount: customers.length
+    });
+  } catch (error) {
+    console.error('Notify subscribers error:', error);
     res.status(500).json({ message: error.message });
   }
 });

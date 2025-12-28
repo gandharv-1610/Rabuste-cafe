@@ -36,6 +36,7 @@ const Order = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginForFavorite, setLoginForFavorite] = useState(null); // itemId to favorite after login
   const [paymentMethod, setPaymentMethod] = useState('online'); // 'online' or 'counter'
+  const [marketingConsent, setMarketingConsent] = useState(false); // Marketing email consent
 
   // Load customer session and favorites on mount
   useEffect(() => {
@@ -431,7 +432,8 @@ const Order = () => {
         customerEmail: finalEmail || '',
         notes: notes || '',
         orderSource: 'QR',
-        paymentMethod: paymentMethod // 'online' or 'counter'
+        paymentMethod: paymentMethod, // 'online' or 'counter'
+        marketingConsent: marketingConsent // Marketing email consent
       };
 
       console.log('Placing order with data:', orderData);
@@ -969,6 +971,24 @@ const Order = () => {
                       {paymentMethod === 'counter' 
                         ? 'Order will be confirmed after payment at counter'
                         : 'Secure online payment via Razorpay'}
+                    </p>
+                  </div>
+
+                  {/* Marketing Consent Checkbox */}
+                  <div className="mb-4">
+                    <label className="flex items-start gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={marketingConsent}
+                        onChange={(e) => setMarketingConsent(e.target.checked)}
+                        className="mt-1 w-4 h-4 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded focus:ring-coffee-amber"
+                      />
+                      <span className="text-sm text-coffee-light">
+                        I would like to receive email updates about new coffees, offers, and workshops from Rabuste Coffee.
+                      </span>
+                    </label>
+                    <p className="text-xs text-coffee-light/60 mt-1 ml-6">
+                      You can unsubscribe at any time. We respect your privacy.
                     </p>
                   </div>
 

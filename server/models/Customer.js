@@ -52,6 +52,20 @@ const customerSchema = new mongoose.Schema({
   favorites: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Coffee'
+  }],
+  // Email marketing consent and subscription fields
+  marketingConsent: {
+    type: Boolean,
+    default: false
+  },
+  subscribedAt: {
+    type: Date,
+    default: null
+  },
+  // Auto-generated tags based on customer behavior
+  tags: [{
+    type: String,
+    default: []
   }]
 }, {
   timestamps: true
@@ -87,6 +101,17 @@ customerSchema.methods.addOrder = function(orderId, orderTotal) {
     this.totalOrders += 1;
     this.totalSpent += (orderTotal || 0);
     this.lastOrderDate = new Date();
+  }
+};
+
+// Method to update marketing consent
+customerSchema.methods.updateMarketingConsent = function(consent, email) {
+  this.marketingConsent = consent === true;
+  if (consent === true && !this.subscribedAt) {
+    this.subscribedAt = new Date();
+  }
+  if (email && email.trim()) {
+    this.email = email.trim().toLowerCase();
   }
 };
 

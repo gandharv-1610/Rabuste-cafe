@@ -4,6 +4,7 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const Coffee = require('../models/Coffee');
 const Art = require('../models/Art');
 const Workshop = require('../models/Workshop');
+const Offer = require('../models/Offer');
 
 // Primary Gemini Model: gemini-2.0-flash (Text-out model)
 // This model provides the best performance and limits for text generation
@@ -428,6 +429,64 @@ const getFallbackResponse = async (message) => {
   if (lowerMessage.includes('franchise') || lowerMessage.includes('business opportunity')) {
     return "We offer franchise opportunities for those interested in bringing the Rabuste Coffee experience to their community. Visit our Franchise page to learn more and submit an enquiry!";
   }
+  
+  if (lowerMessage.includes('offer') || lowerMessage.includes('discount') || lowerMessage.includes('deal') || lowerMessage.includes('promotion') || lowerMessage.includes('special')) {
+    try {
+      const now = new Date();
+      const offers = await Offer.find({
+        isActive: true,
+        $and: [
+          {
+            $or: [
+              { startDate: { $lte: now } },
+              { startDate: { $exists: false } },
+              { startDate: null },
+            ],
+          },
+          {
+            $or: [
+              { endDate: { $gte: now } },
+              { endDate: { $exists: false } },
+              { endDate: null },
+            ],
+          },
+        ],
+      }).sort({ highlight: -1, order: 1 }).limit(3);
+      
+      if (offers.length > 0) {
+        let response = "We have some great offers for you! 🎁\n\n";
+        offers.forEach((offer, idx) => {
+          const discountText = offer.discountUnit === 'percent'
+            ? `${offer.discountValue}% OFF`
+            : `Flat ₹${offer.discountValue} OFF`;
+          response += `${idx + 1}. ${offer.title}${offer.subtitle ? ` - ${offer.subtitle}` : ''}\n`;
+          response += `   ${discountText}\n`;
+          if (offer.description) {
+            response += `   ${offer.description}\n`;
+          }
+          if (offer.endDate) {
+            const endDate = new Date(offer.endDate).toLocaleDateString();
+            response += `   Valid until: ${endDate}\n`;
+          }
+          response += '\n';
+        });
+        response += "Visit our Home page to see all current offers!";
+        return response;
+      } else {
+        return "We don't have any active offers right now, but check back soon! You can also subscribe to our email updates during checkout to receive notifications about new offers, coffee items, and workshops.";
+      }
+    } catch (error) {
+      return "Check our Home page for current offers and specials! You can also subscribe to email updates during checkout to stay informed about new offers.";
+    }
+  }
+  
+  if (lowerMessage.includes('email') || lowerMessage.includes('subscribe') || lowerMessage.includes('newsletter') || lowerMessage.includes('notification') || lowerMessage.includes('updates')) {
+    return "Yes! You can subscribe to email updates during checkout when placing an order. We'll send you notifications about:\n- New coffee items added to our menu\n- Daily offers and special discounts\n- Upcoming workshops and events\n\nJust check the box during checkout: 'I would like to receive email updates about new coffees, offers, and workshops from Rabuste Coffee.'\n\nYou can unsubscribe at any time, and we respect your privacy - we only send emails to customers who explicitly opt-in.";
+  }
+  
+  if (lowerMessage.includes('order') || lowerMessage.includes('place order') || lowerMessage.includes('buy') || lowerMessage.includes('purchase')) {
+    return "You can place orders in two ways:\n1. 📱 QR Code Ordering: Scan the QR code at your table to order and pay online via Razorpay\n2. 🏪 Counter Ordering: Order at the counter and pay with cash\n\nBoth methods allow you to:\n- Browse our full menu\n- Add items to cart\n- Subscribe to email updates (optional)\n- Receive digital receipts\n\nVisit our Order page to get started!";
+  }
 
   // Activity suggestions
   if (lowerMessage.includes('what can i do') || lowerMessage.includes('what should i') || 
@@ -518,6 +577,28 @@ router.post('/chatbot', async (req, res) => {
     const menuItems = await Coffee.find().sort({ order: 1, createdAt: -1 });
     const artPieces = await Art.find({ availability: 'Available' }).limit(10);
     const workshops = await Workshop.find({ isActive: true }).limit(5);
+    
+    // Fetch active offers (within date range)
+    const now = new Date();
+    const activeOffers = await Offer.find({
+      isActive: true,
+      $and: [
+        {
+          $or: [
+            { startDate: { $lte: now } },
+            { startDate: { $exists: false } },
+            { startDate: null },
+          ],
+        },
+        {
+          $or: [
+            { endDate: { $gte: now } },
+            { endDate: { $exists: false } },
+            { endDate: null },
+          ],
+        },
+      ],
+    }).sort({ highlight: -1, order: 1, createdAt: -1 }).limit(5);
 
     // Check for fallback first
     const fallback = await getFallbackResponse(message);
@@ -538,6 +619,37 @@ router.post('/chatbot', async (req, res) => {
       }).join('\n');
       const otherItemsList = menuItems.filter(item => item.category !== 'Coffee').slice(0, 3).map(item => `- ${item.name} (${item.category}, ₹${item.price})`).join('\n');
       
+      // Fetch active offers for fallback
+      const now = new Date();
+      const activeOffersFallback = await Offer.find({
+        isActive: true,
+        $and: [
+          {
+            $or: [
+              { startDate: { $lte: now } },
+              { startDate: { $exists: false } },
+              { startDate: null },
+            ],
+          },
+          {
+            $or: [
+              { endDate: { $gte: now } },
+              { endDate: { $exists: false } },
+              { endDate: null },
+            ],
+          },
+        ],
+      }).sort({ highlight: -1, order: 1 }).limit(3);
+      
+      const offersList = activeOffersFallback.length > 0 
+        ? activeOffersFallback.map(offer => {
+            const discountText = offer.discountUnit === 'percent' 
+              ? `${offer.discountValue}% OFF` 
+              : `Flat ₹${offer.discountValue} OFF`;
+            return `- ${offer.title}: ${discountText}${offer.description ? ` - ${offer.description}` : ''}`;
+          }).join('\n')
+        : 'No active offers at the moment.';
+      
       let response = `Welcome to Rabuste Coffee! We're a specialty café serving EXCLUSIVELY Robusta coffee.\n\n`;
       
       // Check what user is asking about
@@ -556,9 +668,11 @@ router.post('/chatbot', async (req, res) => {
         if (otherItemsList) {
           response += `\n🍽️ Other Items:\n${otherItemsList}\n`;
         }
+        response += `\n🎁 Current Offers:\n${offersList}\n`;
         response += `\n📍 Location: RABUSTE, Dimpal Row House, 15, Gymkhana Rd, Piplod, Surat, Gujarat 395007\n`;
         response += `🕐 Hours: Monday to Sunday, 9:30 AM to 11:00 PM\n`;
         response += `📸 Instagram: @rabuste.coffee\n`;
+        response += `\n💡 Tip: Subscribe to email updates during checkout to receive notifications about new coffees, offers, and workshops!\n`;
         response += `\nVisit our Coffee Menu page to see all items with descriptions!`;
       }
       
@@ -609,7 +723,26 @@ router.post('/chatbot', async (req, res) => {
         type: w.type,
         description: w.description,
         date: w.date,
-        price: w.price
+        time: w.time,
+        duration: w.duration,
+        price: w.price,
+        maxSeats: w.maxSeats,
+        bookedSeats: w.bookedSeats
+      })),
+      offers: activeOffers.map(offer => ({
+        title: offer.title,
+        subtitle: offer.subtitle,
+        description: offer.description,
+        badgeText: offer.badgeText,
+        discountValue: offer.discountValue,
+        discountUnit: offer.discountUnit,
+        discountText: offer.discountUnit === 'percent' 
+          ? `${offer.discountValue}% OFF` 
+          : `Flat ₹${offer.discountValue} OFF`,
+        terms: offer.terms,
+        startDate: offer.startDate,
+        endDate: offer.endDate,
+        highlight: offer.highlight
       }))
     };
 
@@ -618,6 +751,9 @@ router.post('/chatbot', async (req, res) => {
     if (coffeeItems.length > 0) {
       availableActivities.push('Browse our coffee menu and discover your perfect Robusta brew');
     }
+    if (activeOffers.length > 0) {
+      availableActivities.push(`Check out our ${activeOffers.length} current special offers and discounts`);
+    }
     if (artPieces.length > 0) {
       availableActivities.push(`Explore our art gallery with ${artPieces.length} featured artworks`);
     }
@@ -625,9 +761,13 @@ router.post('/chatbot', async (req, res) => {
       availableActivities.push(`Join one of our ${workshops.length} upcoming workshops`);
     }
     availableActivities.push('Learn about why we exclusively serve Robusta coffee');
+    availableActivities.push('Place an order via QR code or at the counter');
+    availableActivities.push('Subscribe to email updates for new coffees, offers, and workshops');
     availableActivities.push('Explore franchise opportunities');
 
     const systemPrompt = `You are a friendly and knowledgeable assistant for Rabuste Coffee, a specialty café that serves ONLY Robusta coffee. You act as a MIDDLEWARE between users and information - you ONLY provide information that is available on the Rabuste Coffee website. NEVER make up or infer information that is not explicitly provided below.
+
+IMPORTANT: You have access to REAL-TIME website content including current menu items, active offers, workshops, and art pieces. Always use this actual data when answering questions.
 
 === RABUSTE COFFEE WEBSITE INFORMATION ===
 
@@ -672,19 +812,59 @@ ART GALLERY:
 ${artPieces.length > 0 ? artPieces.map(art => `- "${art.title}" by ${art.artistName}: ${art.description}${art.price ? ` (Price: ₹${art.price})` : ''}${art.availability === 'Available' ? ' - Available' : ''}`).join('\n') : 'Currently no art pieces listed.'}
 
 WORKSHOPS:
-${workshops.length > 0 ? workshops.map(w => `- "${w.title}" (${w.type}): ${w.description}. Date: ${new Date(w.date).toLocaleDateString()}, Price: ₹${w.price}`).join('\n') : 'Currently no workshops scheduled.'}
+${workshops.length > 0 ? workshops.map(w => {
+  const dateStr = new Date(w.date).toLocaleDateString();
+  const seatsInfo = w.maxSeats ? ` (${w.bookedSeats || 0}/${w.maxSeats} seats booked)` : '';
+  return `- "${w.title}" (${w.type}): ${w.description}. Date: ${dateStr} at ${w.time || 'TBA'}${w.duration ? ` (${w.duration})` : ''}, Price: ₹${w.price || 'Free'}${seatsInfo}`;
+}).join('\n') : 'Currently no workshops scheduled.'}
+
+CURRENT OFFERS & SPECIALS:
+${activeOffers.length > 0 ? activeOffers.map(offer => {
+  const discountText = offer.discountUnit === 'percent' 
+    ? `${offer.discountValue}% OFF` 
+    : `Flat ₹${offer.discountValue} OFF`;
+  const dateInfo = offer.endDate 
+    ? ` (Valid until ${new Date(offer.endDate).toLocaleDateString()})` 
+    : '';
+  return `- ${offer.title}${offer.subtitle ? ` - ${offer.subtitle}` : ''}: ${discountText}${offer.description ? ` - ${offer.description}` : ''}${dateInfo}${offer.highlight ? ' ⭐ HIGHLIGHTED' : ''}`;
+}).join('\n') : 'Currently no active offers. Check back soon!'}
+
+ORDERING & EMAIL UPDATES:
+- You can place orders via QR code (online payment) or at the counter (cash payment)
+- During checkout, you can opt-in to receive email updates about:
+  * New coffee items added to the menu
+  * Daily offers and special discounts
+  * Upcoming workshops and events
+- Email subscription is completely optional and you can unsubscribe anytime
+- We only send emails to customers who explicitly opt-in during checkout
 
 AVAILABLE ACTIVITIES:
 ${availableActivities.map((activity, idx) => `${idx + 1}. ${activity}`).join('\n')}
 
 AVAILABLE PAGES TO VISIT:
-- Home (/) - Main page with café overview
+- Home (/) - Main page with café overview, daily offers, and location
 - About Us (/about) - Our story, values, and mission
 - Why Robusta (/why-robusta) - Learn about Robusta coffee benefits
 - Coffee Menu (/coffee) - Full menu with descriptions and prices
 - Art Gallery (/art) - Browse featured artworks
 - Workshops (/workshops) - View and register for workshops
 - Franchise (/franchise) - Franchise opportunities and enquiry form
+- Order (/order) - Place orders via QR code or counter
+- Your Orders (/your-orders) - View your order history
+
+ORDERING SYSTEM:
+- QR Code Ordering: Customers scan QR code at table, browse menu, add to cart, and pay online via Razorpay
+- Counter Ordering: Salesperson-assisted ordering for walk-in customers, payment via cash
+- Both methods allow customers to subscribe to email updates during checkout (optional checkbox)
+- Digital receipts are generated for all orders
+
+EMAIL ENGAGEMENT SYSTEM:
+- Customers can opt-in to email updates during checkout (checkbox is unchecked by default)
+- Email updates include: new coffee items, daily offers, upcoming workshops
+- Subscription is completely optional - customers must explicitly check the box
+- Customers can unsubscribe at any time via link in emails
+- We only send emails to customers who have given explicit consent (marketingConsent = true)
+- No spam - we respect user privacy and consent strictly
 
 === CRITICAL FILTERING RULES (YOU ARE A MIDDLEWARE - ENFORCE THESE STRICTLY) ===
 
@@ -705,21 +885,34 @@ AVAILABLE PAGES TO VISIT:
 4. ACTIVITY SUGGESTIONS:
    - If user asks "what can I do", "suggestions", "what should I try", "things to do":
      - Suggest 2-3 activities from AVAILABLE ACTIVITIES
-     - Include specific items/workshops/art if available
+     - Include specific items/workshops/art/offers if available
      - Format: "Here are some great things: 1) [activity], 2) [activity], 3) [activity]"
+   
+5. OFFERS & DISCOUNTS:
+   - If user asks about offers, discounts, deals, promotions, or specials:
+     - List current active offers from CURRENT OFFERS & SPECIALS section
+     - Include discount details (percent or flat rupee off)
+     - Mention validity dates if available
+     - Suggest visiting Home page to see all offers
+   
+6. ORDERING & EMAIL UPDATES:
+   - If user asks about ordering, explain QR code and counter ordering options
+   - If user asks about email updates, explain the opt-in process during checkout
+   - Mention what types of emails they'll receive (new coffees, offers, workshops)
+   - Emphasize that subscription is optional and they can unsubscribe anytime
 
-5. NAVIGATION:
+7. NAVIGATION:
    - For navigation requests ("take me to", "show me", "visit", "go to"), include "NAVIGATE:/page-path" at the end.
    - Example: "I'll take you to our Art Gallery! NAVIGATE:/art"
 
-6. INFORMATION QUERIES:
+8. INFORMATION QUERIES:
    - Address/Location: Use the exact address provided above
    - Hours: Use "Monday to Sunday, 9:30 AM to 11:00 PM"
    - Contact: Mention Instagram @rabuste.coffee and Franchise enquiry form
    - About Robusta: Use information from "CAFÉ IDENTITY" section
    - Our Story/Values: Use information from "OUR VALUES" and "OUR STORY" sections
 
-7. RESPONSE STYLE:
+9. RESPONSE STYLE:
    - Be conversational, warm, and helpful (2-4 sentences max)
    - Stay within website information boundaries
    - If you don't know something, admit it and suggest where they can find it

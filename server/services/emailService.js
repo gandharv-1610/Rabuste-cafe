@@ -185,10 +185,355 @@ const sendFranchiseConfirmationEmail = async (enquiry) => {
   }
 };
 
+// ============================================
+// MARKETING EMAIL FUNCTIONS
+// ============================================
+// These functions send consent-based marketing emails to subscribed customers
+// IMPORTANT: Only send to customers with marketingConsent = true
+
+/**
+ * Send new coffee item announcement email
+ * @param {Object} customer - Customer object with name and email
+ * @param {Object} coffee - Coffee item object
+ * @returns {Promise<boolean>} Success status
+ */
+const sendCoffeeAnnouncementEmail = async (customer, coffee) => {
+  const customerName = customer.name || 'Coffee Lover';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const menuUrl = `${frontendUrl}/menu`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">New Coffee Alert! ☕</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          We're excited to introduce our newest addition to the menu!
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px; font-size: 22px;">${coffee.name}</h3>
+          ${coffee.description ? `<p style="color: #EFEBE9; margin: 10px 0; line-height: 1.6;">${coffee.description}</p>` : ''}
+          ${coffee.strength ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Strength:</strong> ${coffee.strength}</p>` : ''}
+          ${coffee.flavorNotes && coffee.flavorNotes.length > 0 ? `
+            <p style="color: #EFEBE9; margin: 10px 0;"><strong>Flavor Notes:</strong> ${coffee.flavorNotes.join(', ')}</p>
+          ` : ''}
+        </div>
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${menuUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            View Menu
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
+          Visit us soon to try this amazing new coffee! We can't wait to share it with you.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+        <p style="margin-top: 8px;">
+          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: customer.email,
+      subject: `New Coffee Alert: ${coffee.name} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Coffee announcement email error:', error);
+    return false;
+  }
+};
+
+/**
+ * Send daily offer announcement email
+ * @param {Object} customer - Customer object with name and email
+ * @param {Object} offer - Offer object
+ * @returns {Promise<boolean>} Success status
+ */
+const sendOfferAnnouncementEmail = async (customer, offer) => {
+  const customerName = customer.name || 'Coffee Lover';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const menuUrl = `${frontendUrl}/menu`;
+
+  const formatDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const discountText = offer.discountUnit === 'percent'
+    ? `${offer.discountValue}% OFF`
+    : `Flat ₹${offer.discountValue} OFF`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        ${offer.badgeText ? `
+          <div style="text-align: center; margin-bottom: 20px;">
+            <span style="display: inline-block; background-color: #FF6F00; color: #1B130E; padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">
+              ${offer.badgeText}
+            </span>
+          </div>
+        ` : ''}
+        <h2 style="color: #FF6F00; margin-bottom: 20px; text-align: center;">${offer.title}</h2>
+        ${offer.subtitle ? `<p style="color: #EFEBE9; font-size: 18px; text-align: center; margin-bottom: 20px;">${offer.subtitle}</p>` : ''}
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${customerName},
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center;">
+          <p style="color: #FF6F00; font-size: 32px; font-weight: bold; margin: 10px 0;">${discountText}</p>
+          ${offer.description ? `<p style="color: #EFEBE9; margin: 10px 0; line-height: 1.6;">${offer.description}</p>` : ''}
+        </div>
+        ${offer.terms ? `
+          <div style="background-color: #3E2723; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #EFEBE9; margin: 5px 0; font-size: 14px;"><strong>Terms:</strong> ${offer.terms}</p>
+          </div>
+        ` : ''}
+        ${offer.endDate ? `
+          <p style="color: #FF6F00; font-size: 14px; text-align: center; margin: 20px 0; font-weight: 600;">
+            ⏰ Valid until ${formatDate(offer.endDate)}
+          </p>
+        ` : ''}
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${menuUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            Order Now
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px; text-align: center;">
+          Don't miss out on this special offer! Visit us today.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+        <p style="margin-top: 8px;">
+          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: customer.email,
+      subject: `Special Offer: ${offer.title} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Offer announcement email error:', error);
+    return false;
+  }
+};
+
+/**
+ * Send workshop announcement email
+ * @param {Object} customer - Customer object with name and email
+ * @param {Object} workshop - Workshop object
+ * @returns {Promise<boolean>} Success status
+ */
+const sendWorkshopAnnouncementEmail = async (customer, workshop) => {
+  const customerName = customer.name || 'Coffee Lover';
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const workshopUrl = `${frontendUrl}/workshops`;
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric' 
+    });
+  };
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">New Workshop Alert! 🎨</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          We're excited to announce a new workshop that you might be interested in!
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px; font-size: 22px;">${workshop.title}</h3>
+          ${workshop.description ? `<p style="color: #EFEBE9; margin: 10px 0; line-height: 1.6;">${workshop.description}</p>` : ''}
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Type:</strong> ${workshop.type}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Date:</strong> ${formatDate(workshop.date)}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Time:</strong> ${workshop.time} (${workshop.duration})</p>
+          ${workshop.instructor ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Instructor:</strong> ${workshop.instructor}</p>` : ''}
+          ${workshop.price > 0 ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${workshop.price}</p>` : ''}
+          <p style="color: #FF6F00; margin: 15px 0 5px 0; font-weight: 600;">
+            ⚠️ Limited Seats: ${workshop.maxSeats - (workshop.bookedSeats || 0)} seats remaining
+          </p>
+        </div>
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${workshopUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            Register Now
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
+          Seats are limited, so don't wait! Register now to secure your spot.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+        <p style="margin-top: 8px;">
+          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
+        </p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: customer.email,
+      subject: `New Workshop: ${workshop.title} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Workshop announcement email error:', error);
+    return false;
+  }
+};
+
+/**
+ * Send marketing email to multiple customers (batch)
+ * @param {Array} customers - Array of customer objects
+ * @param {Function} emailFunction - Function to send email (coffee/offer/workshop)
+ * @param {Object} contentData - Data for email content (coffee/offer/workshop object)
+ * @returns {Promise<Object>} Results with success/failure counts
+ */
+const sendBatchMarketingEmails = async (customers, emailFunction, contentData) => {
+  const results = {
+    total: customers.length,
+    success: 0,
+    failed: 0,
+    errors: []
+  };
+
+  // Send emails sequentially to avoid overwhelming the email service
+  // In production, consider using a queue system (Bull, RabbitMQ, etc.)
+  for (const customer of customers) {
+    try {
+      // Double-check consent before sending
+      if (!customer.marketingConsent || !customer.email) {
+        results.failed++;
+        results.errors.push({
+          email: customer.email,
+          reason: 'No marketing consent or missing email'
+        });
+        continue;
+      }
+
+      const success = await emailFunction(customer, contentData);
+      if (success) {
+        results.success++;
+      } else {
+        results.failed++;
+        results.errors.push({
+          email: customer.email,
+          reason: 'Email sending failed'
+        });
+      }
+
+      // Small delay to avoid rate limiting
+      await new Promise(resolve => setTimeout(resolve, 100));
+    } catch (error) {
+      results.failed++;
+      results.errors.push({
+        email: customer.email,
+        reason: error.message
+      });
+      console.error(`Error sending email to ${customer.email}:`, error);
+    }
+  }
+
+  return results;
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
   sendWorkshopConfirmationEmail,
-  sendFranchiseConfirmationEmail
+  sendFranchiseConfirmationEmail,
+  // Marketing emails
+  sendCoffeeAnnouncementEmail,
+  sendOfferAnnouncementEmail,
+  sendWorkshopAnnouncementEmail,
+  sendBatchMarketingEmails
 };
 
