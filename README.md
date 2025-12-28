@@ -12,7 +12,7 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 
 ### Customer-Facing Features
 
-- **🏠 Home Page**: Hero section with configurable video/image backgrounds, scroll-based storytelling, daily offers showcase, and smooth animations
+- **🏠 Home Page**: Hero section with configurable video/image backgrounds, scroll-based storytelling, daily offers showcase, Google Maps integration, and Google Reviews slider
 - **📖 About the Café**: Story behind choosing Robusta coffee, café philosophy, and cultural inspiration
 - **☕ Why Robusta?**: Educational content explaining Robusta coffee, flavor profiles, and comparisons
 - **☕ Coffee Menu**: Curated Robusta-only menu with descriptions, strength levels, flavor notes, and AI-powered coffee discovery
@@ -20,13 +20,14 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **🎓 Workshops & Experiences**: Coffee workshops, art sessions, and community events with registration system and Google Calendar integration
 - **🚀 Franchise Opportunity**: Franchise information and enquiry form for potential partners with status tracking
 - **🎁 Daily Offers**: Dynamic offers and specials displayed on the home page with date-based filtering
+- **📱 Digital Ordering System**: QR code self-service ordering with Razorpay payment integration and counter ordering for walk-in customers
 
 ### AI-Powered Features (Google Gemini)
 
 1. **🤖 AI Coffee Discovery**
    - Recommends perfect Robusta brew based on mood, time of day, and energy level
    - Provides personalized coffee suggestions with explanations
-   - Powered by Google Gemini API
+   - Powered by Google Gemini API with smart fallback
 
 2. **💬 Smart Café Chatbot**
    - Domain-restricted chatbot answering only café-related questions
@@ -38,13 +39,33 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 
 - **🔐 Secure Authentication**: JWT-based login system with password hashing (bcrypt)
 - **📊 Dashboard**: Overview statistics and analytics for all content
+- **📈 AI-Powered Analytics Dashboard**: Next-level analytics with:
+  - Enhanced KPI cards with trend indicators (vs previous period)
+  - Advanced date filtering with presets (Today, Yesterday, Last 7/30 Days)
+  - Revenue breakdown (Dine-in vs Takeaway, by Category)
+  - Customer behavior analysis (New vs Returning, AOV, popular items by time slot)
+  - Prep time intelligence (by hour, per item, slow items identification)
+  - AI-generated insights panel with actionable recommendations
+  - Tomorrow's forecast (expected orders, peak hour, top items)
+  - Smart alerts system (surge detection, prep time thresholds, retention alerts)
+  - Conversational analytics ("Ask Analytics" - natural language queries)
 - **☕ Coffee Management**: Full CRUD for coffee menu items with image uploads
 - **🎨 Art Management**: Manage art listings, pricing, availability, and artist information
 - **🎓 Workshop Management**: Create and manage workshops, view registrations, manage seat bookings
 - **📋 Franchise Enquiries**: View and manage franchise enquiries with status tracking (New, Contacted, Qualified, Rejected)
 - **🎁 Daily Offers Management**: Create and manage promotional offers with date ranges and discount types
 - **🖼️ Site Media Management**: Configure images and videos for different sections (hero backgrounds, story visuals, etc.)
+- **📦 Orders Management**: View all orders, update status, manage counter orders, view receipts
 - **⚙️ Settings**: Change admin password securely
+
+### Ordering System
+
+- **QR Code Ordering**: Self-service ordering via QR code with Razorpay payment integration
+- **Counter Ordering**: Salesperson-assisted ordering for walk-in customers (cash payment)
+- **Sequential Order Numbers**: Unique order numbers starting from 00000000001
+- **Daily Token Numbers**: Daily counter that resets at midnight for easy customer tracking
+- **Payment Tracking**: Payment status (Paid/Pending/Failed) with payment method (Razorpay/Cash)
+- **Receipt Generation**: Digital receipts with order details, payment status, and token number
 
 ### Media Management
 
@@ -67,7 +88,9 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **React Router DOM** - Navigation and protected routes
 - **Tailwind CSS** - Utility-first styling
 - **Framer Motion** - Animations and transitions
+- **Recharts** - Data visualization for analytics
 - **Axios** - HTTP client with interceptors for JWT
+- **Razorpay** - Payment gateway integration
 
 ### Backend
 - **Node.js** - Runtime environment
@@ -76,12 +99,16 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **Mongoose** - ODM for MongoDB
 - **JWT (jsonwebtoken)** - Authentication tokens
 - **bcrypt** - Password hashing
+- **Razorpay SDK** - Payment processing
 
 ### Third-Party Services
 - **Google Gemini API** - AI coffee discovery and chatbot
 - **Cloudinary** - Media storage and optimization
 - **Nodemailer** - Email service (Gmail)
 - **Google Calendar API** - Workshop calendar integration
+- **Google Maps Embed API** - Map display on home page
+- **Google Places API** - Google Reviews integration
+- **Razorpay** - Payment gateway
 
 ## 📁 Project Structure
 
@@ -98,6 +125,8 @@ rabuste-coffee/
 │   │   │   ├── Navbar.js            # Navigation with auth state
 │   │   │   ├── Chatbot.js           # AI chatbot component
 │   │   │   ├── CoffeeDiscovery.js   # AI coffee recommendation
+│   │   │   ├── OrderAnalytics.js    # AI-powered analytics dashboard
+│   │   │   ├── OrdersManagement.js  # Orders management
 │   │   │   ├── ImageUpload.js        # Cloudinary image upload
 │   │   │   ├── VideoUpload.js        # Cloudinary video upload
 │   │   │   ├── OTPModal.js           # OTP verification modal
@@ -111,8 +140,13 @@ rabuste-coffee/
 │   │   │   ├── ArtGallery.js        # Art gallery
 │   │   │   ├── Workshops.js         # Workshops with registration
 │   │   │   ├── Franchise.js         # Franchise enquiry form
+│   │   │   ├── Order.js             # QR code ordering page
+│   │   │   ├── CounterOrder.js      # Counter ordering page
+│   │   │   ├── YourOrders.js        # Customer order history
 │   │   │   ├── AdminPanel.js        # Admin dashboard (protected)
 │   │   │   └── AdminLogin.js        # Admin login page
+│   │   ├── utils/
+│   │   │   └── customerAuth.js      # Customer authentication utilities
 │   │   ├── App.js                    # Main app with routing
 │   │   ├── App.css
 │   │   ├── index.js
@@ -125,44 +159,52 @@ rabuste-coffee/
 │   │   ├── Admin.js       # Admin user model (with password hashing)
 │   │   ├── Coffee.js      # Coffee menu items
 │   │   ├── Art.js         # Art gallery pieces
-│   │   ├── Workshop.js   # Workshop details
+│   │   ├── Workshop.js     # Workshop details
 │   │   ├── WorkshopRegistration.js  # Workshop registrations
 │   │   ├── FranchiseEnquiry.js     # Franchise enquiries
 │   │   ├── Offer.js       # Daily offers
 │   │   ├── SiteMedia.js   # Site media configuration
+│   │   ├── Order.js       # Order model
+│   │   ├── OrderCounter.js # Order number and token counter
+│   │   ├── Customer.js    # Customer model
 │   │   └── OTP.js         # OTP verification codes
 │   ├── routes/            # API routes
 │   │   ├── adminAuth.js   # Admin authentication (login, change-password)
 │   │   ├── admin.js       # Protected admin routes (stats, analytics, registrations)
-│   │   ├── coffee.js     # Coffee CRUD operations
+│   │   ├── coffee.js      # Coffee CRUD operations
 │   │   ├── art.js         # Art CRUD operations
-│   │   ├── workshops.js  # Workshop CRUD and registration
-│   │   ├── franchise.js  # Franchise enquiry handling
-│   │   ├── offers.js     # Daily offers management
-│   │   ├── siteMedia.js  # Site media management
-│   │   ├── ai.js         # AI endpoints (coffee discovery, chatbot)
-│   │   ├── email.js      # Email service endpoints
-│   │   └── upload.js     # File upload endpoints
+│   │   ├── workshops.js   # Workshop CRUD and registration
+│   │   ├── franchise.js   # Franchise enquiry handling
+│   │   ├── offers.js      # Daily offers management
+│   │   ├── siteMedia.js   # Site media management
+│   │   ├── ai.js          # AI endpoints (coffee discovery, chatbot)
+│   │   ├── email.js       # Email service endpoints
+│   │   ├── upload.js      # File upload endpoints
+│   │   ├── orders.js      # Order endpoints
+│   │   ├── payment.js     # Razorpay payment endpoints
+│   │   └── customers.js   # Customer endpoints
 │   ├── middleware/
-│   │   └── auth.js       # JWT authentication middleware
+│   │   └── auth.js        # JWT authentication middleware
 │   ├── services/
 │   │   ├── cloudinaryService.js  # Cloudinary integration
-│   │   └── emailService.js      # Email service (Nodemailer)
+│   │   ├── emailService.js       # Email service (Nodemailer)
+│   │   ├── analyticsService.js   # Advanced analytics service
+│   │   └── aiInsightsService.js  # AI insights generation
 │   ├── utils/
-│   │   └── calendar.js   # Google Calendar integration
+│   │   └── calendar.js     # Google Calendar integration
 │   ├── scripts/
-│   │   └── seedAdmin.js  # One-time admin user creation script
+│   │   └── seedAdmin.js   # One-time admin user creation script
 │   ├── index.js          # Server entry point
 │   └── package.json
 ├── package.json           # Root package.json
-├── README.md
-├── SETUP.md
-├── INSTALLATION.md
-├── PROJECT_SUMMARY.md
-└── GEMINI_TROUBLESHOOTING.md
+├── README.md              # This file
+├── SETUP.md               # Setup and installation guide
+└── TROUBLESHOOTING.md     # Troubleshooting guide
 ```
 
-## 🚀 Getting Started
+## 🚀 Quick Start
+
+See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
 ### Prerequisites
 
@@ -170,6 +212,7 @@ rabuste-coffee/
 - **MongoDB** (local installation or MongoDB Atlas account)
 - **Google Gemini API Key** (Get from [Google AI Studio](https://makersuite.google.com/app/apikey))
 - **Cloudinary Account** (for media storage - [Sign up](https://cloudinary.com))
+- **Razorpay Account** (for payments - [Sign up](https://razorpay.com))
 - **Gmail Account** (for email service - requires App Password)
 
 ### Installation
@@ -182,154 +225,28 @@ rabuste-coffee/
 
 2. **Install dependencies**
    ```bash
-   # Install root dependencies
    npm install
-   
-   # Install server dependencies
-   cd server
-   npm install
-   
-   # Install client dependencies
-   cd ../client
-   npm install
+   cd server && npm install
+   cd ../client && npm install
    ```
 
-3. **Set up environment variables**
-
-   Create `server/.env` file:
-   ```env
-   PORT=5000
-   MONGODB_URI=mongodb://localhost:27017/rabuste-coffee
-   # OR for MongoDB Atlas:
-   # MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/rabuste-coffee
-   
-   # Google Gemini API
-   GOOGLE_GEMINI_API_KEY=your_gemini_api_key_here
-   
-   # JWT Secret (use a strong random string)
-   JWT_SECRET=your_very_strong_random_secret_key_here
-   
-   # Admin Seed (optional - defaults provided)
-   ADMIN_SEED_EMAIL=admin@rabuste.coffee
-   ADMIN_SEED_PASSWORD=ChangeMeNow!123
-   
-   # Email Configuration (Nodemailer with Gmail)
-   EMAIL_SERVICE=gmail
-   EMAIL_USER=your_email@gmail.com
-   EMAIL_PASS=your_gmail_app_password
-   
-   # Cloudinary Configuration
-   CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
-   ```
-
-   (Optional) Create `client/.env` file:
-   ```env
-   REACT_APP_API_URL=http://localhost:5000/api
-   ```
+3. **Set up environment variables** (see SETUP.md for details)
 
 4. **Create initial admin user**
    ```bash
    cd server
    npm run seed:admin
    ```
-   This creates an admin user if none exists. Default credentials:
-   - Email: `admin@rabuste.coffee` (or from `ADMIN_SEED_EMAIL`)
-   - Password: `ChangeMeNow!123` (or from `ADMIN_SEED_PASSWORD`)
-   
-   **Important**: Change the password immediately after first login!
 
-5. **Start MongoDB**
-   ```bash
-   # If using local MongoDB
-   mongod
-   ```
-
-6. **Run the application**
-
-   Option 1: Run both servers concurrently (from root directory):
+5. **Start the application**
    ```bash
    npm run dev
    ```
 
-   Option 2: Run separately:
-   ```bash
-   # Terminal 1 - Start backend server
-   cd server
-   npm run dev
-
-   # Terminal 2 - Start frontend
-   cd client
-   npm start
-   ```
-
-7. **Access the application**
+6. **Access the application**
    - Frontend: http://localhost:3000
    - Backend API: http://localhost:5000/api
    - Admin Login: http://localhost:3000/admin/login
-   - Admin Panel: http://localhost:3000/admin (requires login)
-
-## 🔐 Admin Authentication
-
-### First-Time Setup
-
-1. Run the seed script to create admin user:
-   ```bash
-   cd server
-   npm run seed:admin
-   ```
-
-2. Log in at `/admin/login` with seeded credentials
-
-3. **Change your password** immediately in Settings tab
-
-### Security Features
-
-- **JWT-based authentication** with 7-day token expiration
-- **Password hashing** using bcrypt (10 salt rounds)
-- **Protected routes** - All admin APIs require valid JWT token
-- **Secure password change** - Requires current password verification
-- **No public signup** - Admin accounts created manually via seed script
-
-### Admin Routes
-
-- **Public**: `POST /api/admin/auth/login` - Admin login
-- **Protected**: All `/api/admin/*` routes require JWT token
-- **Protected**: `POST /api/admin/auth/change-password` - Change password
-
-## 🎨 Design Philosophy
-
-The application features a **bold yet cozy** café experience with:
-- **Dark coffee-inspired theme** with warm browns, creams, and amber accents
-- **Large typography** for impact and readability
-- **Scroll-based storytelling** creating immersive experiences
-- **Smooth transitions** and hover animations
-- **Mobile-first design** ensuring accessibility on all devices
-- **Configurable media** - Hero videos/images, story section visuals
-
-## 🤖 AI Features Explained
-
-### 1. AI Coffee Discovery
-
-Users input:
-- **Mood**: Relaxed / Focused / Energetic
-- **Time of Day**: Early Morning, Morning, Afternoon, Evening, Night
-- **Energy Level**: Low, Moderate, High
-
-The AI uses Google Gemini to analyze these inputs and recommend the perfect Robusta brew with:
-- Specific coffee recommendation (Espresso, Americano, Cappuccino, etc.)
-- Strength level
-- Personalized explanation connecting inputs to coffee choice
-
-### 2. Smart Café Chatbot
-
-A domain-restricted chatbot that:
-- Answers questions about coffee, art, workshops, and franchise
-- Redirects users to relevant pages
-- Provides café philosophy and Robusta education
-- Refuses to answer off-topic questions politely
-- Falls back gracefully when API is unavailable
 
 ## 📡 API Endpoints
 
@@ -367,6 +284,15 @@ A domain-restricted chatbot that:
 - `POST /api/email/send-otp` - Send OTP email
 - `POST /api/email/verify-otp` - Verify OTP code
 
+#### Orders
+- `POST /api/orders` - Create order (public)
+- `GET /api/orders/:id` - Get single order
+- `GET /api/orders/:id/receipt` - Get order receipt
+
+#### Payment
+- `POST /api/payment/create-order` - Create Razorpay order
+- `POST /api/payment/verify-payment` - Verify payment signature
+
 ### Admin Endpoints (Protected - Require JWT)
 
 #### Authentication
@@ -376,6 +302,13 @@ A domain-restricted chatbot that:
 #### Dashboard
 - `GET /api/admin/stats` - Get dashboard statistics
 - `GET /api/admin/analytics` - Get analytics data
+
+#### Analytics (AI-Powered)
+- `GET /api/admin/orders/analytics` - Enhanced analytics with advanced metrics
+- `GET /api/admin/analytics/insights` - AI-generated insights
+- `GET /api/admin/analytics/forecast` - Tomorrow's forecast
+- `POST /api/admin/analytics/ask` - Conversational analytics queries
+- `GET /api/admin/analytics/alerts` - Smart alerts
 
 #### Coffee (Admin)
 - `POST /api/coffee` - Create coffee item
@@ -409,6 +342,12 @@ A domain-restricted chatbot that:
 - `PUT /api/site-media/:id` - Update media entry
 - `DELETE /api/site-media/:id` - Delete media entry
 
+#### Orders (Admin)
+- `GET /api/orders` - Get all orders (admin)
+- `PUT /api/orders/:id/status` - Update order status
+- `PUT /api/orders/:id/confirm-payment` - Confirm counter order payment
+- `PUT /api/orders/:id/estimated-prep-time` - Update prep time
+
 #### Upload
 - `POST /api/upload/image` - Upload image to Cloudinary
 - `POST /api/upload/video` - Upload video to Cloudinary
@@ -421,9 +360,12 @@ A domain-restricted chatbot that:
 - `createdAt`, `updatedAt` (timestamps)
 
 ### Coffee
-- `name`, `description`, `category` (Coffee/Snacks/Merchandise/Other)
+- `name`, `description`, `category` (Coffee/Shakes/Sides/Tea)
+- `subcategory` (Hot/Cold for Coffee)
+- `milkType` (Milk/Non-Milk for Coffee)
 - `strength` (Mild/Medium/Strong/Extra Strong)
-- `flavorNotes` (array), `price`, `isBestseller`
+- `flavorNotes` (array), `price`, `priceBlend`, `priceRobustaSpecial`
+- `isBestseller`, `prepTime`
 - `image`, `cloudinary_url`, `cloudinary_public_id`
 - `order` (for sorting)
 
@@ -467,6 +409,30 @@ A domain-restricted chatbot that:
 - `url`, `cloudinary_public_id`
 - `usage`, `order`, `isActive`
 
+### Order
+- `orderNumber` (sequential, unique)
+- `tokenNumber` (daily counter)
+- `tableNumber` (optional, for dine-in)
+- `orderSource` (Counter/QR)
+- `paymentStatus` (Paid/Pending/Failed)
+- `paymentMethod` (Cash/Razorpay/Other)
+- `razorpayOrderId`, `razorpayPaymentId`, `razorpaySignature`
+- `items` (array of order items)
+- `subtotal`, `tax`, `total`
+- `status` (Pending/Preparing/Ready/Completed/Cancelled)
+- `estimatedPrepTime`
+- `customerMobile`, `customer` (ref to Customer), `customerName`, `customerEmail`
+- `notes`, `completedAt`, `receiptGenerated`
+- `createdAt`, `updatedAt`
+
+### Customer
+- `mobile` (unique, required, Indian format)
+- `name`, `email`
+- `orders` (array of Order refs)
+- `totalOrders`, `totalSpent`, `lastOrderDate`
+- `favorites` (array of Coffee refs)
+- `createdAt`, `updatedAt`
+
 ### OTP
 - `email`, `code`, `purpose` (workshop_registration, etc.)
 - `expiresAt`, `verified`
@@ -482,6 +448,45 @@ A domain-restricted chatbot that:
 - **CORS Configuration** - Controlled cross-origin requests
 - **No Public Signup** - Admin accounts created manually
 - **Secure Password Change** - Requires current password verification
+- **Payment Verification** - Razorpay signature verification for security
+
+## 🎨 Design Philosophy
+
+The application features a **bold yet cozy** café experience with:
+- **Dark coffee-inspired theme** with warm browns, creams, and amber accents
+- **Large typography** for impact and readability
+- **Scroll-based storytelling** creating immersive experiences
+- **Smooth transitions** and hover animations
+- **Mobile-first design** ensuring accessibility on all devices
+- **Configurable media** - Hero videos/images, story section visuals
+
+## 📊 Analytics Dashboard Features
+
+The AI-powered analytics dashboard includes:
+
+### Enhanced KPIs
+- Total Orders, Revenue, Avg Prep Time, Peak Hour
+- Trend indicators showing % change vs previous period
+- Color-coded trends (green for positive, red for negative)
+- Clickable cards for future drill-down functionality
+
+### Advanced Analytics
+- **Revenue Breakdown**: Dine-in vs Takeaway, by Category (Coffee/Shakes/Sides/Tea)
+- **Customer Behavior**: New vs Returning customers, Average Order Value, Popular items by time slot
+- **Prep Time Intelligence**: Average prep time by hour, per item analysis, slow items identification
+- **Orders by Status**: Visual status cards with counts
+
+### AI-Powered Features
+- **AI Insights Panel**: Auto-generated actionable insights using Google Gemini
+- **Tomorrow's Forecast**: Expected orders, predicted peak hour, top items to prepare
+- **Smart Alerts**: Real-time alerts for order surges, prep time thresholds, customer retention
+- **Conversational Analytics**: Natural language queries like "Why were orders low yesterday?"
+
+### Enhanced Charts
+- Orders per hour with metric toggle (Orders/Revenue/Prep Time)
+- Horizontal bar chart for top items with percentages
+- Revenue breakdown pie charts
+- Prep time analysis charts
 
 ## 🚢 Deployment
 
@@ -497,16 +502,12 @@ A domain-restricted chatbot that:
 
 3. Set environment variable:
    - `REACT_APP_API_URL` - Your production backend URL
+   - `REACT_APP_GOOGLE_MAPS_API_KEY` - Google Maps API key
+   - `REACT_APP_GOOGLE_PLACE_ID` - Google Place ID for reviews
 
 ### Backend Deployment (Heroku/Railway/Render)
 
-1. Set environment variables in your hosting platform:
-   - `PORT` (usually auto-set)
-   - `MONGODB_URI` - Production MongoDB connection string
-   - `JWT_SECRET` - Strong random secret
-   - `GOOGLE_GEMINI_API_KEY` - Your Gemini API key
-   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
-   - `EMAIL_SERVICE`, `EMAIL_USER`, `EMAIL_PASS`
+1. Set environment variables in your hosting platform (see SETUP.md)
 
 2. Ensure MongoDB is accessible (use MongoDB Atlas for cloud)
 
@@ -516,27 +517,6 @@ A domain-restricted chatbot that:
    ```bash
    npm run seed:admin
    ```
-
-### Environment Variables for Production
-
-**Backend (`server/.env`):**
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://...
-JWT_SECRET=your_production_secret
-GOOGLE_GEMINI_API_KEY=...
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-EMAIL_SERVICE=gmail
-EMAIL_USER=...
-EMAIL_PASS=...
-```
-
-**Frontend (`client/.env`):**
-```env
-REACT_APP_API_URL=https://your-backend-url.com/api
-```
 
 ## 📝 Scripts
 
@@ -556,14 +536,16 @@ REACT_APP_API_URL=https://your-backend-url.com/api
 
 1. **Complete MERN Stack Implementation** - Fully functional frontend and backend
 2. **Secure Admin Authentication** - JWT-based with password hashing
-3. **AI Integration** - Google Gemini API for coffee discovery and chatbot
-4. **Media Management** - Cloudinary integration for images and videos
-5. **Email Service** - OTP verification and notifications
-6. **Admin Panel** - Comprehensive content management system
-7. **Beautiful UI/UX** - Premium design with smooth animations
-8. **Mobile-First** - Responsive design for all devices
-9. **Production-Ready Structure** - Clean code, modular components, proper error handling
-10. **Configurable Content** - Site media system for flexible content management
+3. **AI Integration** - Google Gemini API for coffee discovery, chatbot, and analytics insights
+4. **Advanced Analytics** - AI-powered analytics dashboard with predictions and recommendations
+5. **Payment Integration** - Razorpay for secure online payments
+6. **Media Management** - Cloudinary integration for images and videos
+7. **Email Service** - OTP verification and notifications
+8. **Admin Panel** - Comprehensive content management system
+9. **Beautiful UI/UX** - Premium design with smooth animations
+10. **Mobile-First** - Responsive design for all devices
+11. **Production-Ready Structure** - Clean code, modular components, proper error handling
+12. **Configurable Content** - Site media system for flexible content management
 
 ## 🤝 Contributing
 
@@ -580,3 +562,7 @@ Built with ❤️ for **Rabuste Coffee** - Celebrating Bold Robusta Coffee × Ar
 ---
 
 **Note**: This is a production-ready project with proper authentication, error handling, and security measures. Always change default admin credentials and use strong secrets in production.
+
+For setup instructions, see [SETUP.md](./SETUP.md)
+
+For troubleshooting, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
