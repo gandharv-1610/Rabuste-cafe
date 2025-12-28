@@ -9,7 +9,7 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([
     {
       role: 'bot',
-      content: "Hello! I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, and franchise opportunities. How can I help?",
+      content: "Hello! I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, daily offers, ordering, and franchise opportunities. How can I help?",
     },
   ]);
   const [input, setInput] = useState('');
@@ -168,7 +168,7 @@ const Chatbot = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask about coffee, art, workshops..."
+                  placeholder="Ask about coffee, offers, workshops, ordering..."
                   className="flex-1 bg-coffee-brown text-coffee-cream px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coffee-amber"
                   disabled={isLoading}
                 />

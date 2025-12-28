@@ -71,7 +71,7 @@ router.get('/:id', async (req, res) => {
 // Create new order (Public - for QR ordering)
 router.post('/', async (req, res) => {
   try {
-    const { items, customerMobile, customerName, customerEmail, notes, orderSource, tableNumber, paymentMethod } = req.body;
+    const { items, customerMobile, customerName, customerEmail, notes, orderSource, tableNumber, paymentMethod, marketingConsent } = req.body;
 
     console.log('Order request received:', { orderSource, itemsCount: items?.length, customerMobile });
 
@@ -106,6 +106,13 @@ router.post('/', async (req, res) => {
         name: customerName.trim(),
         email: customerEmail ? customerEmail.trim().toLowerCase() : ''
       });
+      
+      // Handle marketing consent for new customers
+      // IMPORTANT: Only set consent if explicitly provided and true
+      if (marketingConsent === true && customerEmail && customerEmail.trim()) {
+        customer.updateMarketingConsent(true, customerEmail.trim().toLowerCase());
+      }
+      
       await customer.save();
       console.log('✅ New customer created:', customer.mobile);
     } else {
@@ -116,6 +123,18 @@ router.post('/', async (req, res) => {
       if (customerEmail && customerEmail.trim() && customer.email !== customerEmail.trim().toLowerCase()) {
         customer.email = customerEmail.trim().toLowerCase();
       }
+      
+      // Handle marketing consent update for existing customers
+      // IMPORTANT: Only update if explicitly provided
+      if (marketingConsent !== undefined) {
+        if (marketingConsent === true && customerEmail && customerEmail.trim()) {
+          customer.updateMarketingConsent(true, customerEmail.trim().toLowerCase());
+        } else if (marketingConsent === false) {
+          // Allow customers to opt-out
+          customer.marketingConsent = false;
+        }
+      }
+      
       if (customer.isModified()) {
         await customer.save();
       }
@@ -251,6 +270,12 @@ router.post('/', async (req, res) => {
       // Update customer with new order
       customer.addOrder(order._id, order.total);
       await customer.save();
+
+      // Update customer tags after order (async, don't block response)
+      const { updateCustomerTags } = require('../services/customerTagService');
+      updateCustomerTags(customer._id).catch(err => {
+        console.error('Error updating customer tags:', err);
+      });
 
       console.log(`✅ Order created successfully with order number: ${orderNumber} for customer: ${customer.mobile}`);
     } catch (saveError) {

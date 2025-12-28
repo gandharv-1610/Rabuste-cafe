@@ -90,6 +90,32 @@ router.post('/', async (req, res) => {
   try {
     const workshop = new Workshop(req.body);
     await workshop.save();
+    
+    // Send email notification to subscribed customers if workshop is active
+    // Prioritize customers with workshop_interested tag
+    if (workshop.isActive) {
+      const { getSubscribedCustomers, getCustomersByTag } = require('../services/customerTagService');
+      const { sendWorkshopAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
+      
+      // First, get customers with workshop_interested tag
+      let customers = await getCustomersByTag('workshop_interested', true);
+      
+      // If no workshop_interested customers, send to all subscribed customers
+      if (customers.length === 0) {
+        customers = await getSubscribedCustomers();
+      }
+      
+      if (customers.length > 0) {
+        sendBatchMarketingEmails(customers, sendWorkshopAnnouncementEmail, workshop)
+          .then(results => {
+            console.log(`📧 Workshop announcement emails sent: ${results.success}/${results.total} successful`);
+          })
+          .catch(err => {
+            console.error('Error sending workshop announcement emails:', err);
+          });
+      }
+    }
+    
     res.status(201).json(workshop);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -99,6 +125,7 @@ router.post('/', async (req, res) => {
 // Update workshop (Admin)
 router.put('/:id', async (req, res) => {
   try {
+    const oldWorkshop = await Workshop.findById(req.params.id);
     const workshop = await Workshop.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -107,6 +134,32 @@ router.put('/:id', async (req, res) => {
     if (!workshop) {
       return res.status(404).json({ message: 'Workshop not found' });
     }
+    
+    // Send email notification if workshop was just activated
+    // Only send if workshop is active and was previously inactive
+    if (workshop.isActive && (!oldWorkshop || !oldWorkshop.isActive)) {
+      const { getSubscribedCustomers, getCustomersByTag } = require('../services/customerTagService');
+      const { sendWorkshopAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
+      
+      // First, get customers with workshop_interested tag
+      let customers = await getCustomersByTag('workshop_interested', true);
+      
+      // If no workshop_interested customers, send to all subscribed customers
+      if (customers.length === 0) {
+        customers = await getSubscribedCustomers();
+      }
+      
+      if (customers.length > 0) {
+        sendBatchMarketingEmails(customers, sendWorkshopAnnouncementEmail, workshop)
+          .then(results => {
+            console.log(`📧 Workshop announcement emails sent: ${results.success}/${results.total} successful`);
+          })
+          .catch(err => {
+            console.error('Error sending workshop announcement emails:', err);
+          });
+      }
+    }
+    
     res.json(workshop);
   } catch (error) {
     res.status(400).json({ message: error.message });

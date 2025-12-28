@@ -41,6 +41,33 @@ router.post('/', async (req, res) => {
   try {
     const offer = new Offer(req.body);
     await offer.save();
+    
+    // Send email notification to subscribed customers if offer is active
+    // IMPORTANT: Only send if offer is active and within valid date range
+    if (offer.isActive) {
+      const now = new Date();
+      const isWithinDateRange = (!offer.startDate || new Date(offer.startDate) <= now) &&
+                                 (!offer.endDate || new Date(offer.endDate) >= now);
+      
+      if (isWithinDateRange) {
+        const { getSubscribedCustomers } = require('../services/customerTagService');
+        const { sendOfferAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
+        
+        // Get all subscribed customers for offers
+        const customers = await getSubscribedCustomers();
+        
+        if (customers.length > 0) {
+          sendBatchMarketingEmails(customers, sendOfferAnnouncementEmail, offer)
+            .then(results => {
+              console.log(`📧 Offer announcement emails sent: ${results.success}/${results.total} successful`);
+            })
+            .catch(err => {
+              console.error('Error sending offer announcement emails:', err);
+            });
+        }
+      }
+    }
+    
     res.status(201).json(offer);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -50,6 +77,7 @@ router.post('/', async (req, res) => {
 // Update offer (Admin)
 router.put('/:id', async (req, res) => {
   try {
+    const oldOffer = await Offer.findById(req.params.id);
     const offer = await Offer.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -58,6 +86,33 @@ router.put('/:id', async (req, res) => {
     if (!offer) {
       return res.status(404).json({ message: 'Offer not found' });
     }
+    
+    // Send email notification if offer was just activated or newly created
+    // Only send if offer is active and within valid date range
+    if (offer.isActive && (!oldOffer || !oldOffer.isActive)) {
+      const now = new Date();
+      const isWithinDateRange = (!offer.startDate || new Date(offer.startDate) <= now) &&
+                                 (!offer.endDate || new Date(offer.endDate) >= now);
+      
+      if (isWithinDateRange) {
+        const { getSubscribedCustomers } = require('../services/customerTagService');
+        const { sendOfferAnnouncementEmail, sendBatchMarketingEmails } = require('../services/emailService');
+        
+        // Get all subscribed customers for offers
+        const customers = await getSubscribedCustomers();
+        
+        if (customers.length > 0) {
+          sendBatchMarketingEmails(customers, sendOfferAnnouncementEmail, offer)
+            .then(results => {
+              console.log(`📧 Offer announcement emails sent: ${results.success}/${results.total} successful`);
+            })
+            .catch(err => {
+              console.error('Error sending offer announcement emails:', err);
+            });
+        }
+      }
+    }
+    
     res.json(offer);
   } catch (error) {
     res.status(400).json({ message: error.message });
