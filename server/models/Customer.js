@@ -33,6 +33,14 @@ const customerSchema = new mongoose.Schema({
       message: 'Please provide a valid email address'
     }
   },
+  emailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerifiedAt: {
+    type: Date,
+    default: null
+  },
   orders: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Order'

@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Customer = require('../models/Customer');
 const Order = require('../models/Order');
+const OTP = require('../models/OTP');
+const { generateOTP, sendOTPEmail } = require('../services/emailService');
 
 // Normalize mobile number helper
 const normalizeMobile = (mobile) => {
@@ -255,6 +257,149 @@ router.post('/:mobile/favorites', async (req, res) => {
   } catch (error) {
     console.error('Update favorites error:', error);
     res.status(500).json({ message: error.message || 'Failed to update favorites' });
+  }
+});
+
+// Send OTP for customer email verification
+router.post('/email/otp', async (req, res) => {
+  try {
+    const { email, mobile } = req.body;
+
+    if (!email || !mobile) {
+      return res.status(400).json({ message: 'Email and mobile number are required' });
+    }
+
+    // Validate email format
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ message: 'Please provide a valid email address' });
+    }
+
+    const normalizedMobile = normalizeMobile(mobile);
+    if (!normalizedMobile || !/^\+91[6-9]\d{9}$/.test(normalizedMobile)) {
+      return res.status(400).json({ message: 'Please provide a valid Indian mobile number' });
+    }
+
+    // Check if customer exists
+    const customer = await Customer.findOne({ mobile: normalizedMobile });
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found. Please register first.' });
+    }
+
+    // Update customer email if different
+    if (customer.email !== email.toLowerCase().trim()) {
+      customer.email = email.toLowerCase().trim();
+      customer.emailVerified = false; // Reset verification if email changed
+      await customer.save();
+    }
+
+    const otp = generateOTP();
+    
+    // Save OTP to database
+    const otpRecord = new OTP({
+      email: email.toLowerCase().trim(),
+      otp,
+      type: 'customer-email',
+      data: { mobile: normalizedMobile },
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+    await otpRecord.save();
+
+    // Send OTP email
+    const emailSent = await sendOTPEmail(email, otp, 'customer-email');
+    
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
+
+    res.json({ 
+      message: 'OTP sent to your email',
+      expiresIn: 600 // seconds
+    });
+  } catch (error) {
+    console.error('OTP generation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify OTP for customer email verification
+router.post('/email/verify', async (req, res) => {
+  try {
+    const { email, otp, mobile } = req.body;
+
+    if (!email || !otp || !mobile) {
+      return res.status(400).json({ message: 'Email, OTP, and mobile number are required' });
+    }
+
+    const normalizedMobile = normalizeMobile(mobile);
+    if (!normalizedMobile) {
+      return res.status(400).json({ message: 'Invalid mobile number' });
+    }
+
+    const otpRecord = await OTP.findOne({ 
+      email: email.toLowerCase().trim(), 
+      otp, 
+      type: 'customer-email',
+      verified: false,
+      expiresAt: { $gt: new Date() },
+      'data.mobile': normalizedMobile
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Mark OTP as verified
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    // Update customer email verification status
+    const customer = await Customer.findOne({ mobile: normalizedMobile });
+    if (customer) {
+      customer.email = email.toLowerCase().trim();
+      customer.emailVerified = true;
+      customer.emailVerifiedAt = new Date();
+      await customer.save();
+    }
+
+    res.json({
+      message: 'Email verified successfully',
+      customer: {
+        mobile: customer.mobile,
+        name: customer.name,
+        email: customer.email,
+        emailVerified: customer.emailVerified
+      }
+    });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Check customer email verification status
+router.get('/:mobile/email-status', async (req, res) => {
+  try {
+    const { mobile } = req.params;
+    const normalizedMobile = normalizeMobile(mobile);
+
+    if (!normalizedMobile) {
+      return res.status(400).json({ message: 'Invalid mobile number' });
+    }
+
+    const customer = await Customer.findOne({ mobile: normalizedMobile });
+
+    if (!customer) {
+      return res.status(404).json({ message: 'Customer not found' });
+    }
+
+    res.json({
+      email: customer.email,
+      emailVerified: customer.emailVerified || false,
+      emailVerifiedAt: customer.emailVerifiedAt
+    });
+  } catch (error) {
+    console.error('Email status check error:', error);
+    res.status(500).json({ message: error.message });
   }
 });
 

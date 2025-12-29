@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
@@ -22,10 +22,80 @@ const CounterOrder = () => {
   const [mobileError, setMobileError] = useState('');
   const [nameError, setNameError] = useState('');
   const [marketingConsent, setMarketingConsent] = useState(false); // Marketing email consent
+  const [billingSettings, setBillingSettings] = useState(null);
+  const [offers, setOffers] = useState([]);
+  const [selectedOffer, setSelectedOffer] = useState(null);
+  const [discountType, setDiscountType] = useState(''); // 'percentage' or 'fixed' or ''
+  const [discountValue, setDiscountValue] = useState('');
 
   useEffect(() => {
     fetchMenuItems();
+    fetchBillingSettings();
+    fetchOffers();
   }, []);
+
+  // Fetch billing settings and offers
+  const fetchBillingSettings = async () => {
+    try {
+      const response = await api.get('/billing/settings');
+      setBillingSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching billing settings:', error);
+      setBillingSettings({ cgstRate: 2.5, sgstRate: 2.5 });
+    }
+  };
+
+  const fetchOffers = async () => {
+    try {
+      const response = await api.get('/billing/offers/active');
+      setOffers(response.data || []);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    }
+  };
+
+  // Check if an offer is applicable to current cart
+  const isOfferApplicable = useCallback((offer) => {
+    const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    
+    if (offer.minOrderAmount && subtotal < offer.minOrderAmount) {
+      return false;
+    }
+    
+    if (offer.applicableCategories && offer.applicableCategories.length > 0) {
+      const itemCategories = cart.map(item => item.category || 'Coffee');
+      const hasMatchingCategory = itemCategories.some(cat => offer.applicableCategories.includes(cat));
+      if (!hasMatchingCategory) return false;
+    }
+    
+    if (offer.applicableItems && offer.applicableItems.length > 0) {
+      const itemIds = cart.map(item => item.itemId?.toString());
+      const hasMatchingItem = offer.applicableItems.some(offerItemId => 
+        itemIds.includes(offerItemId.toString())
+      );
+      if (!hasMatchingItem) return false;
+    }
+    
+    return true;
+  }, [cart]);
+
+  const applicableOffers = offers.filter(offer => isOfferApplicable(offer));
+  
+  // Reset selected offer if it's no longer applicable
+  useEffect(() => {
+    if (selectedOffer && !isOfferApplicable(selectedOffer)) {
+      setSelectedOffer(null);
+    }
+  }, [selectedOffer, isOfferApplicable]);
+  
+  // Reset offer and discount when cart is empty
+  useEffect(() => {
+    if (cart.length === 0) {
+      setSelectedOffer(null);
+      setDiscountType('');
+      setDiscountValue('');
+    }
+  }, [cart.length]);
 
   // Validate mobile number
   const validateMobile = (mobile) => {
@@ -108,7 +178,8 @@ const CounterOrder = () => {
       price,
       priceType,
       quantity: 1,
-      prepTime: item.prepTime || 5
+      prepTime: item.prepTime || 5,
+      category: item.category || 'Coffee'
     };
 
     setCart(prev => {
@@ -146,9 +217,55 @@ const CounterOrder = () => {
   // Calculate totals
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
-    return { subtotal, tax, total };
+    
+    // Calculate offer discount
+    let offerDiscountAmount = 0;
+    if (selectedOffer) {
+      if (selectedOffer.offerType === 'percentage') {
+        offerDiscountAmount = (subtotal * selectedOffer.discountValue) / 100;
+        if (selectedOffer.maxDiscountAmount && offerDiscountAmount > selectedOffer.maxDiscountAmount) {
+          offerDiscountAmount = selectedOffer.maxDiscountAmount;
+        }
+      } else {
+        offerDiscountAmount = selectedOffer.discountValue;
+      }
+    }
+    
+    // Calculate manual discount
+    let discountAmount = 0;
+    if (discountType === 'percentage' && discountValue && parseFloat(discountValue) > 0) {
+      discountAmount = (subtotal * parseFloat(discountValue)) / 100;
+    } else if (discountType === 'fixed' && discountValue && parseFloat(discountValue) > 0) {
+      discountAmount = parseFloat(discountValue);
+    }
+    
+    // Calculate discounted subtotal
+    const discountedSubtotal = Math.max(0, subtotal - discountAmount - offerDiscountAmount);
+    
+    // Use billing settings if available, otherwise default to 2.5% each
+    const cgstRate = billingSettings?.cgstRate || 2.5;
+    const sgstRate = billingSettings?.sgstRate || 2.5;
+    
+    // Tax calculation method
+    const taxBase = billingSettings?.taxCalculationMethod === 'onSubtotal' ? subtotal : discountedSubtotal;
+    
+    const cgstAmount = (taxBase * cgstRate) / 100;
+    const sgstAmount = (taxBase * sgstRate) / 100;
+    const tax = cgstAmount + sgstAmount;
+    const total = discountedSubtotal + tax;
+    
+    return { 
+      subtotal, 
+      discountAmount, 
+      offerDiscountAmount, 
+      discountedSubtotal,
+      cgstRate, 
+      sgstRate, 
+      cgstAmount, 
+      sgstAmount, 
+      tax, 
+      total 
+    };
   };
 
   // Place order (Counter - no payment needed)
@@ -194,6 +311,9 @@ const CounterOrder = () => {
         customerName: customerName.trim(),
         customerEmail: customerEmail ? customerEmail.trim() : '',
         notes: notes || '',
+        discountType: discountType || '',
+        discountValue: discountValue ? parseFloat(discountValue) : 0,
+        appliedOfferId: selectedOffer?._id || null,
         orderSource: 'Counter',
         marketingConsent: marketingConsent // Marketing email consent
       };
@@ -221,7 +341,7 @@ const CounterOrder = () => {
   });
 
   const categories = ['All', 'Coffee', 'Shakes', 'Sides', 'Tea'];
-  const { subtotal, tax, total } = calculateTotals();
+  const { subtotal, discountAmount, offerDiscountAmount, discountedSubtotal, cgstRate, sgstRate, cgstAmount, sgstAmount, tax, total } = calculateTotals();
 
   if (loading) {
     return (
@@ -441,13 +561,128 @@ const CounterOrder = () => {
                       <span className="text-coffee-light">Subtotal:</span>
                       <span className="text-coffee-cream">₹{subtotal.toFixed(2)}</span>
                     </div>
+                    {offerDiscountAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">Offer Discount ({selectedOffer?.name}):</span>
+                        <span className="text-green-400">-₹{offerDiscountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {discountAmount > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">Manual Discount:</span>
+                        <span className="text-green-400">-₹{discountAmount.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {(offerDiscountAmount > 0 || discountAmount > 0) && (
+                      <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
+                        <span className="text-coffee-light font-semibold">Discounted Subtotal:</span>
+                        <span className="text-coffee-cream font-semibold">₹{discountedSubtotal.toFixed(2)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-sm">
-                      <span className="text-coffee-light">Tax (5%):</span>
-                      <span className="text-coffee-cream">₹{tax.toFixed(2)}</span>
+                      <span className="text-coffee-light">CGST ({cgstRate.toFixed(1)}%):</span>
+                      <span className="text-coffee-cream">₹{cgstAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-coffee-light">SGST ({sgstRate.toFixed(1)}%):</span>
+                      <span className="text-coffee-cream">₹{sgstAmount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
+                      <span className="text-coffee-light font-semibold">Total GST:</span>
+                      <span className="text-coffee-cream font-semibold">₹{tax.toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-lg font-bold pt-2 border-t border-coffee-brown/50">
                       <span className="text-coffee-amber">Total:</span>
                       <span className="text-coffee-amber">₹{total.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  {/* Offers Section */}
+                  {applicableOffers.length > 0 && (
+                    <div className="mb-4">
+                      <label className="block text-sm font-semibold text-coffee-amber mb-2">
+                        Available Offers
+                      </label>
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedOffer(null)}
+                          className={`w-full text-left p-2 rounded-lg border text-xs transition-colors ${
+                            !selectedOffer
+                              ? 'bg-coffee-amber/20 border-coffee-amber text-coffee-amber'
+                              : 'bg-coffee-brown/40 border-coffee-brown text-coffee-light hover:bg-coffee-brown/60'
+                          }`}
+                        >
+                          No Offer
+                        </button>
+                        {applicableOffers.map((offer) => (
+                          <button
+                            key={offer._id}
+                            type="button"
+                            onClick={() => setSelectedOffer(offer)}
+                            className={`w-full text-left p-2 rounded-lg border text-xs transition-colors ${
+                              selectedOffer?._id === offer._id
+                                ? 'bg-coffee-amber/20 border-coffee-amber text-coffee-amber'
+                                : 'bg-coffee-brown/40 border-coffee-brown text-coffee-light hover:bg-coffee-brown/60'
+                            }`}
+                          >
+                            <div className="font-semibold">{offer.name}</div>
+                            {offer.description && (
+                              <div className="text-xs text-coffee-light/80 mt-0.5">{offer.description}</div>
+                            )}
+                            <div className="text-xs text-coffee-amber mt-1">
+                              {offer.offerType === 'percentage' 
+                                ? `${offer.discountValue}% OFF` 
+                                : `₹${offer.discountValue} OFF`}
+                              {offer.minOrderAmount > 0 && ` (Min. ₹${offer.minOrderAmount})`}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Discount Section */}
+                  <div className="mb-4">
+                    <label className="block text-sm font-semibold text-coffee-amber mb-2">
+                      Additional Discount (Optional)
+                    </label>
+                    <div className="space-y-2">
+                      <select
+                        value={discountType}
+                        onChange={(e) => {
+                          setDiscountType(e.target.value);
+                          if (!e.target.value) setDiscountValue('');
+                        }}
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
+                      >
+                        <option value="">No Discount</option>
+                        <option value="percentage">Percentage (%)</option>
+                        <option value="fixed">Fixed Amount (₹)</option>
+                      </select>
+                      {discountType && (
+                        <input
+                          type="number"
+                          placeholder={discountType === 'percentage' ? 'Enter percentage (e.g., 10)' : 'Enter amount (e.g., 50)'}
+                          value={discountValue}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (discountType === 'percentage') {
+                              if (val === '' || (parseFloat(val) >= 0 && parseFloat(val) <= 100)) {
+                                setDiscountValue(val);
+                              }
+                            } else {
+                              if (val === '' || parseFloat(val) >= 0) {
+                                setDiscountValue(val);
+                              }
+                            }
+                          }}
+                          min="0"
+                          max={discountType === 'percentage' ? '100' : undefined}
+                          step={discountType === 'percentage' ? '0.1' : '1'}
+                          className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
+                        />
+                      )}
                     </div>
                   </div>
 

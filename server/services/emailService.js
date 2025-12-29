@@ -15,9 +15,16 @@ const generateOTP = () => {
 
 // Send OTP Email
 const sendOTPEmail = async (email, otp, type) => {
-  const subject = type === 'workshop' 
-    ? 'Verify Your Workshop Registration - Rabuste Coffee'
-    : 'Verify Your Franchise Enquiry - Rabuste Coffee';
+  let subject;
+  if (type === 'workshop') {
+    subject = 'Verify Your Workshop Registration - Rabuste Coffee';
+  } else if (type === 'franchise') {
+    subject = 'Verify Your Franchise Enquiry - Rabuste Coffee';
+  } else if (type === 'customer-email') {
+    subject = 'Verify Your Email - Rabuste Coffee';
+  } else {
+    subject = 'Email Verification - Rabuste Coffee';
+  }
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
@@ -525,6 +532,115 @@ const sendBatchMarketingEmails = async (customers, emailFunction, contentData) =
   return results;
 };
 
+// Send Pre-Order Acceptance Email
+const sendPreOrderAcceptanceEmail = async (order) => {
+  const formatDate = (date) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Pre-Order Accepted! ✅</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${order.customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Great news! Your pre-order <strong>#${order.orderNumber}</strong> has been accepted and is being prepared.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Order Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Pickup Time:</strong> ${order.pickupTimeSlot}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Total Amount:</strong> ₹${order.total.toFixed(2)}</p>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          We're preparing your order and it will be ready for pickup at the scheduled time. See you soon!
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: order.customerEmail,
+      subject: `Pre-Order Accepted: Order #${order.orderNumber} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Pre-order acceptance email error:', error);
+    return false;
+  }
+};
+
+// Send Pre-Order Cancellation Email
+const sendPreOrderCancellationEmail = async (order) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Pre-Order Cancelled</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${order.customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          We regret to inform you that your pre-order <strong>#${order.orderNumber}</strong> has been cancelled.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Order Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Pickup Time:</strong> ${order.pickupTimeSlot}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Amount:</strong> ₹${order.total.toFixed(2)}</p>
+        </div>
+        ${order.paymentStatus === 'Refunded' ? `
+          <div style="background-color: rgba(76, 175, 80, 0.2); border: 2px solid #4CAF50; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #4CAF50; font-weight: bold; margin: 0;">
+              💰 Refund Processed: A refund of ₹${order.total.toFixed(2)} has been initiated and will be credited to your account within 5-7 business days.
+            </p>
+          </div>
+        ` : ''}
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          We apologize for any inconvenience. If you have any questions, please contact us.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: order.customerEmail,
+      subject: `Pre-Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Pre-order cancellation email error:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
@@ -534,6 +650,9 @@ module.exports = {
   sendCoffeeAnnouncementEmail,
   sendOfferAnnouncementEmail,
   sendWorkshopAnnouncementEmail,
-  sendBatchMarketingEmails
+  sendBatchMarketingEmails,
+  // Pre-order emails
+  sendPreOrderAcceptanceEmail,
+  sendPreOrderCancellationEmail
 };
 

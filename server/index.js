@@ -50,6 +50,7 @@ try {
   app.use('/api/orders', require('./routes/orders'));
   app.use('/api/customers', require('./routes/customers'));
   app.use('/api/payment', require('./routes/payment'));
+  app.use('/api/billing', require('./routes/billing'));
   console.log('✅ All routes loaded');
 } catch (error) {
   console.error('❌ Error loading routes:', error);
