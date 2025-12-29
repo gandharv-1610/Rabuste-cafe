@@ -25,8 +25,6 @@ const CounterOrder = () => {
   const [billingSettings, setBillingSettings] = useState(null);
   const [offers, setOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [discountType, setDiscountType] = useState(''); // 'percentage' or 'fixed' or ''
-  const [discountValue, setDiscountValue] = useState('');
 
   useEffect(() => {
     fetchMenuItems();
@@ -88,14 +86,36 @@ const CounterOrder = () => {
     }
   }, [selectedOffer, isOfferApplicable]);
   
-  // Reset offer and discount when cart is empty
+  // Auto-apply best applicable offer when cart changes
   useEffect(() => {
     if (cart.length === 0) {
       setSelectedOffer(null);
-      setDiscountType('');
-      setDiscountValue('');
+      return;
     }
-  }, [cart.length]);
+
+    // Find the best applicable offer (highest priority, then highest discount)
+    const bestOffer = applicableOffers.reduce((best, current) => {
+      if (!best) return current;
+      
+      // Compare by priority first
+      if (current.priority !== best.priority) {
+        return current.priority > best.priority ? current : best;
+      }
+      
+      // If same priority, compare discount value
+      const currentDiscount = current.offerType === 'percentage' 
+        ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * current.discountValue / 100)
+        : current.discountValue;
+      const bestDiscount = best.offerType === 'percentage'
+        ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * best.discountValue / 100)
+        : best.discountValue;
+      
+      return currentDiscount > bestDiscount ? current : best;
+    }, null);
+
+    setSelectedOffer(bestOffer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cart, offers]);
 
   // Validate mobile number
   const validateMobile = (mobile) => {
@@ -218,29 +238,40 @@ const CounterOrder = () => {
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
     
-    // Calculate offer discount
+    // Calculate offer discount (auto-applied) - only on matching items
     let offerDiscountAmount = 0;
     if (selectedOffer) {
+      // Get items that match the offer
+      const matchingItems = cart.filter(item => {
+        // If offer has specific items, check if this item is in the list
+        if (selectedOffer.applicableItems && selectedOffer.applicableItems.length > 0) {
+          return selectedOffer.applicableItems.some(offerItemId => 
+            item.itemId?.toString() === offerItemId.toString()
+          );
+        }
+        // If offer has categories, check if this item's category matches
+        if (selectedOffer.applicableCategories && selectedOffer.applicableCategories.length > 0) {
+          return selectedOffer.applicableCategories.includes(item.category || 'Coffee');
+        }
+        // If no restrictions, apply to all items
+        return true;
+      });
+      
+      // Calculate subtotal for matching items only
+      const matchingSubtotal = matchingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+      
       if (selectedOffer.offerType === 'percentage') {
-        offerDiscountAmount = (subtotal * selectedOffer.discountValue) / 100;
+        offerDiscountAmount = (matchingSubtotal * selectedOffer.discountValue) / 100;
         if (selectedOffer.maxDiscountAmount && offerDiscountAmount > selectedOffer.maxDiscountAmount) {
           offerDiscountAmount = selectedOffer.maxDiscountAmount;
         }
       } else {
-        offerDiscountAmount = selectedOffer.discountValue;
+        offerDiscountAmount = Math.min(selectedOffer.discountValue, matchingSubtotal);
       }
     }
     
-    // Calculate manual discount
-    let discountAmount = 0;
-    if (discountType === 'percentage' && discountValue && parseFloat(discountValue) > 0) {
-      discountAmount = (subtotal * parseFloat(discountValue)) / 100;
-    } else if (discountType === 'fixed' && discountValue && parseFloat(discountValue) > 0) {
-      discountAmount = parseFloat(discountValue);
-    }
-    
     // Calculate discounted subtotal
-    const discountedSubtotal = Math.max(0, subtotal - discountAmount - offerDiscountAmount);
+    const discountedSubtotal = Math.max(0, subtotal - offerDiscountAmount);
     
     // Use billing settings if available, otherwise default to 2.5% each
     const cgstRate = billingSettings?.cgstRate || 2.5;
@@ -256,7 +287,6 @@ const CounterOrder = () => {
     
     return { 
       subtotal, 
-      discountAmount, 
       offerDiscountAmount, 
       discountedSubtotal,
       cgstRate, 
@@ -311,8 +341,6 @@ const CounterOrder = () => {
         customerName: customerName.trim(),
         customerEmail: customerEmail ? customerEmail.trim() : '',
         notes: notes || '',
-        discountType: discountType || '',
-        discountValue: discountValue ? parseFloat(discountValue) : 0,
         appliedOfferId: selectedOffer?._id || null,
         orderSource: 'Counter',
         marketingConsent: marketingConsent // Marketing email consent
@@ -341,7 +369,7 @@ const CounterOrder = () => {
   });
 
   const categories = ['All', 'Coffee', 'Shakes', 'Sides', 'Tea'];
-  const { subtotal, discountAmount, offerDiscountAmount, discountedSubtotal, cgstRate, sgstRate, cgstAmount, sgstAmount, tax, total } = calculateTotals();
+  const { subtotal, offerDiscountAmount, discountedSubtotal, cgstRate, sgstRate, cgstAmount, sgstAmount, tax, total } = calculateTotals();
 
   if (loading) {
     return (
@@ -504,7 +532,7 @@ const CounterOrder = () => {
 
           {/* Cart Section */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-coffee-brown/30 rounded-lg p-6 border border-coffee-brown/50">
+            <div className="sticky top-24 bg-coffee-brown/30 rounded-lg p-6 border border-coffee-brown/50 flex flex-col max-h-[calc(100vh-8rem)] overflow-hidden">
               <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
                 Order
               </h2>
@@ -514,66 +542,66 @@ const CounterOrder = () => {
                   <p>Cart is empty</p>
                 </div>
               ) : (
-                <>
-                  <div className="space-y-3 mb-4 max-h-96 overflow-y-auto">
-                    {cart.map((item, idx) => (
-                      <div key={idx} className="bg-coffee-brown/40 rounded p-3">
-                        <div className="flex items-start justify-between mb-2">
-                          <div className="flex-1">
-                            <p className="text-sm font-semibold text-coffee-cream">{item.name}</p>
-                            {item.priceType !== 'Standard' && (
-                              <p className="text-xs text-coffee-light">{item.priceType}</p>
-                            )}
+                <div className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                  {/* Single scrollable container for entire cart content */}
+                  <div className="flex-1 overflow-y-auto scrollbar-thin pr-2">
+                    {/* Cart Items */}
+                    <div className="mb-3">
+                      <div className="text-xs text-coffee-light/70 mb-1.5 font-semibold">Cart Items ({cart.length})</div>
+                      <div className="space-y-3">
+                        {cart.map((item, idx) => (
+                          <div key={idx} className="bg-coffee-brown/40 rounded p-3">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1">
+                                <p className="text-sm font-semibold text-coffee-cream">{item.name}</p>
+                                {item.priceType !== 'Standard' && (
+                                  <p className="text-xs text-coffee-light">{item.priceType}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => removeFromCart(item.itemId, item.priceType)}
+                                className="text-coffee-light hover:text-coffee-amber"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, -1)}
+                                  className="w-6 h-6 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown"
+                                >
+                                  -
+                                </button>
+                                <span className="text-sm text-coffee-cream w-8 text-center">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, 1)}
+                                  className="w-6 h-6 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="text-sm font-semibold text-coffee-amber">
+                                ₹{(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
                           </div>
-                          <button
-                            onClick={() => removeFromCart(item.itemId, item.priceType)}
-                            className="text-coffee-light hover:text-coffee-amber"
-                          >
-                            ✕
-                          </button>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <button
-                              onClick={() => updateQuantity(item.itemId, item.priceType, -1)}
-                              className="w-6 h-6 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown"
-                            >
-                              -
-                            </button>
-                            <span className="text-sm text-coffee-cream w-8 text-center">{item.quantity}</span>
-                            <button
-                              onClick={() => updateQuantity(item.itemId, item.priceType, 1)}
-                              className="w-6 h-6 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown"
-                            >
-                              +
-                            </button>
-                          </div>
-                          <span className="text-sm font-semibold text-coffee-amber">
-                            ₹{(item.price * item.quantity).toFixed(2)}
-                          </span>
-                        </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </div>
 
-                  <div className="border-t border-coffee-brown/50 pt-4 space-y-2 mb-4">
+                    <div className="border-t border-coffee-brown/50 pt-4 space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
                       <span className="text-coffee-light">Subtotal:</span>
                       <span className="text-coffee-cream">₹{subtotal.toFixed(2)}</span>
                     </div>
                     {offerDiscountAmount > 0 && (
                       <div className="flex justify-between text-sm">
-                        <span className="text-coffee-light">Offer Discount ({selectedOffer?.name}):</span>
+                        <span className="text-coffee-light">Daily Offer ({selectedOffer?.name}):</span>
                         <span className="text-green-400">-₹{offerDiscountAmount.toFixed(2)}</span>
                       </div>
                     )}
-                    {discountAmount > 0 && (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-coffee-light">Manual Discount:</span>
-                        <span className="text-green-400">-₹{discountAmount.toFixed(2)}</span>
-                      </div>
-                    )}
-                    {(offerDiscountAmount > 0 || discountAmount > 0) && (
+                    {offerDiscountAmount > 0 && (
                       <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
                         <span className="text-coffee-light font-semibold">Discounted Subtotal:</span>
                         <span className="text-coffee-cream font-semibold">₹{discountedSubtotal.toFixed(2)}</span>
@@ -597,97 +625,28 @@ const CounterOrder = () => {
                     </div>
                   </div>
 
-                  {/* Offers Section */}
-                  {applicableOffers.length > 0 && (
-                    <div className="mb-4">
-                      <label className="block text-sm font-semibold text-coffee-amber mb-2">
-                        Available Offers
-                      </label>
-                      <div className="space-y-2">
-                        <button
-                          type="button"
-                          onClick={() => setSelectedOffer(null)}
-                          className={`w-full text-left p-2 rounded-lg border text-xs transition-colors ${
-                            !selectedOffer
-                              ? 'bg-coffee-amber/20 border-coffee-amber text-coffee-amber'
-                              : 'bg-coffee-brown/40 border-coffee-brown text-coffee-light hover:bg-coffee-brown/60'
-                          }`}
-                        >
-                          No Offer
-                        </button>
-                        {applicableOffers.map((offer) => (
-                          <button
-                            key={offer._id}
-                            type="button"
-                            onClick={() => setSelectedOffer(offer)}
-                            className={`w-full text-left p-2 rounded-lg border text-xs transition-colors ${
-                              selectedOffer?._id === offer._id
-                                ? 'bg-coffee-amber/20 border-coffee-amber text-coffee-amber'
-                                : 'bg-coffee-brown/40 border-coffee-brown text-coffee-light hover:bg-coffee-brown/60'
-                            }`}
-                          >
-                            <div className="font-semibold">{offer.name}</div>
-                            {offer.description && (
-                              <div className="text-xs text-coffee-light/80 mt-0.5">{offer.description}</div>
-                            )}
-                            <div className="text-xs text-coffee-amber mt-1">
-                              {offer.offerType === 'percentage' 
-                                ? `${offer.discountValue}% OFF` 
-                                : `₹${offer.discountValue} OFF`}
-                              {offer.minOrderAmount > 0 && ` (Min. ₹${offer.minOrderAmount})`}
-                            </div>
-                          </button>
-                        ))}
+                    {/* Auto-applied Daily Offer Info */}
+                    {selectedOffer && (
+                      <div className="mb-4 p-3 bg-coffee-amber/10 border border-coffee-amber/30 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-coffee-amber">✨ Daily Offer Applied</span>
+                        </div>
+                        <div className="text-xs text-coffee-light">
+                          <div className="font-semibold text-coffee-cream">{selectedOffer.name}</div>
+                          {selectedOffer.description && (
+                            <div className="mt-1">{selectedOffer.description}</div>
+                          )}
+                          <div className="mt-1 text-coffee-amber">
+                            {selectedOffer.offerType === 'percentage' 
+                              ? `${selectedOffer.discountValue}% OFF` 
+                              : `₹${selectedOffer.discountValue} OFF`}
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {/* Discount Section */}
-                  <div className="mb-4">
-                    <label className="block text-sm font-semibold text-coffee-amber mb-2">
-                      Additional Discount (Optional)
-                    </label>
-                    <div className="space-y-2">
-                      <select
-                        value={discountType}
-                        onChange={(e) => {
-                          setDiscountType(e.target.value);
-                          if (!e.target.value) setDiscountValue('');
-                        }}
-                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                      >
-                        <option value="">No Discount</option>
-                        <option value="percentage">Percentage (%)</option>
-                        <option value="fixed">Fixed Amount (₹)</option>
-                      </select>
-                      {discountType && (
-                        <input
-                          type="number"
-                          placeholder={discountType === 'percentage' ? 'Enter percentage (e.g., 10)' : 'Enter amount (e.g., 50)'}
-                          value={discountValue}
-                          onChange={(e) => {
-                            const val = e.target.value;
-                            if (discountType === 'percentage') {
-                              if (val === '' || (parseFloat(val) >= 0 && parseFloat(val) <= 100)) {
-                                setDiscountValue(val);
-                              }
-                            } else {
-                              if (val === '' || parseFloat(val) >= 0) {
-                                setDiscountValue(val);
-                              }
-                            }
-                          }}
-                          min="0"
-                          max={discountType === 'percentage' ? '100' : undefined}
-                          step={discountType === 'percentage' ? '0.1' : '1'}
-                          className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Customer Info */}
-                  <div className="space-y-3 mb-4">
+                    {/* Customer Info */}
+                    <div className="space-y-3 mb-4">
                     <div>
                       <div className="flex gap-2 mb-1">
                         <input
@@ -770,14 +729,18 @@ const CounterOrder = () => {
                       </p>
                     </div>
                   </div>
+                  </div>
 
-                  <button
-                    onClick={handlePlaceOrder}
-                    className="w-full bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker py-3 rounded-lg font-bold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg"
-                  >
-                    Complete Order (Cash)
-                  </button>
-                </>
+                  {/* Fixed Button at Bottom */}
+                  <div className="flex-shrink-0 pt-4 border-t border-coffee-brown/50 mt-auto">
+                    <button
+                      onClick={handlePlaceOrder}
+                      className="w-full bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker py-3 rounded-lg font-bold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg"
+                    >
+                      Complete Order (Cash)
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
           </div>

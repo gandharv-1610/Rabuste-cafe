@@ -10,6 +10,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
   const [showReceipt, setShowReceipt] = useState(false);
   const [editingPrepTime, setEditingPrepTime] = useState(null);
   const [prepTimeValue, setPrepTimeValue] = useState('');
+  const [filterType, setFilterType] = useState('all'); // 'all', 'preorder', 'incafe'
   const lastOrderIdsRef = useRef(new Set());
   const isInitialLoadRef = useRef(true);
 
@@ -205,32 +206,77 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     return <div className="text-coffee-light">Loading orders...</div>;
   }
 
+  // Filter orders based on selected filter
+  const filteredOrders = orders.filter(order => {
+    if (filterType === 'preorder') {
+      return order.isPreOrder === true;
+    } else if (filterType === 'incafe') {
+      return order.isPreOrder === false || order.orderSource === 'Counter' || order.orderSource === 'QR';
+    }
+    return true; // 'all'
+  });
+
   return (
     <div>
-      {/* Sound Control */}
-      <div className="flex justify-between items-center mb-6">
+      {/* Sound Control and Filters */}
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <h2 className="text-2xl font-display font-bold text-coffee-amber">Orders Management</h2>
-        <button
-          onClick={onSoundToggle}
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
-            soundEnabled
-              ? 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-          }`}
-        >
-          {soundEnabled ? '🔔 Sound On' : '🔕 Sound Off'}
-        </button>
+        <div className="flex gap-2 items-center">
+          {/* Filter Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                filterType === 'all'
+                  ? 'bg-coffee-amber text-coffee-darker'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterType('preorder')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                filterType === 'preorder'
+                  ? 'bg-purple-500/20 text-purple-400 border border-purple-500/50'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              📅 Preorder
+            </button>
+            <button
+              onClick={() => setFilterType('incafe')}
+              className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+                filterType === 'incafe'
+                  ? 'bg-blue-500/20 text-blue-400 border border-blue-500/50'
+                  : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+              }`}
+            >
+              ☕ In Cafe
+            </button>
+          </div>
+          <button
+            onClick={onSoundToggle}
+            className={`px-4 py-2 rounded-lg font-semibold transition-colors ${
+              soundEnabled
+                ? 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+            }`}
+          >
+            {soundEnabled ? '🔔 Sound On' : '🔕 Sound Off'}
+          </button>
+        </div>
       </div>
 
 
       {/* Orders List */}
-      {orders.length === 0 ? (
+      {filteredOrders.length === 0 ? (
         <div className="text-center py-12 bg-coffee-brown/20 rounded-lg">
           <p className="text-coffee-light text-lg">No orders yet</p>
         </div>
       ) : (
         <div className="space-y-4">
-          {orders.map((order) => (
+          {filteredOrders.map((order) => (
             <motion.div
               key={order._id}
               initial={{ opacity: 0, y: 20 }}
@@ -414,7 +460,22 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                 )}
                 {order.status !== 'Completed' && order.status !== 'Cancelled' && (
                   <button
-                    onClick={() => updateOrderStatus(order._id, 'Cancelled')}
+                    onClick={async () => {
+                      if (order.isPreOrder) {
+                        // Use cancel-preorder endpoint for preorders (sends email)
+                        try {
+                          const response = await api.put(`/orders/${order._id}/cancel-preorder`);
+                          alert(response.data.message || 'Pre-order cancelled successfully');
+                          fetchOrders();
+                        } catch (error) {
+                          console.error('Error cancelling pre-order:', error);
+                          alert(error.response?.data?.message || 'Failed to cancel pre-order');
+                        }
+                      } else {
+                        // Regular cancel for non-preorders
+                        updateOrderStatus(order._id, 'Cancelled');
+                      }
+                    }}
                     className="px-4 py-2 bg-red-500/20 text-red-400 rounded-lg font-semibold hover:bg-red-500/30"
                   >
                     Cancel

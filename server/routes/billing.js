@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const BillingSettings = require('../models/BillingSettings');
 const DailyOffer = require('../models/DailyOffer');
+const PreOrderSettings = require('../models/PreOrderSettings');
 const auth = require('../middleware/auth');
 
 // Get billing settings
@@ -46,7 +47,7 @@ router.put('/settings', auth, async (req, res) => {
       settings.taxCalculationMethod = taxCalculationMethod;
     }
     
-    settings.updatedBy = req.user.username || 'admin';
+    settings.updatedBy = req.user?.username || req.adminId || 'admin';
     settings.updatedAt = new Date();
     
     await settings.save();
@@ -222,6 +223,50 @@ router.delete('/offers/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting offer:', error);
     res.status(500).json({ message: error.message || 'Failed to delete offer' });
+  }
+});
+
+// Get preorder settings (Public - for checking if preorder is enabled)
+router.get('/preorder-settings', async (req, res) => {
+  try {
+    const settings = await PreOrderSettings.getSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching preorder settings:', error);
+    res.status(500).json({ message: error.message || 'Failed to fetch preorder settings' });
+  }
+});
+
+// Update preorder settings (Admin only)
+router.put('/preorder-settings', auth, async (req, res) => {
+  try {
+    const { isEnabled, message, customerSupportNumber } = req.body;
+    
+    let settings = await PreOrderSettings.findOne();
+    if (!settings) {
+      settings = new PreOrderSettings({});
+    }
+    
+    if (isEnabled !== undefined) {
+      settings.isEnabled = isEnabled;
+    }
+    
+    if (message !== undefined) {
+      settings.message = message;
+    }
+    
+    if (customerSupportNumber !== undefined) {
+      settings.customerSupportNumber = customerSupportNumber;
+    }
+    
+    settings.updatedBy = req.user?.username || req.adminId || 'admin';
+    settings.updatedAt = new Date();
+    
+    await settings.save();
+    res.json({ message: 'Preorder settings updated successfully', settings });
+  } catch (error) {
+    console.error('Error updating preorder settings:', error);
+    res.status(500).json({ message: error.message || 'Failed to update preorder settings' });
   }
 });
 
