@@ -161,7 +161,6 @@ const AdminPanel = () => {
     { id: 'art', label: 'Art Gallery' },
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
-    { id: 'offers', label: 'Daily Offers' },
     { id: 'billing', label: 'Billing' },
     { id: 'customerEngagement', label: 'Customer Engagement' },
     { id: 'siteMedia', label: 'Site Media' },
@@ -2216,6 +2215,12 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
   const [showSettingsForm, setShowSettingsForm] = useState(false);
   const [showOfferForm, setShowOfferForm] = useState(false);
   const [editingOffer, setEditingOffer] = useState(null);
+  const [preorderSettings, setPreorderSettings] = useState(null);
+  const [preorderFormData, setPreorderFormData] = useState({
+    isEnabled: true,
+    message: "Currently we're not accepting any preorder. Kindly check later.",
+    customerSupportNumber: 'XXX-XXX-XXXX'
+  });
   const [settingsFormData, setSettingsFormData] = useState({
     cgstRate: 2.5,
     sgstRate: 2.5,
@@ -2247,16 +2252,54 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
     }
   }, [billingSettings]);
 
+  useEffect(() => {
+    const fetchPreorderSettings = async () => {
+      try {
+        const response = await api.get('/billing/preorder-settings');
+        setPreorderSettings(response.data);
+        setPreorderFormData({
+          isEnabled: response.data.isEnabled !== false,
+          message: response.data.message || "Currently we're not accepting any preorder. Kindly check later.",
+          customerSupportNumber: response.data.customerSupportNumber || 'XXX-XXX-XXXX'
+        });
+      } catch (error) {
+        console.error('Error fetching preorder settings:', error);
+      }
+    };
+    fetchPreorderSettings();
+  }, []);
+
+  const handlePreorderSettingsSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put('/billing/preorder-settings', preorderFormData);
+      alert('Preorder settings updated successfully!');
+      const response = await api.get('/billing/preorder-settings');
+      setPreorderSettings(response.data);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error updating preorder settings');
+      console.error(error);
+    }
+  };
+
   const handleSettingsSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.put('/billing/settings', settingsFormData);
+      // Ensure values are properly formatted as numbers
+      const payload = {
+        cgstRate: parseFloat(settingsFormData.cgstRate) || 0,
+        sgstRate: parseFloat(settingsFormData.sgstRate) || 0,
+        taxCalculationMethod: settingsFormData.taxCalculationMethod || 'onSubtotal'
+      };
+      
+      await api.put('/billing/settings', payload);
       alert('Billing settings updated successfully!');
       onRefreshSettings();
       setShowSettingsForm(false);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating billing settings');
-      console.error(error);
+      const errorMessage = error.response?.data?.message || error.message || 'Error updating billing settings';
+      alert(errorMessage);
+      console.error('Billing settings error:', error);
     }
   };
 
@@ -2740,6 +2783,72 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
               </div>
             ))}
           </div>
+        )}
+      </div>
+
+      {/* Preorder Settings Section */}
+      <div className="bg-coffee-brown/20 rounded-lg p-6 mb-8">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber mb-4">Preorder Settings</h2>
+        
+        {preorderSettings && (
+          <form onSubmit={handlePreorderSettingsSubmit} className="space-y-4">
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={preorderFormData.isEnabled}
+                  onChange={(e) => setPreorderFormData({ ...preorderFormData, isEnabled: e.target.checked })}
+                  className="w-5 h-5 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded focus:ring-coffee-amber"
+                />
+                <span className="text-coffee-cream font-semibold">
+                  Enable Preorder
+                </span>
+              </label>
+              <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                preorderFormData.isEnabled 
+                  ? 'bg-green-500/20 text-green-400' 
+                  : 'bg-red-500/20 text-red-400'
+              }`}>
+                {preorderFormData.isEnabled ? 'Enabled' : 'Disabled'}
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">
+                Message When Disabled
+              </label>
+              <textarea
+                value={preorderFormData.message}
+                onChange={(e) => setPreorderFormData({ ...preorderFormData, message: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                rows="3"
+                placeholder="Message to show when preorder is disabled"
+              />
+            </div>
+
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">
+                Customer Support Number
+              </label>
+              <input
+                type="text"
+                value={preorderFormData.customerSupportNumber}
+                onChange={(e) => setPreorderFormData({ ...preorderFormData, customerSupportNumber: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                placeholder="XXX-XXX-XXXX"
+              />
+              <p className="text-coffee-light/60 text-sm mt-1">
+                This number will be included in cancellation emails sent to customers.
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+            >
+              Save Preorder Settings
+            </button>
+          </form>
         )}
       </div>
     </div>

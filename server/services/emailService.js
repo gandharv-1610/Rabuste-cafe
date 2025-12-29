@@ -591,6 +591,16 @@ const sendPreOrderAcceptanceEmail = async (order) => {
 
 // Send Pre-Order Cancellation Email
 const sendPreOrderCancellationEmail = async (order) => {
+  // Get customer support number from preorder settings
+  const PreOrderSettings = require('../models/PreOrderSettings');
+  let customerSupportNumber = 'XXX-XXX-XXXX';
+  try {
+    const settings = await PreOrderSettings.getSettings();
+    customerSupportNumber = settings.customerSupportNumber || 'XXX-XXX-XXXX';
+  } catch (error) {
+    console.error('Error fetching preorder settings for email:', error);
+  }
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
       <div style="text-align: center; margin-bottom: 30px;">
@@ -617,9 +627,14 @@ const sendPreOrderCancellationEmail = async (order) => {
             </p>
           </div>
         ` : ''}
-        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
-          We apologize for any inconvenience. If you have any questions, please contact us.
-        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin: 10px 0;">
+            We sincerely apologize for any inconvenience caused. If you have any questions or concerns regarding the refund process, please contact our customer support.
+          </p>
+          <p style="color: #FF6F00; font-size: 16px; font-weight: bold; margin: 15px 0 5px 0;">
+            Customer Support Number: ${customerSupportNumber}
+          </p>
+        </div>
       </div>
       <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
         <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
