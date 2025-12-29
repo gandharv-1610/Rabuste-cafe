@@ -17,7 +17,8 @@ const AdminPanel = () => {
   const [registrations, setRegistrations] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
   const [siteMedia, setSiteMedia] = useState([]);
-  const [offers, setOffers] = useState([]);
+  const [billingSettings, setBillingSettings] = useState(null);
+  const [billingOffers, setBillingOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [customerEngagementStats, setCustomerEngagementStats] = useState(null);
 
@@ -31,7 +32,10 @@ const AdminPanel = () => {
     }
     if (activeTab === 'franchise') fetchEnquiries();
     if (activeTab === 'siteMedia') fetchSiteMedia();
-    if (activeTab === 'offers') fetchOffers();
+    if (activeTab === 'billing') {
+      fetchBillingSettings();
+      fetchBillingOffers();
+    }
     if (activeTab === 'customerEngagement') fetchCustomerEngagementStats();
   }, [activeTab]);
 
@@ -113,13 +117,22 @@ const AdminPanel = () => {
     }
   };
 
-  const fetchOffers = async () => {
+  const fetchBillingSettings = async () => {
+    try {
+      const response = await api.get('/billing/settings');
+      setBillingSettings(response.data);
+    } catch (error) {
+      console.error('Error fetching billing settings:', error);
+    }
+  };
+
+  const fetchBillingOffers = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/offers');
-      setOffers(response.data);
+      const response = await api.get('/billing/offers');
+      setBillingOffers(response.data);
     } catch (error) {
-      console.error('Error fetching offers:', error);
+      console.error('Error fetching billing offers:', error);
     } finally {
       setLoading(false);
     }
@@ -149,6 +162,7 @@ const AdminPanel = () => {
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
     { id: 'offers', label: 'Daily Offers' },
+    { id: 'billing', label: 'Billing' },
     { id: 'customerEngagement', label: 'Customer Engagement' },
     { id: 'siteMedia', label: 'Site Media' },
     { id: 'settings', label: 'Settings' },
@@ -293,15 +307,6 @@ const AdminPanel = () => {
           />
         )}
 
-        {/* Offers Management */}
-        {activeTab === 'offers' && (
-          <OffersManagement
-            offers={offers}
-            loading={loading}
-            onRefresh={fetchOffers}
-          />
-        )}
-
         {/* Customer Engagement */}
         {activeTab === 'customerEngagement' && (
           <CustomerEngagement
@@ -316,6 +321,17 @@ const AdminPanel = () => {
             media={siteMedia}
             loading={loading}
             onRefresh={fetchSiteMedia}
+          />
+        )}
+
+        {/* Billing Tab */}
+        {activeTab === 'billing' && (
+          <BillingManagement
+            billingSettings={billingSettings}
+            billingOffers={billingOffers}
+            loading={loading}
+            onRefreshSettings={fetchBillingSettings}
+            onRefreshOffers={fetchBillingOffers}
           />
         )}
 
@@ -1938,348 +1954,6 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
   );
 };
 
-// Offers Management Component
-const OffersManagement = ({ offers, loading, onRefresh }) => {
-  const [showForm, setShowForm] = useState(false);
-  const [editingOffer, setEditingOffer] = useState(null);
-  const [formData, setFormData] = useState({
-    title: '',
-    subtitle: '',
-    description: '',
-    badgeText: '',
-    discountValue: '',
-    discountUnit: 'percent',
-    terms: '',
-    startDate: '',
-    endDate: '',
-    isActive: true,
-    highlight: false,
-    order: 0,
-  });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      ...formData,
-      discountValue: formData.discountValue ? Number(formData.discountValue) : 0,
-      order: formData.order ? Number(formData.order) : 0,
-      startDate: formData.startDate ? new Date(formData.startDate) : null,
-      endDate: formData.endDate ? new Date(formData.endDate) : null,
-    };
-
-    try {
-      if (editingOffer) {
-        await api.put(`/offers/${editingOffer._id}`, payload);
-      } else {
-        await api.post('/offers', payload);
-      }
-      setShowForm(false);
-      setEditingOffer(null);
-      setFormData({
-        title: '',
-        subtitle: '',
-        description: '',
-        badgeText: '',
-        discountValue: '',
-        discountUnit: 'percent',
-        terms: '',
-        startDate: '',
-        endDate: '',
-        isActive: true,
-        highlight: false,
-        order: 0,
-      });
-      onRefresh();
-    } catch (error) {
-      alert('Error saving offer');
-      console.error(error);
-    }
-  };
-
-  const handleEdit = (offer) => {
-    setEditingOffer(offer);
-    setFormData({
-      title: offer.title || '',
-      subtitle: offer.subtitle || '',
-      description: offer.description || '',
-      badgeText: offer.badgeText || '',
-      discountValue: offer.discountValue?.toString() || '',
-      discountUnit: offer.discountUnit || 'percent',
-      terms: offer.terms || '',
-      startDate: offer.startDate ? offer.startDate.substring(0, 10) : '',
-      endDate: offer.endDate ? offer.endDate.substring(0, 10) : '',
-      isActive: offer.isActive ?? true,
-      highlight: offer.highlight ?? false,
-      order: offer.order ?? 0,
-    });
-    setShowForm(true);
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this offer?')) return;
-    try {
-      await api.delete(`/offers/${id}`);
-      onRefresh();
-    } catch (error) {
-      alert('Error deleting offer');
-      console.error(error);
-    }
-  };
-
-  if (loading && offers.length === 0) {
-    return <div className="text-coffee-light">Loading...</div>;
-  }
-
-  return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-display font-bold text-coffee-amber">Daily Offers</h2>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingOffer(null);
-            setFormData({
-              title: '',
-              subtitle: '',
-              description: '',
-              badgeText: '',
-              discountValue: '',
-              discountUnit: 'percent',
-              terms: '',
-              startDate: '',
-              endDate: '',
-              isActive: true,
-              highlight: false,
-              order: 0,
-            });
-          }}
-          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
-        >
-          Add Offer
-        </button>
-      </div>
-
-      {showForm && (
-        <form onSubmit={handleSubmit} className="bg-coffee-brown/20 rounded-lg p-6 mb-6 space-y-4">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Title *</label>
-              <input
-                type="text"
-                required
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Subtitle</label>
-              <input
-                type="text"
-                value={formData.subtitle}
-                onChange={(e) => setFormData({ ...formData, subtitle: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Description</label>
-            <textarea
-              rows="3"
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-            />
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Badge Text</label>
-              <input
-                type="text"
-                placeholder="Today Only"
-                value={formData.badgeText}
-                onChange={(e) => setFormData({ ...formData, badgeText: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Discount Value</label>
-              <input
-                type="number"
-                min="0"
-                step="0.1"
-                value={formData.discountValue}
-                onChange={(e) => setFormData({ ...formData, discountValue: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Discount Type</label>
-              <select
-                value={formData.discountUnit}
-                onChange={(e) => setFormData({ ...formData, discountUnit: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              >
-                <option value="percent">% off</option>
-                <option value="flat">Flat ₹ off</option>
-              </select>
-            </div>
-          </div>
-          <div>
-            <label className="block text-coffee-amber font-semibold mb-2">Terms & Conditions (optional)</label>
-            <input
-              type="text"
-              placeholder="Valid on dine-in orders only, etc."
-              value={formData.terms}
-              onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-            />
-          </div>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Start Date</label>
-              <input
-                type="date"
-                value={formData.startDate}
-                onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">End Date</label>
-              <input
-                type="date"
-                value={formData.endDate}
-                onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-            <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Order</label>
-              <input
-                type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: e.target.value })}
-                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
-              />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-6">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="mr-2"
-              />
-              <span className="text-coffee-amber font-semibold">Active</span>
-            </label>
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={formData.highlight}
-                onChange={(e) => setFormData({ ...formData, highlight: e.target.checked })}
-                className="mr-2"
-              />
-              <span className="text-coffee-amber font-semibold">Highlight</span>
-            </label>
-          </div>
-
-          <div className="flex gap-4">
-            <button type="submit" className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold">
-              {editingOffer ? 'Update Offer' : 'Create Offer'}
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setShowForm(false);
-                setEditingOffer(null);
-              }}
-              className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold"
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {offers.map((offer) => (
-          <div
-            key={offer._id}
-            className="bg-coffee-brown/20 rounded-xl p-5 border border-coffee-brown/60 shadow-sm"
-          >
-            <div className="flex items-start justify-between mb-3">
-              <div>
-                {offer.badgeText && (
-                  <span className="inline-block text-xs font-semibold px-3 py-1 rounded-full bg-coffee-amber/20 text-coffee-amber mb-2">
-                    {offer.badgeText}
-                  </span>
-                )}
-                <h3 className="text-xl font-display font-bold text-coffee-amber">
-                  {offer.title}
-                </h3>
-                {offer.subtitle && (
-                  <p className="text-coffee-light/80 text-sm mt-1">{offer.subtitle}</p>
-                )}
-              </div>
-              {offer.highlight && (
-                <span className="text-xs px-2 py-1 rounded-full bg-green-500/20 text-green-400 font-semibold">
-                  Highlight
-                </span>
-              )}
-            </div>
-            {offer.discountValue > 0 && (
-              <p className="text-coffee-amber font-semibold text-sm mb-2">
-                {offer.discountUnit === 'percent'
-                  ? `${offer.discountValue}% off`
-                  : `Flat ₹${offer.discountValue} off`}
-              </p>
-            )}
-            {offer.description && (
-              <p className="text-coffee-light text-sm mb-2 line-clamp-3">
-                {offer.description}
-              </p>
-            )}
-            {offer.terms && (
-              <p className="text-xs text-coffee-light/70 mb-2">
-                {offer.terms}
-              </p>
-            )}
-            <p className="text-xs text-coffee-light/60 mb-3">
-              {offer.startDate ? `From ${new Date(offer.startDate).toLocaleDateString()}` : 'Starts now'}
-              {offer.endDate ? ` · Until ${new Date(offer.endDate).toLocaleDateString()}` : ''}
-            </p>
-            <div className="flex items-center justify-between">
-              <span
-                className={`px-2 py-1 text-xs rounded-full font-semibold ${
-                  offer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                }`}
-              >
-                {offer.isActive ? 'Active' : 'Inactive'}
-              </span>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(offer)}
-                  className="px-3 py-1 text-xs rounded-lg bg-coffee-amber text-coffee-darker font-semibold"
-                >
-                  Edit
-                </button>
-                <button
-                  onClick={() => handleDelete(offer._id)}
-                  className="px-3 py-1 text-xs rounded-lg bg-red-500/20 text-red-400 font-semibold"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
-
 // Customer Engagement Component
 const CustomerEngagement = ({ stats, onRefresh }) => {
   const [notifying, setNotifying] = useState(false);
@@ -2532,6 +2206,541 @@ const CustomerEngagement = ({ stats, onRefresh }) => {
           <li>No spam - we respect user consent strictly</li>
           <li>Tag-based filtering helps target relevant customers</li>
         </ul>
+      </div>
+    </div>
+  );
+};
+
+// Billing Management Component
+const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshSettings, onRefreshOffers }) => {
+  const [showSettingsForm, setShowSettingsForm] = useState(false);
+  const [showOfferForm, setShowOfferForm] = useState(false);
+  const [editingOffer, setEditingOffer] = useState(null);
+  const [settingsFormData, setSettingsFormData] = useState({
+    cgstRate: 2.5,
+    sgstRate: 2.5,
+    taxCalculationMethod: 'onSubtotal'
+  });
+  const [offerFormData, setOfferFormData] = useState({
+    name: '',
+    description: '',
+    offerType: 'percentage',
+    discountValue: '',
+    minOrderAmount: '',
+    maxDiscountAmount: '',
+    applicableCategories: [],
+    applicableItems: [],
+    startDate: '',
+    endDate: '',
+    applicableDays: [],
+    isActive: true,
+    priority: 0
+  });
+
+  useEffect(() => {
+    if (billingSettings) {
+      setSettingsFormData({
+        cgstRate: billingSettings.cgstRate || 2.5,
+        sgstRate: billingSettings.sgstRate || 2.5,
+        taxCalculationMethod: billingSettings.taxCalculationMethod || 'onSubtotal'
+      });
+    }
+  }, [billingSettings]);
+
+  const handleSettingsSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.put('/billing/settings', settingsFormData);
+      alert('Billing settings updated successfully!');
+      onRefreshSettings();
+      setShowSettingsForm(false);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error updating billing settings');
+      console.error(error);
+    }
+  };
+
+  const handleOfferSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      const payload = {
+        ...offerFormData,
+        discountValue: Number(offerFormData.discountValue),
+        minOrderAmount: Number(offerFormData.minOrderAmount) || 0,
+        maxDiscountAmount: offerFormData.maxDiscountAmount ? Number(offerFormData.maxDiscountAmount) : null,
+        priority: Number(offerFormData.priority) || 0,
+        startDate: new Date(offerFormData.startDate),
+        endDate: new Date(offerFormData.endDate)
+      };
+
+      if (editingOffer) {
+        await api.put(`/billing/offers/${editingOffer._id}`, payload);
+      } else {
+        await api.post('/billing/offers', payload);
+      }
+      alert('Offer saved successfully!');
+      setShowOfferForm(false);
+      setEditingOffer(null);
+      resetOfferForm();
+      onRefreshOffers();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Error saving offer');
+      console.error(error);
+    }
+  };
+
+  const resetOfferForm = () => {
+    setOfferFormData({
+      name: '',
+      description: '',
+      offerType: 'percentage',
+      discountValue: '',
+      minOrderAmount: '',
+      maxDiscountAmount: '',
+      applicableCategories: [],
+      applicableItems: [],
+      startDate: '',
+      endDate: '',
+      applicableDays: [],
+      isActive: true,
+      priority: 0
+    });
+  };
+
+  const handleEditOffer = (offer) => {
+    setEditingOffer(offer);
+    setOfferFormData({
+      name: offer.name || '',
+      description: offer.description || '',
+      offerType: offer.offerType || 'percentage',
+      discountValue: offer.discountValue?.toString() || '',
+      minOrderAmount: offer.minOrderAmount?.toString() || '',
+      maxDiscountAmount: offer.maxDiscountAmount?.toString() || '',
+      applicableCategories: offer.applicableCategories || [],
+      applicableItems: offer.applicableItems || [],
+      startDate: offer.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : '',
+      endDate: offer.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : '',
+      applicableDays: offer.applicableDays || [],
+      isActive: offer.isActive ?? true,
+      priority: offer.priority || 0
+    });
+    setShowOfferForm(true);
+  };
+
+  const handleDeleteOffer = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this offer?')) return;
+    try {
+      await api.delete(`/billing/offers/${id}`);
+      onRefreshOffers();
+    } catch (error) {
+      alert('Error deleting offer');
+      console.error(error);
+    }
+  };
+
+  const categories = ['Coffee', 'Tea', 'Shakes', 'Sides'];
+  const daysOfWeek = [
+    { value: 0, label: 'Sunday' },
+    { value: 1, label: 'Monday' },
+    { value: 2, label: 'Tuesday' },
+    { value: 3, label: 'Wednesday' },
+    { value: 4, label: 'Thursday' },
+    { value: 5, label: 'Friday' },
+    { value: 6, label: 'Saturday' }
+  ];
+
+  return (
+    <div>
+      {/* Billing Settings Section */}
+      <div className="bg-coffee-brown/20 rounded-lg p-6 mb-8">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-2xl font-display font-bold text-coffee-amber">Billing Settings</h2>
+          <button
+            onClick={() => setShowSettingsForm(!showSettingsForm)}
+            className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+          >
+            {showSettingsForm ? 'Cancel' : 'Edit Settings'}
+          </button>
+        </div>
+
+        {!showSettingsForm && billingSettings && (
+          <div className="space-y-3">
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="bg-coffee-brown/40 rounded p-4">
+                <p className="text-coffee-light text-sm mb-1">CGST Rate</p>
+                <p className="text-2xl font-bold text-coffee-amber">{billingSettings.cgstRate}%</p>
+              </div>
+              <div className="bg-coffee-brown/40 rounded p-4">
+                <p className="text-coffee-light text-sm mb-1">SGST Rate</p>
+                <p className="text-2xl font-bold text-coffee-amber">{billingSettings.sgstRate}%</p>
+              </div>
+              <div className="bg-coffee-brown/40 rounded p-4">
+                <p className="text-coffee-light text-sm mb-1">Total GST</p>
+                <p className="text-2xl font-bold text-coffee-amber">
+                  {(billingSettings.cgstRate + billingSettings.sgstRate).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+            <div className="bg-coffee-brown/40 rounded p-4">
+              <p className="text-coffee-light text-sm mb-1">Tax Calculation Method</p>
+              <p className="text-lg font-semibold text-coffee-amber">
+                {billingSettings.taxCalculationMethod === 'onSubtotal' 
+                  ? 'Tax on Subtotal (Before Discount)' 
+                  : 'Tax on Discounted Subtotal (After Discount)'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {showSettingsForm && (
+          <form onSubmit={handleSettingsSubmit} className="space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">CGST Rate (%) *</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  required
+                  value={settingsFormData.cgstRate}
+                  onChange={(e) => setSettingsFormData({ ...settingsFormData, cgstRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">SGST Rate (%) *</label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0"
+                  max="100"
+                  required
+                  value={settingsFormData.sgstRate}
+                  onChange={(e) => setSettingsFormData({ ...settingsFormData, sgstRate: parseFloat(e.target.value) || 0 })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Tax Calculation Method *</label>
+              <select
+                required
+                value={settingsFormData.taxCalculationMethod}
+                onChange={(e) => setSettingsFormData({ ...settingsFormData, taxCalculationMethod: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              >
+                <option value="onSubtotal">Tax on Subtotal (Before Discount)</option>
+                <option value="onDiscountedSubtotal">Tax on Discounted Subtotal (After Discount)</option>
+              </select>
+              <p className="text-xs text-coffee-light/70 mt-1">
+                {settingsFormData.taxCalculationMethod === 'onSubtotal'
+                  ? 'Tax will be calculated on the original subtotal before any discounts are applied.'
+                  : 'Tax will be calculated on the subtotal after discounts are applied.'}
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+              >
+                Save Settings
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowSettingsForm(false)}
+                className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+
+      {/* Daily Offers Section */}
+      <div className="bg-coffee-brown/20 rounded-lg p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-2xl font-display font-bold text-coffee-amber">Daily Offers</h2>
+          <button
+            onClick={() => {
+              setShowOfferForm(true);
+              setEditingOffer(null);
+              resetOfferForm();
+            }}
+            className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+          >
+            Add Offer
+          </button>
+        </div>
+
+        {showOfferForm && (
+          <form onSubmit={handleOfferSubmit} className="bg-coffee-brown/30 rounded-lg p-6 mb-6 space-y-4">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Offer Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={offerFormData.name}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, name: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Offer Type *</label>
+                <select
+                  required
+                  value={offerFormData.offerType}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, offerType: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                >
+                  <option value="percentage">Percentage</option>
+                  <option value="fixed">Fixed Amount</option>
+                </select>
+              </div>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Description</label>
+              <textarea
+                rows="2"
+                value={offerFormData.description}
+                onChange={(e) => setOfferFormData({ ...offerFormData, description: e.target.value })}
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+              />
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Discount Value {offerFormData.offerType === 'percentage' ? '(%)' : '(₹)'} *
+                </label>
+                <input
+                  type="number"
+                  step={offerFormData.offerType === 'percentage' ? '0.1' : '1'}
+                  min="0"
+                  max={offerFormData.offerType === 'percentage' ? '100' : undefined}
+                  required
+                  value={offerFormData.discountValue}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, discountValue: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Min Order Amount (₹)</label>
+                <input
+                  type="number"
+                  step="1"
+                  min="0"
+                  value={offerFormData.minOrderAmount}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, minOrderAmount: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              {offerFormData.offerType === 'percentage' && (
+                <div>
+                  <label className="block text-coffee-amber font-semibold mb-2">Max Discount (₹)</label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={offerFormData.maxDiscountAmount}
+                    onChange={(e) => setOfferFormData({ ...offerFormData, maxDiscountAmount: e.target.value })}
+                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                    placeholder="No limit"
+                  />
+                </div>
+              )}
+            </div>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Start Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={offerFormData.startDate}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, startDate: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">End Date *</label>
+                <input
+                  type="date"
+                  required
+                  value={offerFormData.endDate}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, endDate: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Applicable Categories</label>
+              <p className="text-xs text-coffee-light/70 mb-2">Leave empty to apply to all categories</p>
+              <div className="flex flex-wrap gap-2">
+                {categories.map(cat => (
+                  <label key={cat} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={offerFormData.applicableCategories.includes(cat)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setOfferFormData({
+                            ...offerFormData,
+                            applicableCategories: [...offerFormData.applicableCategories, cat]
+                          });
+                        } else {
+                          setOfferFormData({
+                            ...offerFormData,
+                            applicableCategories: offerFormData.applicableCategories.filter(c => c !== cat)
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-coffee-light">{cat}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">Applicable Days</label>
+              <p className="text-xs text-coffee-light/70 mb-2">Leave empty to apply to all days</p>
+              <div className="flex flex-wrap gap-2">
+                {daysOfWeek.map(day => (
+                  <label key={day.value} className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={offerFormData.applicableDays.includes(day.value)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setOfferFormData({
+                            ...offerFormData,
+                            applicableDays: [...offerFormData.applicableDays, day.value]
+                          });
+                        } else {
+                          setOfferFormData({
+                            ...offerFormData,
+                            applicableDays: offerFormData.applicableDays.filter(d => d !== day.value)
+                          });
+                        }
+                      }}
+                      className="rounded"
+                    />
+                    <span className="text-coffee-light">{day.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={offerFormData.isActive}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, isActive: e.target.checked })}
+                  className="rounded"
+                />
+                <span className="text-coffee-light">Active</span>
+              </label>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">Priority</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={offerFormData.priority}
+                  onChange={(e) => setOfferFormData({ ...offerFormData, priority: parseInt(e.target.value) || 0 })}
+                  className="w-24 bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                />
+                <p className="text-xs text-coffee-light/70 mt-1">Higher number = higher priority</p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                type="submit"
+                className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+              >
+                {editingOffer ? 'Update Offer' : 'Create Offer'}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowOfferForm(false);
+                  setEditingOffer(null);
+                  resetOfferForm();
+                }}
+                className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        )}
+
+        {loading && billingOffers.length === 0 ? (
+          <div className="text-coffee-light">Loading offers...</div>
+        ) : billingOffers.length === 0 ? (
+          <div className="text-center py-8 text-coffee-light">No offers created yet</div>
+        ) : (
+          <div className="grid md:grid-cols-2 gap-4">
+            {billingOffers.map(offer => (
+              <div key={offer._id} className="bg-coffee-brown/40 rounded-lg p-4 border border-coffee-brown/50">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="text-lg font-bold text-coffee-amber">{offer.name}</h3>
+                    {offer.description && (
+                      <p className="text-sm text-coffee-light/80 mt-1">{offer.description}</p>
+                    )}
+                  </div>
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    offer.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'
+                  }`}>
+                    {offer.isActive ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="space-y-1 text-sm text-coffee-light mb-3">
+                  <p>
+                    <span className="font-semibold">Discount:</span>{' '}
+                    {offer.offerType === 'percentage' 
+                      ? `${offer.discountValue}%` 
+                      : `₹${offer.discountValue}`}
+                    {offer.offerType === 'percentage' && offer.maxDiscountAmount && (
+                      <span> (Max ₹{offer.maxDiscountAmount})</span>
+                    )}
+                  </p>
+                  {offer.minOrderAmount > 0 && (
+                    <p><span className="font-semibold">Min Order:</span> ₹{offer.minOrderAmount}</p>
+                  )}
+                  <p>
+                    <span className="font-semibold">Valid:</span>{' '}
+                    {new Date(offer.startDate).toLocaleDateString()} - {new Date(offer.endDate).toLocaleDateString()}
+                  </p>
+                  {offer.applicableCategories.length > 0 && (
+                    <p><span className="font-semibold">Categories:</span> {offer.applicableCategories.join(', ')}</p>
+                  )}
+                  {offer.applicableDays.length > 0 && (
+                    <p>
+                      <span className="font-semibold">Days:</span>{' '}
+                      {offer.applicableDays.map(d => daysOfWeek.find(day => day.value === d)?.label).filter(Boolean).join(', ')}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEditOffer(offer)}
+                    className="flex-1 bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg text-sm font-semibold hover:bg-coffee-gold"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteOffer(offer._id)}
+                    className="flex-1 bg-red-500/20 text-red-400 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-red-500/30"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

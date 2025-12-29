@@ -17,6 +17,7 @@ const CoffeeMenu = () => {
   const [backgroundMedia, setBackgroundMedia] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
+  const [offers, setOffers] = useState([]);
   const categoryRefs = {
     coffee: useRef(null),
     shakes: useRef(null),
@@ -63,7 +64,19 @@ const CoffeeMenu = () => {
   useEffect(() => {
     fetchAllItems();
     fetchBackground();
+    fetchOffers();
   }, []);
+
+  const fetchOffers = async () => {
+    try {
+      const response = await api.get('/billing/offers/active', {
+        params: { _t: Date.now() },
+      });
+      setOffers(response.data || []);
+    } catch (error) {
+      console.error('Error fetching offers:', error);
+    }
+  };
 
   // Intersection Observer for active category highlighting
   useEffect(() => {
@@ -268,9 +281,33 @@ const CoffeeMenu = () => {
           <h1 className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6">
             Our Menu
           </h1>
-          <p className="text-xl text-coffee-light">
+          <p className="text-xl text-coffee-light mb-8">
             Explore our curated selection of coffee, tea, shakes, and sides
           </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/order')}
+              className="bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+              Order Now
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/pre-order')}
+              className="bg-gradient-to-r from-coffee-brown to-coffee-dark text-coffee-cream px-8 py-3 rounded-full font-bold text-lg shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2 border-2 border-coffee-amber/30"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Pre-Order
+            </motion.button>
+          </div>
         </motion.div>
       </section>
 
@@ -344,6 +381,190 @@ const CoffeeMenu = () => {
           </>
         )}
       </AnimatePresence>
+
+      {/* Daily Offers Section */}
+      {offers.length > 0 && (
+        <section className="py-16 px-4 max-w-7xl mx-auto relative">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-coffee-amber/3 to-transparent pointer-events-none"></div>
+          
+          <div className="relative z-10">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8 }}
+              className="text-center mb-12"
+            >
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.1 }}
+                className="text-xs uppercase tracking-[0.4em] text-coffee-gold/90 mb-2 font-bold"
+                style={{ letterSpacing: '0.4em' }}
+              >
+                TODAY AT RABUSTE
+              </motion.p>
+              <motion.h2
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent mb-2 leading-tight"
+                style={{ letterSpacing: '-0.02em' }}
+              >
+                Daily Offers & Specials
+              </motion.h2>
+              <motion.div
+                initial={{ scaleX: 0 }}
+                whileInView={{ scaleX: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                className="mx-auto mt-3 h-0.5 w-20 bg-gradient-to-r from-transparent via-coffee-amber to-transparent rounded-full"
+              ></motion.div>
+            </motion.div>
+
+            {/* Enhanced Offer Cards */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="grid md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6"
+            >
+              {offers.slice(0, 6).map((offer, idx) => {
+                const startDate = offer.startDate ? new Date(offer.startDate) : null;
+                const endDate = offer.endDate ? new Date(offer.endDate) : null;
+                const formatDateShort = (date) => {
+                  return date.toLocaleDateString('en-US', { day: 'numeric', month: 'short' });
+                };
+
+                return (
+                  <motion.div
+                    key={offer._id}
+                    initial={{ opacity: 0, y: 40, scale: 0.95 }}
+                    whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ 
+                      duration: 0.6, 
+                      delay: 0.4 + (idx * 0.1),
+                      ease: "easeOut"
+                    }}
+                    whileHover={{ 
+                      y: -8, 
+                      transition: { duration: 0.3, ease: "easeOut" }
+                    }}
+                    className="relative group"
+                  >
+                    {/* Card Container */}
+                    <div className="relative rounded-2xl bg-gradient-to-br from-coffee-darker/95 via-coffee-brown/80 to-coffee-dark/95 border-2 border-coffee-amber/40 shadow-xl hover:shadow-[0_15px_40px_rgba(255,111,0,0.12)] hover:border-coffee-amber/60 px-5 py-5 md:px-6 md:py-6 flex flex-col h-full transition-all duration-500 overflow-hidden backdrop-blur-sm">
+                      {/* Gradient Overlay Inside Card */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/8 via-transparent to-coffee-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      
+                      {/* Subtle Glow Pulse Animation */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/10 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 animate-pulse-slow pointer-events-none"></div>
+                      
+                      {/* Badge - Limited Time */}
+                      <div className="relative z-10 mb-3 flex items-start justify-between">
+                        <motion.span
+                          initial={{ opacity: 0, scale: 0.8 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.5 + (idx * 0.1) }}
+                          className="inline-flex items-center gap-1.5 bg-gradient-to-r from-red-500/20 to-orange-500/20 text-red-400 px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-[0.2em] border border-red-500/30"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Limited Time
+                        </motion.span>
+                        {offer.isActive && (
+                          <motion.span
+                            initial={{ opacity: 0, scale: 0.8 }}
+                            whileInView={{ opacity: 1, scale: 1 }}
+                            viewport={{ once: true }}
+                            transition={{ delay: 0.5 + (idx * 0.1) }}
+                            className="inline-flex items-center gap-1 bg-green-500/20 text-green-400 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-[0.15em] border border-green-500/30"
+                          >
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            Active
+                          </motion.span>
+                        )}
+                      </div>
+
+                      {/* Discount Value - Most Prominent */}
+                      {offer.discountValue > 0 && (
+                        <motion.div
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          whileInView={{ opacity: 1, scale: 1 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: 0.6 + (idx * 0.1), type: "spring", stiffness: 200 }}
+                          className="relative z-10 mb-3"
+                        >
+                          <div className="flex items-baseline gap-1.5">
+                            <span className="text-4xl md:text-5xl font-heading font-black text-coffee-amber leading-none drop-shadow-lg" style={{ textShadow: '0 0 15px rgba(255, 111, 0, 0.25)' }}>
+                              {offer.offerType === 'percentage' ? `${offer.discountValue}%` : `₹${offer.discountValue}`}
+                            </span>
+                            <span className="text-xl md:text-2xl font-heading font-bold text-coffee-gold">OFF</span>
+                          </div>
+                          <div className="mt-1 h-0.5 w-16 bg-gradient-to-r from-coffee-amber to-coffee-gold rounded-full"></div>
+                        </motion.div>
+                      )}
+
+                      {/* Title */}
+                      <div className="relative z-10 mb-2">
+                        <h3 className="text-lg md:text-xl font-heading font-bold text-coffee-amber mb-1 leading-tight group-hover:text-coffee-gold transition-colors duration-300">
+                          {offer.name}
+                        </h3>
+                      </div>
+
+                      {/* Description */}
+                      {offer.description && (
+                        <p className="relative z-10 text-xs text-coffee-light/90 mb-3 line-clamp-2 leading-relaxed">
+                          {offer.description}
+                        </p>
+                      )}
+
+                      {/* Min Order Amount */}
+                      {offer.minOrderAmount > 0 && (
+                        <p className="relative z-10 text-[11px] text-coffee-light/70 mb-3 italic">
+                          Min order: ₹{offer.minOrderAmount}
+                        </p>
+                      )}
+
+                      {/* Enhanced Date Presentation */}
+                      <div className="relative z-10 mt-auto pt-3 border-t border-coffee-amber/20">
+                        <div className="flex items-center gap-2 text-xs text-coffee-light/80">
+                          <svg className="w-4 h-4 text-coffee-amber flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="font-medium">
+                            {startDate && endDate ? (
+                              <>
+                                <span className="text-coffee-amber">{formatDateShort(startDate)}</span>
+                                <span className="mx-2 text-coffee-light/60">→</span>
+                                <span className="text-coffee-amber">{formatDateShort(endDate)}</span>
+                              </>
+                            ) : startDate ? (
+                              <>
+                                From <span className="text-coffee-amber">{formatDateShort(startDate)}</span>
+                              </>
+                            ) : (
+                              'Valid now'
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </motion.div>
+          </div>
+        </section>
+      )}
 
       {/* Category Sliders Section */}
       <section className="py-12 md:py-20 px-4 max-w-7xl mx-auto">

@@ -4,6 +4,15 @@ const Order = require('../models/Order');
 const Coffee = require('../models/Coffee');
 const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
+const Razorpay = require('razorpay');
+const { sendPreOrderAcceptanceEmail, sendPreOrderCancellationEmail } = require('../services/emailService');
+const { calculateBilling } = require('../utils/billingCalculator');
+
+// Initialize Razorpay for refunds
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET
+});
 
 // Normalize mobile number helper
 const normalizeMobile = (mobile) => {
@@ -68,10 +77,10 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create new order (Public - for QR ordering)
+// Create new order (Public - for QR ordering and pre-orders)
 router.post('/', async (req, res) => {
   try {
-    const { items, customerMobile, customerName, customerEmail, notes, orderSource, tableNumber, paymentMethod, marketingConsent } = req.body;
+    const { items, customerMobile, customerName, customerEmail, notes, orderSource, tableNumber, paymentMethod, marketingConsent, isPreOrder, pickupTimeSlot, pickupTime, discountType, discountValue, appliedOfferId } = req.body;
 
     console.log('Order request received:', { orderSource, itemsCount: items?.length, customerMobile });
 
@@ -94,7 +103,43 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ message: 'Please provide a valid Indian mobile number' });
     }
 
-    const source = orderSource || 'QR';
+    // Pre-order validation
+    if (isPreOrder) {
+      if (!customerEmail || !customerEmail.trim()) {
+        return res.status(400).json({ message: 'Email is required for pre-orders' });
+      }
+      
+      // Validate email format
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail.trim())) {
+        return res.status(400).json({ message: 'Please provide a valid email address' });
+      }
+      
+      // Check if customer email is verified
+      const customer = await Customer.findOne({ mobile: normalizedMobile });
+      if (customer && customer.email.toLowerCase() === customerEmail.trim().toLowerCase() && !customer.emailVerified) {
+        return res.status(400).json({ message: 'Please verify your email address before placing a pre-order' });
+      }
+      
+      if (!pickupTimeSlot || !pickupTime) {
+        return res.status(400).json({ message: 'Pickup time slot is required for pre-orders' });
+      }
+      
+      // Validate pickup time is in the future and within cafe hours
+      const pickupDate = new Date(pickupTime);
+      const now = new Date();
+      const oneHourFromNow = new Date(now.getTime() + 60 * 60 * 1000);
+      
+      if (pickupDate < oneHourFromNow) {
+        return res.status(400).json({ message: 'Pickup time must be at least 1 hour from now' });
+      }
+      
+      const pickupHour = pickupDate.getHours();
+      if (pickupHour < 11 || pickupHour >= 23) {
+        return res.status(400).json({ message: 'Pickup time must be between 11 AM and 11 PM' });
+      }
+    }
+
+    const source = orderSource || (isPreOrder ? 'PreOrder' : 'QR');
 
     // Get or create customer
     let customer = await Customer.findOne({ mobile: normalizedMobile });
@@ -192,6 +237,7 @@ router.post('/', async (req, res) => {
         price: price,
         priceType: priceType,
         prepTime: menuItem.prepTime || 5,
+        category: menuItem.category || 'Coffee',
         subcategory: menuItem.subcategory || null,
         milkType: menuItem.milkType || null,
         strength: menuItem.strength || null,
@@ -202,9 +248,12 @@ router.post('/', async (req, res) => {
       subtotal += price * item.quantity;
     }
 
-    // Calculate tax (5% GST)
-    const tax = subtotal * 0.05;
-    const total = subtotal + tax;
+    // Calculate billing with discounts, offers, and taxes
+    const billing = await calculateBilling(subtotal, enrichedItems, {
+      discountType: discountType || '',
+      discountValue: discountValue || 0,
+      appliedOfferId: appliedOfferId || null
+    });
 
     // Generate order number and token number upfront
     const { getNextOrderNumber, getNextTokenNumber } = require('../models/OrderCounter');
@@ -247,17 +296,30 @@ router.post('/', async (req, res) => {
         tokenNumber,
         tableNumber: tableNumber || '',
         items: enrichedItems,
-        subtotal,
-        tax,
-        total,
+        subtotal: billing.subtotal,
+        discountType: billing.discountType,
+        discountValue: billing.discountValue,
+        discountAmount: billing.discountAmount,
+        appliedOffer: billing.appliedOffer ? billing.appliedOffer._id : null,
+        offerDiscountAmount: billing.offerDiscountAmount,
+        discountedSubtotal: billing.discountedSubtotal,
+        cgstRate: billing.cgstRate,
+        sgstRate: billing.sgstRate,
+        cgstAmount: billing.cgstAmount,
+        sgstAmount: billing.sgstAmount,
+        tax: billing.tax,
+        total: billing.total,
         customerMobile: normalizedMobile,
         customer: customer._id,
         customerEmail: customerEmail ? customerEmail.trim().toLowerCase() : customer.email || '',
         customerName: customerName.trim(),
         notes: notes || '',
         orderSource: source,
-        paymentStatus: source === 'Counter' ? 'Paid' : (paymentMethod === 'counter' ? 'Pending' : 'Pending'),
-        paymentMethod: source === 'Counter' ? 'Cash' : (paymentMethod === 'counter' ? 'Cash' : 'Razorpay')
+        isPreOrder: isPreOrder || false,
+        pickupTimeSlot: pickupTimeSlot || '',
+        pickupTime: pickupTime ? new Date(pickupTime) : null,
+        paymentStatus: source === 'Counter' ? 'Paid' : (isPreOrder ? 'Pending' : (paymentMethod === 'counter' ? 'Pending' : 'Pending')),
+        paymentMethod: source === 'Counter' ? 'Cash' : (isPreOrder ? 'Razorpay' : (paymentMethod === 'counter' ? 'Cash' : 'Razorpay'))
       });
 
       // Calculate estimated prep time
@@ -451,6 +513,183 @@ router.get('/:id/receipt', async (req, res) => {
     res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Accept pre-order (Admin only)
+router.put('/:id/accept-preorder', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (!order.isPreOrder) {
+      return res.status(400).json({ message: 'This is not a pre-order' });
+    }
+
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ message: 'Only pending pre-orders can be accepted' });
+    }
+
+    // Update order status to Preparing
+    order.status = 'Preparing';
+    await order.save();
+
+    // Send acceptance email
+    if (order.customerEmail) {
+      try {
+        await sendPreOrderAcceptanceEmail(order);
+      } catch (emailError) {
+        console.error('Error sending acceptance email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    res.json({ message: 'Pre-order accepted successfully', order });
+  } catch (error) {
+    console.error('Error accepting pre-order:', error);
+    res.status(500).json({ message: error.message || 'Failed to accept pre-order' });
+  }
+});
+
+// Cancel pre-order with refund (Admin only)
+router.put('/:id/cancel-preorder', auth, async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (!order.isPreOrder) {
+      return res.status(400).json({ message: 'This is not a pre-order' });
+    }
+
+    if (order.status === 'Completed' || order.status === 'Cancelled') {
+      return res.status(400).json({ message: 'Order is already completed or cancelled' });
+    }
+
+    // Process refund if payment was made
+    if (order.paymentStatus === 'Paid' && order.razorpayPaymentId) {
+      try {
+        // Check if refund already exists
+        if (order.refundId && order.refundStatus === 'Processed') {
+          console.log('Refund already processed for this order');
+        } else {
+          // Attempt to process refund
+          const refundAmount = Math.round(order.total * 100); // Convert to paise
+          
+          const refund = await razorpay.payments.refund(order.razorpayPaymentId, {
+            amount: refundAmount,
+            speed: 'normal', // 'normal' or 'optimum' - normal is standard, optimum is faster but may have fees
+            notes: {
+              reason: 'Pre-order cancelled by admin',
+              orderNumber: order.orderNumber,
+              cancelledBy: 'admin'
+            }
+          });
+          
+          // Store refund information
+          order.refundId = refund.id;
+          order.refundAmount = order.total;
+          order.refundStatus = refund.status === 'processed' ? 'Processed' : 'Pending';
+          
+          console.log('Refund processed successfully:', {
+            refundId: refund.id,
+            status: refund.status,
+            amount: refund.amount / 100
+          });
+        }
+      } catch (refundError) {
+        console.error('Refund error details:', {
+          error: refundError.error,
+          description: refundError.error?.description,
+          code: refundError.error?.code,
+          paymentId: order.razorpayPaymentId
+        });
+        
+        // Set refund status to failed
+        order.refundStatus = 'Failed';
+        
+        // Provide specific error messages based on error type
+        let errorMessage = 'Failed to process automatic refund. ';
+        
+        if (refundError.error) {
+          const errorCode = refundError.error.code;
+          const errorDesc = refundError.error.description || '';
+          
+          if (errorCode === 'BAD_REQUEST_ERROR') {
+            if (errorDesc.includes('old') || errorDesc.includes('time')) {
+              errorMessage += 'Payment is too old for automatic refund. Please process manually through Razorpay dashboard.';
+            } else if (errorDesc.includes('UPI') || errorDesc.includes('account')) {
+              errorMessage += 'This payment method does not support automatic refunds. Please obtain customer bank details and process manually through Razorpay Support Portal.';
+            } else {
+              errorMessage += errorDesc || 'Please process refund manually through Razorpay dashboard.';
+            }
+          } else if (errorCode === 'GATEWAY_ERROR') {
+            errorMessage += 'Payment gateway error. Please try again or process manually.';
+          } else {
+            errorMessage += errorDesc || 'Please process refund manually through Razorpay dashboard.';
+          }
+        } else {
+          errorMessage += 'Please process refund manually through Razorpay dashboard.';
+        }
+        
+        // Still cancel the order but inform admin about refund issue
+        // Don't return error - allow cancellation to proceed
+        console.warn('Order will be cancelled but refund needs manual processing:', errorMessage);
+      }
+    } else if (order.paymentStatus === 'Paid' && !order.razorpayPaymentId) {
+      // Payment marked as paid but no payment ID - might be cash or other method
+      console.warn('Order marked as paid but no Razorpay payment ID found. No refund needed.');
+    }
+
+    // Update order status
+    order.status = 'Cancelled';
+    // Update payment status based on refund status
+    if (order.paymentStatus === 'Paid') {
+      if (order.refundStatus === 'Processed' || order.refundStatus === 'Pending') {
+        order.paymentStatus = 'Refunded';
+      } else if (order.refundStatus === 'Failed') {
+        // Keep as Paid but note that refund failed
+        order.paymentStatus = 'Paid'; // Will need manual refund
+      } else {
+        order.paymentStatus = 'Refunded';
+      }
+    }
+    await order.save();
+
+    // Send cancellation email
+    if (order.customerEmail) {
+      try {
+        await sendPreOrderCancellationEmail(order);
+      } catch (emailError) {
+        console.error('Error sending cancellation email:', emailError);
+        // Don't fail the request if email fails
+      }
+    }
+
+    // Prepare response message
+    let responseMessage = 'Pre-order cancelled successfully. ';
+    if (order.refundStatus === 'Processed' || order.refundStatus === 'Pending') {
+      responseMessage += 'Refund has been processed and will be credited to the customer within 5-7 business days.';
+    } else if (order.refundStatus === 'Failed') {
+      responseMessage += '⚠️ WARNING: Automatic refund failed. Please process refund manually through Razorpay dashboard. Payment ID: ' + order.razorpayPaymentId;
+    } else if (order.paymentStatus === 'Paid' && !order.razorpayPaymentId) {
+      responseMessage += 'No refund needed (payment method does not require refund).';
+    } else {
+      responseMessage += 'Refund processed successfully.';
+    }
+    
+    res.json({ 
+      message: responseMessage,
+      order,
+      refundStatus: order.refundStatus,
+      refundId: order.refundId
+    });
+  } catch (error) {
+    console.error('Error cancelling pre-order:', error);
+    res.status(500).json({ message: error.message || 'Failed to cancel pre-order' });
   }
 });
 

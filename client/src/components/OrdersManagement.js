@@ -19,6 +19,13 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     return () => clearInterval(interval);
   }, []);
 
+  // Request notification permission on mount
+  useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
   useEffect(() => {
     // Play sound when new order arrives
     if (orders.length > 0 && soundEnabled) {
@@ -47,6 +54,43 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
       lastOrderIdsRef.current = new Set(orders.map(order => order._id));
       isInitialLoadRef.current = false;
     }
+  }, [orders, soundEnabled]);
+
+  // Check for pre-orders approaching pickup time (15 minutes before)
+  useEffect(() => {
+    if (!soundEnabled) return;
+
+    const checkPreOrderAlerts = () => {
+      const now = new Date();
+      const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60 * 1000);
+
+      orders.forEach(order => {
+        if (order.isPreOrder && order.pickupTime && order.status !== 'Completed' && order.status !== 'Cancelled') {
+          const pickupTime = new Date(order.pickupTime);
+          const timeDiff = pickupTime.getTime() - now.getTime();
+          const minutesUntilPickup = timeDiff / (1000 * 60);
+
+          // Alert if pickup time is within 15 minutes and we haven't alerted recently
+          if (minutesUntilPickup > 0 && minutesUntilPickup <= 15 && minutesUntilPickup >= 14.5) {
+            console.log(`🔔 Pre-order alert! Order #${order.orderNumber} pickup in ${Math.round(minutesUntilPickup)} minutes`);
+            playOrderSound();
+            // Show browser notification if permitted
+            if ('Notification' in window && Notification.permission === 'granted') {
+              new Notification(`Pre-Order Alert`, {
+                body: `Order #${order.orderNumber} pickup in ${Math.round(minutesUntilPickup)} minutes`,
+                icon: '/favicon.ico'
+              });
+            }
+          }
+        }
+      });
+    };
+
+    // Check every 30 seconds
+    const interval = setInterval(checkPreOrderAlerts, 30000);
+    checkPreOrderAlerts(); // Check immediately
+
+    return () => clearInterval(interval);
   }, [orders, soundEnabled]);
 
   // Create a simple beep sound using Web Audio API
@@ -94,6 +138,18 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     } catch (error) {
       console.error('Error updating order status:', error);
       alert('Failed to update order status');
+    }
+  };
+
+  // Accept pre-order
+  const acceptPreOrder = async (orderId) => {
+    try {
+      await api.put(`/orders/${orderId}/accept-preorder`);
+      fetchOrders();
+      alert('Pre-order accepted! Customer has been notified.');
+    } catch (error) {
+      console.error('Error accepting pre-order:', error);
+      alert(error.response?.data?.message || 'Failed to accept pre-order');
     }
   };
 
@@ -187,12 +243,33 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                     <h3 className="text-xl font-heading font-bold text-coffee-amber">
                       Order #{order.orderNumber}
                     </h3>
+                    {order.isPreOrder && (
+                      <span className="px-3 py-1 rounded-full text-sm font-semibold bg-purple-500/20 text-purple-400 border border-purple-500/50">
+                        📅 Pre-Order
+                      </span>
+                    )}
                     <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
                   <div className="space-y-1 text-sm text-coffee-light">
-                    <p>Table: <span className="font-semibold text-coffee-cream">{order.tableNumber}</span></p>
+                    {order.isPreOrder && order.pickupTimeSlot && (
+                      <p className="text-purple-400 font-semibold">
+                        📅 Pickup: {order.pickupTimeSlot}
+                        {order.pickupTime && (() => {
+                          const pickupTime = new Date(order.pickupTime);
+                          const now = new Date();
+                          const minutesUntil = Math.round((pickupTime.getTime() - now.getTime()) / (1000 * 60));
+                          if (minutesUntil > 0 && minutesUntil <= 15) {
+                            return <span className="text-red-400 ml-2">⚠️ {minutesUntil} min</span>;
+                          }
+                          return null;
+                        })()}
+                      </p>
+                    )}
+                    {!order.isPreOrder && (
+                      <p>Table: <span className="font-semibold text-coffee-cream">{order.tableNumber || 'N/A'}</span></p>
+                    )}
                     <p>Time: {formatDate(order.createdAt)}</p>
                     {editingPrepTime === order._id ? (
                       <div className="flex items-center gap-2">
@@ -296,9 +373,22 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                 </div>
               )}
 
+              {/* Pre-Order Accept Action */}
+              {order.isPreOrder && order.status === 'Pending' && order.paymentStatus === 'Paid' && (
+                <div className="mb-3 p-3 bg-purple-500/20 border border-purple-500/50 rounded-lg">
+                  <p className="text-purple-400 font-semibold text-sm mb-2">📅 Pre-Order - Action Required</p>
+                  <button
+                    onClick={() => acceptPreOrder(order._id)}
+                    className="w-full px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-semibold hover:bg-green-500/30 border border-green-500/50"
+                  >
+                    ✓ Accept Pre-Order
+                  </button>
+                </div>
+              )}
+
               {/* Status Actions */}
               <div className="flex flex-wrap gap-2 pt-4 border-t border-coffee-brown/50">
-                {order.status === 'Pending' && order.paymentStatus === 'Paid' && (
+                {order.status === 'Pending' && order.paymentStatus === 'Paid' && !order.isPreOrder && (
                   <button
                     onClick={() => updateOrderStatus(order._id, 'Preparing')}
                     className="px-4 py-2 bg-blue-500/20 text-blue-400 rounded-lg font-semibold hover:bg-blue-500/30"

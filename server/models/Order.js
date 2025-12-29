@@ -71,13 +71,25 @@ const orderSchema = new mongoose.Schema({
   },
   orderSource: {
     type: String,
-    enum: ['Counter', 'QR'],
+    enum: ['Counter', 'QR', 'PreOrder'],
     required: true,
     default: 'QR'
   },
+  isPreOrder: {
+    type: Boolean,
+    default: false
+  },
+  pickupTimeSlot: {
+    type: String,
+    default: ''
+  },
+  pickupTime: {
+    type: Date,
+    default: null
+  },
   paymentStatus: {
     type: String,
-    enum: ['Paid', 'Pending', 'Failed'],
+    enum: ['Paid', 'Pending', 'Failed', 'Refunded'],
     required: true,
     default: 'Pending'
   },
@@ -98,6 +110,19 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  refundId: {
+    type: String,
+    default: ''
+  },
+  refundAmount: {
+    type: Number,
+    default: 0
+  },
+  refundStatus: {
+    type: String,
+    enum: ['', 'Pending', 'Processed', 'Failed'],
+    default: ''
+  },
   items: {
     type: [orderItemSchema],
     required: true,
@@ -111,6 +136,60 @@ const orderSchema = new mongoose.Schema({
   subtotal: {
     type: Number,
     required: true,
+    min: 0
+  },
+  // Discount fields
+  discountType: {
+    type: String,
+    enum: ['', 'percentage', 'fixed'],
+    default: ''
+  },
+  discountValue: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  discountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // Applied offer
+  appliedOffer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'DailyOffer',
+    default: null
+  },
+  offerDiscountAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // Subtotal after discount and offer
+  discountedSubtotal: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  // Tax fields
+  cgstRate: {
+    type: Number,
+    default: 2.5,
+    min: 0
+  },
+  sgstRate: {
+    type: Number,
+    default: 2.5,
+    min: 0
+  },
+  cgstAmount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  sgstAmount: {
+    type: Number,
+    default: 0,
     min: 0
   },
   tax: {
@@ -228,6 +307,8 @@ orderSchema.index({ orderSource: 1 });
 orderSchema.index({ paymentStatus: 1 });
 orderSchema.index({ customerMobile: 1 });
 orderSchema.index({ customer: 1 });
+orderSchema.index({ isPreOrder: 1 });
+orderSchema.index({ pickupTime: 1 });
 
 const Order = mongoose.model('Order', orderSchema);
 

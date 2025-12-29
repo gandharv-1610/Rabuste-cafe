@@ -15,6 +15,7 @@ import ArtGallery from './pages/ArtGallery';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
 import Order from './pages/Order';
+import PreOrder from './pages/PreOrder';
 import CounterOrder from './pages/CounterOrder';
 import YourOrders from './pages/YourOrders';
 import AdminPanel from './pages/AdminPanel';
@@ -45,6 +46,7 @@ function App() {
             <Route path="/workshops" element={<Workshops />} />
             <Route path="/franchise" element={<Franchise />} />
             <Route path="/order" element={<Order />} />
+            <Route path="/pre-order" element={<PreOrder />} />
             <Route path="/your-orders" element={<YourOrders />} />
             <Route
               path="/counter"
