@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
@@ -6,6 +6,7 @@ import Chatbot from '../components/Chatbot';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
 import OTPModal from '../components/OTPModal';
+import Toast from '../components/Toast';
 import { generateTimeSlots, isCafeOpen } from '../utils/timeSlots';
 import { 
   getCustomerSession, 
@@ -48,6 +49,11 @@ const PreOrder = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [preorderSettings, setPreorderSettings] = useState(null);
   const [preorderEnabled, setPreorderEnabled] = useState(true);
+  const [toastMessage, setToastMessage] = useState('');
+  const [showToast, setShowToast] = useState(false);
+  const [recentlyAdded, setRecentlyAdded] = useState(new Set());
+  const [cartShake, setCartShake] = useState(0);
+  const cartRef = useRef(null);
 
   // Load customer session and favorites on mount
   useEffect(() => {
@@ -201,6 +207,9 @@ const PreOrder = () => {
       category: item.category || 'Coffee'
     };
 
+    // Create unique key for this item+priceType combination
+    const itemKey = `${item._id}-${priceType}`;
+
     setCart(prev => {
       const existing = prev.find(c => c.itemId === item._id && c.priceType === priceType);
       if (existing) {
@@ -212,6 +221,28 @@ const PreOrder = () => {
       }
       return [...prev, cartItem];
     });
+
+    // Show "Added" state on button
+    setRecentlyAdded(prev => new Set([...prev, itemKey]));
+    
+    // Show toast notification
+    setToastMessage(`${item.name} added`);
+    setShowToast(true);
+    setTimeout(() => {
+      setShowToast(false);
+    }, 3000);
+
+    // Trigger cart shake animation
+    setCartShake(prev => prev + 1);
+
+    // Reset "Added" state after 2 seconds
+    setTimeout(() => {
+      setRecentlyAdded(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(itemKey);
+        return newSet;
+      });
+    }, 2000);
   };
 
   // Update cart item quantity
@@ -871,25 +902,37 @@ const PreOrder = () => {
                           {isCoffee && hasBlend && (
                             <button
                               onClick={() => addToCart(item, 'Blend')}
-                              className="flex-1 px-3 py-1.5 bg-coffee-amber/20 text-coffee-amber rounded text-xs font-semibold hover:bg-coffee-amber/30 transition-colors"
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                                recentlyAdded.has(`${item._id}-Blend`)
+                                  ? 'bg-green-500/30 text-green-400'
+                                  : 'bg-coffee-amber/20 text-coffee-amber hover:bg-coffee-amber/30'
+                              }`}
                             >
-                              Add Blend
+                              {recentlyAdded.has(`${item._id}-Blend`) ? '✓ Added' : 'Add Blend'}
                             </button>
                           )}
                           {isCoffee && hasRobusta && (
                             <button
                               onClick={() => addToCart(item, 'Robusta Special')}
-                              className="flex-1 px-3 py-1.5 bg-coffee-amber/20 text-coffee-amber rounded text-xs font-semibold hover:bg-coffee-amber/30 transition-colors"
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                                recentlyAdded.has(`${item._id}-Robusta Special`)
+                                  ? 'bg-green-500/30 text-green-400'
+                                  : 'bg-coffee-amber/20 text-coffee-amber hover:bg-coffee-amber/30'
+                              }`}
                             >
-                              Add Robusta
+                              {recentlyAdded.has(`${item._id}-Robusta Special`) ? '✓ Added' : 'Add Robusta'}
                             </button>
                           )}
                           {!isCoffee && (
                             <button
                               onClick={() => addToCart(item)}
-                              className="w-full px-3 py-1.5 bg-coffee-amber text-coffee-darker rounded text-xs font-semibold hover:bg-coffee-gold transition-colors"
+                              className={`w-full px-3 py-1.5 rounded text-xs font-semibold transition-all ${
+                                recentlyAdded.has(`${item._id}-Standard`)
+                                  ? 'bg-green-500/30 text-green-400'
+                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                              }`}
                             >
-                              Add to Cart
+                              {recentlyAdded.has(`${item._id}-Standard`) ? '✓ Added' : 'Add to Cart'}
                             </button>
                           )}
                         </div>
@@ -903,7 +946,15 @@ const PreOrder = () => {
 
           {/* Cart Section */}
           <div className="lg:col-span-1">
-            <div className="sticky top-24 bg-coffee-brown/30 rounded-lg p-6 border border-coffee-brown/50 flex flex-col max-h-[calc(100vh-8rem)]">
+            <motion.div
+              ref={cartRef}
+              key={cartShake}
+              animate={cartShake > 0 ? {
+                x: [0, -10, 10, -10, 10, 0],
+                transition: { duration: 0.5, ease: "easeInOut" }
+              } : {}}
+              className="sticky top-24 bg-coffee-brown/30 rounded-lg p-6 border border-coffee-brown/50 flex flex-col max-h-[calc(100vh-8rem)]"
+            >
               <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4 flex-shrink-0">
                 Your Pre-Order
               </h2>
@@ -1147,10 +1198,17 @@ const PreOrder = () => {
                   </div>
                 </div>
               )}
-            </div>
+            </motion.div>
           </div>
         </div>
       </div>
+
+      {/* Toast Notification */}
+      <Toast
+        message={toastMessage}
+        isVisible={showToast}
+        onClose={() => setShowToast(false)}
+      />
 
       {/* Login Modal */}
       <CustomerLoginModal

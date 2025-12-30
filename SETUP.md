@@ -247,6 +247,8 @@ npm start
    - Workshops
    - Daily offers
    - Site media (hero backgrounds, etc.)
+   - Configure billing settings (tax rates)
+   - Configure pre-order settings (if using pre-orders)
 
 ## 🧪 Testing Features
 
@@ -289,11 +291,40 @@ npm start
 - View tomorrow's forecast
 - Test conversational analytics
 
-### 8. Site Media
+### 8. Pre-Order System
+- Test pre-order: `/pre-order`
+- Select pickup time slot
+- Complete payment
+- Admin can cancel and process refunds
+- Check pre-order settings in Admin Panel
+
+### 9. Site Media
 - Go to Admin Panel > Site Media
 - Add hero background (image or video)
 - Configure story section visuals
 - Set active/inactive status
+
+### 10. Billing & Pre-Order Settings
+- Configure tax rates (CGST/SGST)
+- Set tax calculation method
+- Enable/disable pre-orders
+- Configure pre-order messages
+
+### 9. Billing Settings
+- Go to Admin Panel > Settings (or Billing Settings)
+- Configure CGST rate (default: 2.5%)
+- Configure SGST rate (default: 2.5%)
+- Choose tax calculation method:
+  - `onSubtotal`: Tax calculated on subtotal before discount
+  - `onDiscountedSubtotal`: Tax calculated on subtotal after discount
+- Save settings
+
+### 10. Pre-Order Settings
+- Go to Admin Panel > Settings (or Pre-Order Settings)
+- Enable/disable pre-orders
+- Set custom message when pre-orders are disabled
+- Configure customer support number
+- Save settings
 
 ## 🔒 Security Checklist
 

@@ -16,11 +16,16 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **📖 About the Café**: Story behind choosing Robusta coffee, café philosophy, and cultural inspiration
 - **☕ Why Robusta?**: Educational content explaining Robusta coffee, flavor profiles, and comparisons
 - **☕ Coffee Menu**: Curated Robusta-only menu with descriptions, strength levels, flavor notes, and AI-powered coffee discovery
+- **☕ Menu Categories**: Separate pages for Coffee, Shakes, Sides, and Tea with category-specific filtering
 - **🎨 Art Gallery**: Micro art gallery showcasing fine art pieces with artist stories, pricing, and availability status
 - **🎓 Workshops & Experiences**: Coffee workshops, art sessions, and community events with registration system and Google Calendar integration
 - **🚀 Franchise Opportunity**: Franchise information and enquiry form for potential partners with status tracking
 - **🎁 Daily Offers**: Dynamic offers and specials displayed on the home page with date-based filtering
-- **📱 Digital Ordering System**: QR code self-service ordering with Razorpay payment integration and counter ordering for walk-in customers
+- **📱 Digital Ordering System**: 
+  - QR code self-service ordering with Razorpay payment integration
+  - Counter ordering for walk-in customers (cash payment)
+  - Pre-order system with pickup time slots for advance orders
+  - Order tracking and history for customers
 
 ### AI-Powered Features (Google Gemini)
 
@@ -55,17 +60,31 @@ A complete MERN stack web application for **Rabuste Coffee**, a specialty café 
 - **📋 Franchise Enquiries**: View and manage franchise enquiries with status tracking (New, Contacted, Qualified, Rejected)
 - **🎁 Daily Offers Management**: Create and manage promotional offers with date ranges and discount types
 - **🖼️ Site Media Management**: Configure images and videos for different sections (hero backgrounds, story visuals, etc.)
-- **📦 Orders Management**: View all orders, update status, manage counter orders, view receipts
+- **📦 Orders Management**: View all orders, update status, manage counter orders, view receipts, handle refunds
+- **💰 Billing Settings**: Configure CGST/SGST tax rates and tax calculation methods (on subtotal or discounted subtotal)
+- **⏰ Pre-Order Settings**: Enable/disable pre-orders, set custom messages, configure customer support number
 - **⚙️ Settings**: Change admin password securely
 
 ### Ordering System
 
 - **QR Code Ordering**: Self-service ordering via QR code with Razorpay payment integration
 - **Counter Ordering**: Salesperson-assisted ordering for walk-in customers (cash payment)
+- **Pre-Order System**: 
+  - Advance ordering with scheduled pickup times
+  - Configurable time slots for pickup
+  - Admin can enable/disable pre-orders
+  - Automatic refund processing on cancellation
+  - Email notifications for order acceptance and cancellation
 - **Sequential Order Numbers**: Unique order numbers starting from 00000000001
 - **Daily Token Numbers**: Daily counter that resets at midnight for easy customer tracking
-- **Payment Tracking**: Payment status (Paid/Pending/Failed) with payment method (Razorpay/Cash)
+- **Payment Tracking**: Payment status (Paid/Pending/Failed/Refunded) with payment method (Razorpay/Cash)
 - **Receipt Generation**: Digital receipts with order details, payment status, and token number
+- **Billing System**: 
+  - Automatic tax calculation (CGST/SGST)
+  - Configurable tax rates (default: 2.5% CGST, 2.5% SGST)
+  - Tax calculation on subtotal or discounted subtotal
+  - Support for discount types (percentage/flat)
+  - Daily offer integration with automatic discount application
 
 ### Media Management
 
@@ -213,10 +232,15 @@ rabuste-coffee/
 │   │   │   ├── About.js             # About page
 │   │   │   ├── WhyRobusta.js        # Educational content
 │   │   │   ├── CoffeeMenu.js        # Menu with AI discovery
+│   │   │   ├── CoffeeCategory.js    # Coffee category page
+│   │   │   ├── ShakesCategory.js    # Shakes category page
+│   │   │   ├── SidesCategory.js     # Sides category page
+│   │   │   ├── TeaCategory.js       # Tea category page
 │   │   │   ├── ArtGallery.js        # Art gallery
 │   │   │   ├── Workshops.js         # Workshops with registration
 │   │   │   ├── Franchise.js         # Franchise enquiry form
 │   │   │   ├── Order.js             # QR code ordering page
+│   │   │   ├── PreOrder.js          # Pre-order page with pickup time slots
 │   │   │   ├── CounterOrder.js      # Counter ordering page
 │   │   │   ├── YourOrders.js        # Customer order history
 │   │   │   ├── AdminPanel.js        # Admin dashboard (protected)
@@ -239,11 +263,14 @@ rabuste-coffee/
 │   │   ├── WorkshopRegistration.js  # Workshop registrations
 │   │   ├── FranchiseEnquiry.js     # Franchise enquiries
 │   │   ├── Offer.js       # Daily offers
+│   │   ├── DailyOffer.js  # Daily offer model (alternative)
 │   │   ├── SiteMedia.js   # Site media configuration
-│   │   ├── Order.js       # Order model
+│   │   ├── Order.js       # Order model (with pre-order and refund support)
 │   │   ├── OrderCounter.js # Order number and token counter
-│   │   ├── Customer.js    # Customer model
-│   │   └── OTP.js         # OTP verification codes
+│   │   ├── Customer.js    # Customer model (with tags and marketing consent)
+│   │   ├── OTP.js         # OTP verification codes
+│   │   ├── BillingSettings.js # Tax rates and billing configuration
+│   │   └── PreOrderSettings.js # Pre-order system configuration
 │   ├── routes/            # API routes
 │   │   ├── adminAuth.js   # Admin authentication (login, change-password)
 │   │   ├── admin.js       # Protected admin routes (stats, analytics, registrations)
@@ -256,18 +283,22 @@ rabuste-coffee/
 │   │   ├── ai.js          # AI endpoints (coffee discovery, chatbot)
 │   │   ├── email.js       # Email service endpoints
 │   │   ├── upload.js      # File upload endpoints
-│   │   ├── orders.js      # Order endpoints
+│   │   ├── orders.js      # Order endpoints (including pre-orders and refunds)
 │   │   ├── payment.js     # Razorpay payment endpoints
-│   │   └── customers.js   # Customer endpoints
+│   │   ├── customers.js   # Customer endpoints
+│   │   └── billing.js      # Billing settings and pre-order settings
 │   ├── middleware/
 │   │   └── auth.js        # JWT authentication middleware
 │   ├── services/
 │   │   ├── cloudinaryService.js  # Cloudinary integration
 │   │   ├── emailService.js       # Email service (Nodemailer)
 │   │   ├── analyticsService.js   # Advanced analytics service
-│   │   └── aiInsightsService.js  # AI insights generation
+│   │   ├── aiInsightsService.js  # AI insights generation
+│   │   ├── customerTagService.js # Customer tagging system
+│   │   └── pickupTimeService.js  # Pre-order pickup time slot management
 │   ├── utils/
-│   │   └── calendar.js     # Google Calendar integration
+│   │   ├── calendar.js     # Google Calendar integration
+│   │   └── billingCalculator.js # Tax and discount calculation logic
 │   ├── scripts/
 │   │   └── seedAdmin.js   # One-time admin user creation script
 │   ├── index.js          # Server entry point
@@ -369,6 +400,14 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 - `POST /api/payment/create-order` - Create Razorpay order
 - `POST /api/payment/verify-payment` - Verify payment signature
 
+#### Billing
+- `GET /api/billing/settings` - Get billing settings (tax rates, calculation method)
+- `PUT /api/billing/settings` - Update billing settings (admin only)
+
+#### Pre-Order Settings
+- `GET /api/billing/pre-order-settings` - Get pre-order settings
+- `PUT /api/billing/pre-order-settings` - Update pre-order settings (admin only)
+
 ### Admin Endpoints (Protected - Require JWT)
 
 #### Authentication
@@ -423,6 +462,7 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 - `PUT /api/orders/:id/status` - Update order status
 - `PUT /api/orders/:id/confirm-payment` - Confirm counter order payment
 - `PUT /api/orders/:id/estimated-prep-time` - Update prep time
+- `PUT /api/orders/:id/cancel` - Cancel order and process refund (if applicable)
 
 #### Upload
 - `POST /api/upload/image` - Upload image to Cloudinary
@@ -489,15 +529,23 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 - `orderNumber` (sequential, unique)
 - `tokenNumber` (daily counter)
 - `tableNumber` (optional, for dine-in)
-- `orderSource` (Counter/QR)
-- `paymentStatus` (Paid/Pending/Failed)
+- `orderSource` (Counter/QR/PreOrder)
+- `isPreOrder` (boolean)
+- `pickupTimeSlot` (string, for pre-orders)
+- `pickupTime` (Date, for pre-orders)
+- `paymentStatus` (Paid/Pending/Failed/Refunded)
 - `paymentMethod` (Cash/Razorpay/Other)
 - `razorpayOrderId`, `razorpayPaymentId`, `razorpaySignature`
-- `items` (array of order items)
-- `subtotal`, `tax`, `total`
+- `refundId`, `refundAmount`, `refundStatus` (for refunds)
+- `items` (array of order items with priceType, prepTime, etc.)
+- `subtotal`, `discountType`, `discountValue`, `discountAmount`
+- `appliedOffer` (ref to Offer), `offerDiscountAmount`
+- `discountedSubtotal`, `cgstRate`, `sgstRate`, `cgstAmount`, `sgstAmount`
+- `tax`, `total`
 - `status` (Pending/Preparing/Ready/Completed/Cancelled)
 - `estimatedPrepTime`
 - `customerMobile`, `customer` (ref to Customer), `customerName`, `customerEmail`
+- `marketingConsent` (boolean, for email marketing)
 - `notes`, `completedAt`, `receiptGenerated`
 - `createdAt`, `updatedAt`
 
@@ -507,12 +555,26 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 - `orders` (array of Order refs)
 - `totalOrders`, `totalSpent`, `lastOrderDate`
 - `favorites` (array of Coffee refs)
+- `marketingConsent` (boolean, for email marketing)
+- `tags` (array of strings: new_customer, returning_customer, coffee_lover, workshop_interested, high_value, inactive_30_days)
 - `createdAt`, `updatedAt`
 
 ### OTP
 - `email`, `code`, `purpose` (workshop_registration, etc.)
 - `expiresAt`, `verified`
 - `createdAt`
+
+### BillingSettings
+- `cgstRate` (default: 2.5%)
+- `sgstRate` (default: 2.5%)
+- `taxCalculationMethod` (onSubtotal/onDiscountedSubtotal)
+- `updatedBy`, `updatedAt`
+
+### PreOrderSettings
+- `isEnabled` (boolean, default: true)
+- `message` (custom message when pre-orders disabled)
+- `customerSupportNumber` (support contact)
+- `updatedBy`, `updatedAt`
 
 ## 🔒 Security Features
 
@@ -563,6 +625,21 @@ The AI-powered analytics dashboard includes:
 - Horizontal bar chart for top items with percentages
 - Revenue breakdown pie charts
 - Prep time analysis charts
+
+## 💰 Refund System
+
+The platform includes a comprehensive refund system for pre-orders:
+
+- **Automatic Refunds**: When admin cancels a pre-order, the system attempts automatic refund via Razorpay
+- **Refund Tracking**: Stores refund ID, amount, and status in order document
+- **Error Handling**: Provides specific error messages for different failure scenarios:
+  - Payment too old (>6 months) - requires manual refund
+  - UPI/IMPS payments - may require manual processing via Razorpay Support Portal
+  - Missing payment information - cannot process refund
+- **Manual Refund Support**: Instructions for processing refunds via Razorpay Dashboard or Support Portal
+- **Refund Status**: Orders show `paymentStatus: 'Refunded'` when refund is processed
+
+For detailed refund troubleshooting, see [REFUND_TROUBLESHOOTING.md](./REFUND_TROUBLESHOOTING.md)
 
 ## 🚢 Deployment
 

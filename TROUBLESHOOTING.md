@@ -375,12 +375,78 @@ Common issues and solutions for the Rabuste Coffee platform.
    - Look for specific error messages
    - Verify order validation
 
+4. **Check Billing Settings:**
+   - Verify billing settings exist in database
+   - Check tax rates are configured correctly
+   - Ensure tax calculation method is set
+
 ### Problem: Token number not showing
 
 **Solutions:**
 - Check OrderCounter model is working
 - Verify date-based token generation
 - Check server logs for errors
+
+### Problem: Pre-order not working
+
+**Solutions:**
+1. **Check Pre-Order Settings:**
+   - Go to Admin Panel > Settings
+   - Verify pre-orders are enabled (`isEnabled: true`)
+   - Check if custom message is blocking orders
+
+2. **Check Pickup Time Slots:**
+   - Verify time slots are configured correctly
+   - Check server logs for time slot generation errors
+
+3. **Check Payment:**
+   - Ensure Razorpay is configured
+   - Verify payment is completed before order creation
+
+### Problem: Tax calculation incorrect
+
+**Solutions:**
+1. **Check Billing Settings:**
+   - Verify CGST and SGST rates are set correctly
+   - Check tax calculation method (`onSubtotal` vs `onDiscountedSubtotal`)
+   - Ensure billing settings exist in database
+
+2. **Check Order Data:**
+   - Verify subtotal is calculated correctly
+   - Check if discounts are applied before or after tax
+   - Review order items and prices
+
+3. **Recalculate:**
+   - Update billing settings in Admin Panel
+   - Test with a new order
+
+## 💰 Refund Issues
+
+### Problem: Refund not processing
+
+**Solutions:**
+1. **Check Payment ID:**
+   - Verify order has `razorpayPaymentId`
+   - Check if payment was completed successfully
+
+2. **Check Payment Age:**
+   - Payments older than 6 months cannot be refunded automatically
+   - Process manually via Razorpay Dashboard
+
+3. **Check Payment Method:**
+   - UPI payments may require manual refund
+   - Some IMPS payments don't support automatic refunds
+   - Use Razorpay Support Portal for manual processing
+
+4. **Check Razorpay Credentials:**
+   - Verify `RAZORPAY_KEY_ID` and `RAZORPAY_KEY_SECRET` are correct
+   - Ensure using correct keys (test vs live)
+
+5. **Check Server Logs:**
+   - Look for specific Razorpay API errors
+   - Check refund status in order document
+
+For detailed refund troubleshooting, see [REFUND_TROUBLESHOOTING.md](./REFUND_TROUBLESHOOTING.md)
 
 ## 🔍 General Debugging Tips
 
@@ -431,6 +497,9 @@ Common issues and solutions for the Rabuste Coffee platform.
    - Not clearing browser cache
    - Typos in environment variable names
    - Missing database name in MongoDB URI
+   - Not configuring billing settings (tax calculation fails)
+   - Pre-orders disabled but trying to use pre-order page
+   - Using expired payment IDs for refunds
 
 ---
 
