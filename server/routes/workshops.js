@@ -49,11 +49,59 @@ router.post('/:id/register', async (req, res) => {
       return res.status(400).json({ message: 'Workshop is fully booked' });
     }
 
+    // Check for duplicate registration
+    const existingRegistration = await WorkshopRegistration.findOne({
+      email: req.body.email?.toLowerCase().trim(),
+      workshopId: workshop._id,
+      bookingStatus: { $ne: 'CANCELLED' }
+    });
+
+    if (existingRegistration) {
+      return res.status(400).json({ 
+        message: 'You have already registered for this workshop. Each email can only register once per workshop.' 
+      });
+    }
+
+    const { paymentMethod, createTempOnly } = req.body;
+    const workshopPrice = workshop.price || 0;
+
+    // Determine payment method and status based on workshop price and user selection
+    let finalPaymentMethod = 'FREE';
+    let finalPaymentStatus = 'FREE';
+
+    if (workshopPrice === 0) {
+      // Free workshop - auto-confirm
+      finalPaymentMethod = 'FREE';
+      finalPaymentStatus = 'FREE';
+    } else if (workshopPrice > 0) {
+      // Paid workshop
+      if (paymentMethod === 'ONLINE') {
+        if (createTempOnly) {
+          // Create temporary registration for payment flow
+          finalPaymentMethod = 'ONLINE';
+          finalPaymentStatus = 'PENDING_ENTRY_PAYMENT'; // Will be updated after payment
+        } else {
+          return res.status(400).json({ message: 'Invalid payment flow' });
+        }
+      } else if (paymentMethod === 'PAY_AT_ENTRY') {
+        // Pay at entry - create booking with pending payment
+        finalPaymentMethod = 'PAY_AT_ENTRY';
+        finalPaymentStatus = 'PENDING_ENTRY_PAYMENT';
+      } else {
+        return res.status(400).json({ message: 'Payment method required for paid workshops' });
+      }
+    }
+
     const confirmationCode = `WRK${Date.now().toString().slice(-6)}`;
     const registration = new WorkshopRegistration({
       ...req.body,
+      email: req.body.email?.toLowerCase().trim(),
       workshopId: workshop._id,
-      confirmationCode
+      confirmationCode,
+      bookingStatus: 'BOOKED',
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: finalPaymentStatus,
+      amount: workshopPrice
     });
     await registration.save();
 
@@ -61,8 +109,32 @@ router.post('/:id/register', async (req, res) => {
     workshop.bookedSeats += 1;
     await workshop.save();
 
+    // Send confirmation email based on payment type
+    const { sendWorkshopConfirmationEmail } = require('../services/emailService');
+    const { generateGoogleCalendarUrl } = require('../utils/calendar');
+    
+    let calendarUrl = null;
+    if (workshop.date && workshop.time) {
+      calendarUrl = generateGoogleCalendarUrl({
+        title: workshop.title,
+        description: workshop.description || '',
+        location: 'Rabuste Coffee',
+        startDate: new Date(workshop.date),
+        endDate: new Date(new Date(workshop.date).getTime() + (workshop.duration ? parseInt(workshop.duration) * 60000 : 120 * 60000))
+      });
+    }
+
+    // Send appropriate email based on payment status
+    await sendWorkshopConfirmationEmail(registration, workshop, calendarUrl, {
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: finalPaymentStatus,
+      amount: workshopPrice
+    });
+
     res.status(201).json({
-      message: 'Registration successful',
+      message: finalPaymentStatus === 'PENDING_ENTRY_PAYMENT' 
+        ? 'Seat reserved. Payment must be completed at entry counter.'
+        : 'Registration successful',
       registration: {
         ...registration.toObject(),
         workshop: workshop

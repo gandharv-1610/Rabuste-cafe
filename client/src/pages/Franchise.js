@@ -336,33 +336,36 @@ const Franchise = () => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.8, delay: 0.6 }}
-          className="bg-gradient-to-r from-coffee-amber/20 to-coffee-gold/20 rounded-lg p-8 md:p-12"
+          className="bg-gradient-to-br from-coffee-dark/95 via-coffee-darker/95 to-coffee-darkest/95 rounded-2xl p-8 md:p-12 border border-coffee-brown/30 shadow-2xl"
         >
-          <h2 className="text-4xl font-heading font-bold text-coffee-amber mb-8 text-center">
-            Get in Touch
-          </h2>
+          <div className="text-center mb-10">
+            <h2 className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-4">
+              Get in Touch
+            </h2>
+            <div className="w-24 h-0.5 bg-gradient-to-r from-transparent via-coffee-amber/60 to-transparent mx-auto"></div>
+          </div>
 
           {submitted ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">✅</div>
-              <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
+            <div className="text-center py-12 max-w-xl mx-auto">
+              <div className="text-6xl mb-6">✅</div>
+              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
                 Thank You!
               </h3>
-              <p className="text-coffee-light text-lg mb-6">
+              <p className="text-coffee-light/90 text-lg mb-8 leading-relaxed">
                 We've received your franchise enquiry. Our team will contact you soon.
               </p>
               <button
                 onClick={() => setSubmitted(false)}
-                className="bg-coffee-amber text-coffee-darker px-6 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                className="bg-coffee-amber hover:bg-coffee-gold text-coffee-darker px-8 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:brightness-110"
               >
                 Submit Another Enquiry
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
-              <div className="grid md:grid-cols-2 gap-6">
+            <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-8">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Name *
                   </label>
                   <input
@@ -371,11 +374,12 @@ const Franchise = () => {
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                    className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40"
+                    placeholder="Your full name"
                   />
                 </div>
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Email *
                   </label>
                   <input
@@ -384,13 +388,14 @@ const Franchise = () => {
                     required
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                    className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40"
+                    placeholder="your.email@example.com"
                   />
                 </div>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Phone *
                   </label>
                   <input
@@ -399,11 +404,12 @@ const Franchise = () => {
                     required
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                    className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40"
+                    placeholder="+91 98765 43210"
                   />
                 </div>
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Location *
                   </label>
                   <input
@@ -413,31 +419,43 @@ const Franchise = () => {
                     value={formData.location}
                     onChange={handleChange}
                     placeholder="City, State/Country"
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                    className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40"
                   />
                 </div>
               </div>
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid md:grid-cols-2 gap-8">
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Investment Range
                   </label>
-                  <select
-                    name="investmentRange"
-                    value={formData.investmentRange}
-                    onChange={handleChange}
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
-                  >
-                    <option value="">Select range</option>
-                    <option value="Under ₹50L">Under ₹50L</option>
-                    <option value="₹50L - ₹1Cr">₹50L - ₹1Cr</option>
-                    <option value="₹1Cr - ₹2Cr">₹1Cr - ₹2Cr</option>
-                    <option value="₹2Cr - ₹5Cr">₹2Cr - ₹5Cr</option>
-                    <option value="Over ₹5Cr">Over ₹5Cr</option>
-                  </select>
+                  <div className="relative">
+                    <select
+                      name="investmentRange"
+                      value={formData.investmentRange}
+                      onChange={handleChange}
+                      className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                      style={{
+                        backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23FF8C00' d='M6 9L1 4h10z'/%3E%3C/svg%3E")`,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'right 1.25rem center',
+                        backgroundSize: '1rem',
+                        paddingRight: '3rem'
+                      }}
+                    >
+                      <option value="" style={{ backgroundColor: '#1A0F0A', color: '#D7CCC8' }}>Select expected investment</option>
+                      <option value="Under ₹50L" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>Under ₹50L</option>
+                      <option value="₹50L - ₹1Cr" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>₹50L - ₹1Cr</option>
+                      <option value="₹1Cr - ₹2Cr" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>₹1Cr - ₹2Cr</option>
+                      <option value="₹2Cr - ₹5Cr" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>₹2Cr - ₹5Cr</option>
+                      <option value="Over ₹5Cr" style={{ backgroundColor: '#1A0F0A', color: '#EFEBE9' }}>Over ₹5Cr</option>
+                    </select>
+                  </div>
+                  <p className="mt-2 text-xs text-coffee-light/60 italic">
+                    This helps us recommend the right café model.
+                  </p>
                 </div>
                 <div>
-                  <label className="block text-coffee-amber font-semibold mb-2">
+                  <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                     Business Experience
                   </label>
                   <input
@@ -446,30 +464,35 @@ const Franchise = () => {
                     value={formData.experience}
                     onChange={handleChange}
                     placeholder="Brief description"
-                    className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                    className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-coffee-amber font-semibold mb-2">
+                <label className="block text-coffee-amber/90 text-sm font-medium mb-3">
                   Message
                 </label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
-                  rows="4"
+                  rows="6"
                   placeholder="Tell us about your interest in franchising with Rabuste Coffee..."
-                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+                  className="w-full bg-coffee-brown/50 border border-coffee-brown/40 text-coffee-cream rounded-xl px-5 py-4 text-base focus:outline-none focus:border-coffee-amber focus:ring-2 focus:ring-coffee-amber/30 focus:bg-coffee-brown/60 transition-all duration-200 placeholder:text-coffee-light/40 resize-none leading-relaxed"
                 />
               </div>
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-coffee-amber text-coffee-darker py-4 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {loading ? 'Sending OTP...' : 'Submit Franchise Enquiry'}
-              </button>
+              <div className="pt-4">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-coffee-amber hover:bg-coffee-gold text-coffee-darker py-5 rounded-xl font-semibold text-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:-translate-y-0.5 hover:brightness-110"
+                >
+                  {loading ? 'Sending OTP...' : 'Request Franchise Details'}
+                </button>
+                <p className="mt-4 text-center text-sm text-coffee-light/70 italic">
+                  We personally review all franchise enquiries within 24–48 hours.
+                </p>
+              </div>
             </form>
           )}
         </motion.div>

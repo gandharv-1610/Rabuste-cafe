@@ -20,6 +20,8 @@ const Workshops = () => {
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingRegistration, setPendingRegistration] = useState(null);
   const [backgroundMedia, setBackgroundMedia] = useState(null);
+  const [paymentMethod, setPaymentMethod] = useState(null); // 'ONLINE' or 'PAY_AT_ENTRY'
+  const [processingPayment, setProcessingPayment] = useState(false);
 
   useEffect(() => {
     fetchWorkshops();
@@ -93,13 +95,30 @@ const Workshops = () => {
     }
   };
 
+  // Load Razorpay script
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      if (document.body.contains(script)) {
+        document.body.removeChild(script);
+      }
+    };
+  }, []);
+
   const handleRegister = async (e) => {
     e.preventDefault();
     
-    // Store registration data and send OTP
+    const workshopPrice = selectedWorkshop.price || 0;
+    
+    // Store registration data and send OTP (for all types)
     const registrationPayload = {
       ...registrationData,
-      workshopId: selectedWorkshop._id
+      workshopId: selectedWorkshop._id,
+      paymentMethod: workshopPrice === 0 ? 'FREE' : paymentMethod || null,
+      amount: workshopPrice
     };
     
     setPendingRegistration(registrationPayload);
@@ -136,28 +155,134 @@ const Workshops = () => {
       return;
     }
 
-    // Verify OTP
-    try {
-      const response = await api.post('/email/workshop/verify', {
-        email: pendingRegistration.email,
-        otp
-      });
+    const workshopPrice = pendingRegistration.amount || 0;
+    const paymentMethod = pendingRegistration.paymentMethod;
 
-      setRegistrationSuccess(true);
-      setRegistrationData({ name: '', email: '', phone: '', message: '' });
-      setPendingRegistration(null);
-      setShowOTPModal(false);
-      fetchWorkshops();
-    } catch (error) {
-      const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
-      // If it's a duplicate registration error, close modals and reset
-      if (errorMessage.includes('already registered')) {
-        setShowOTPModal(false);
-        setShowRegistration(false);
+    // If free workshop or pay at entry, verify OTP and register directly
+    if (workshopPrice === 0 || paymentMethod === 'PAY_AT_ENTRY') {
+      try {
+        const response = await api.post('/email/workshop/verify', {
+          email: pendingRegistration.email,
+          otp
+        });
+
+        setRegistrationSuccess(true);
         setRegistrationData({ name: '', email: '', phone: '', message: '' });
         setPendingRegistration(null);
+        setPaymentMethod(null);
+        setShowOTPModal(false);
+        setShowRegistration(false);
+        fetchWorkshops();
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
+        // If it's a duplicate registration error, close modals and reset
+        if (errorMessage.includes('already registered')) {
+          setShowOTPModal(false);
+          setShowRegistration(false);
+          setRegistrationData({ name: '', email: '', phone: '', message: '' });
+          setPendingRegistration(null);
+        }
+        throw new Error(errorMessage);
       }
-      throw new Error(errorMessage);
+      return;
+    }
+
+    // If online payment, verify OTP first (without creating registration), then proceed to payment
+    if (paymentMethod === 'ONLINE') {
+      try {
+        // Verify OTP only (don't create registration yet)
+        const otpRecord = await api.post('/email/workshop/verify-otp-only', {
+          email: pendingRegistration.email,
+          otp
+        });
+
+        // OTP verified, now proceed to payment (registration will be created after payment)
+        setShowOTPModal(false);
+        await handleOnlinePayment();
+      } catch (error) {
+        const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
+        if (errorMessage.includes('already registered')) {
+          setShowOTPModal(false);
+          setShowRegistration(false);
+          setRegistrationData({ name: '', email: '', phone: '', message: '' });
+          setPendingRegistration(null);
+        }
+        throw new Error(errorMessage);
+      }
+    }
+  };
+
+  const handleOnlinePayment = async () => {
+    setProcessingPayment(true);
+    try {
+      // Create a temporary registration first (similar to order creation)
+      const tempRegistration = await api.post(`/workshops/${pendingRegistration.workshopId}/register`, {
+        ...pendingRegistration,
+        paymentMethod: 'ONLINE',
+        createTempOnly: true // Flag to create temp registration
+      });
+
+      // Create Razorpay order using the same flow as orders
+      const orderResponse = await api.post('/payment/create-order', {
+        amount: pendingRegistration.amount,
+        orderId: tempRegistration.data.registration._id, // Use registration ID as orderId
+        customerName: pendingRegistration.name,
+        customerEmail: pendingRegistration.email,
+        isWorkshop: true
+      });
+
+      const options = {
+        key: orderResponse.data.key,
+        amount: orderResponse.data.amount,
+        currency: orderResponse.data.currency,
+        name: 'Rabuste Coffee',
+        description: `Workshop: ${selectedWorkshop.title}`,
+        order_id: orderResponse.data.id,
+        handler: async function (response) {
+          try {
+            // Verify payment using the same endpoint as orders
+            const verifyResponse = await api.post('/payment/verify-payment', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId: tempRegistration.data.registration._id,
+              isWorkshop: true
+            });
+
+            setRegistrationSuccess(true);
+            setRegistrationData({ name: '', email: '', phone: '', message: '' });
+            setPendingRegistration(null);
+            setPaymentMethod(null);
+            setShowRegistration(false);
+            fetchWorkshops();
+            setProcessingPayment(false);
+          } catch (error) {
+            console.error('Payment verification error:', error);
+            alert('Payment verification failed. Please contact support.');
+            setProcessingPayment(false);
+          }
+        },
+        prefill: {
+          name: pendingRegistration.name,
+          email: pendingRegistration.email,
+          contact: pendingRegistration.phone
+        },
+        theme: {
+          color: '#FF6F00'
+        },
+        modal: {
+          ondismiss: function() {
+            setProcessingPayment(false);
+          }
+        }
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error('Payment initiation error:', error);
+      alert(error.response?.data?.message || 'Failed to initiate payment. Please try again.');
+      setProcessingPayment(false);
     }
   };
 
@@ -326,16 +451,16 @@ const Workshops = () => {
                       </div>
                     </div>
 
-                    {workshop.price > 0 && (
-                      <div className="flex items-center gap-2.5 text-sm">
-                        <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                          <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                          </svg>
-                        </div>
-                        <span className="text-coffee-amber font-bold text-lg">₹{workshop.price}</span>
+                    <div className="flex items-center gap-2.5 text-sm">
+                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                        <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
                       </div>
-                    )}
+                      <span className="text-coffee-amber font-bold text-lg">
+                        {(workshop.price || 0) > 0 ? `₹${workshop.price}` : 'Free'}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Register Button */}
@@ -389,11 +514,11 @@ const Workshops = () => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-md w-full"
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-6 md:p-8 max-w-md w-full max-h-[90vh] flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {registrationSuccess ? (
-              <div className="text-center">
+              <div className="text-center flex-shrink-0">
                 <div className="text-6xl mb-4">✅</div>
                 <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
                   Registration Successful!
@@ -414,10 +539,10 @@ const Workshops = () => {
               </div>
             ) : (
               <>
-                <h2 className="text-2xl font-heading font-bold text-coffee-amber mb-4">
+                <h2 className="text-xl md:text-2xl font-heading font-bold text-coffee-amber mb-4 flex-shrink-0">
                   Register for {selectedWorkshop.title}
                 </h2>
-                <form onSubmit={handleRegister} className="space-y-4">
+                <form onSubmit={handleRegister} className="space-y-4 flex-1 overflow-y-auto pr-2 scrollbar-thin">
                   <div>
                     <label className="block text-coffee-amber font-semibold mb-2">
                       Name *
@@ -465,18 +590,81 @@ const Workshops = () => {
                       className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
                     />
                   </div>
-                  <div className="flex gap-4">
+
+                  {/* Payment Method Selection (only for paid workshops) */}
+                  {(selectedWorkshop.price || 0) > 0 && (
+                    <div>
+                      <label className="block text-coffee-amber font-semibold mb-3">
+                        Payment Method *
+                      </label>
+                      <div className="space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('ONLINE')}
+                          className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left ${
+                            paymentMethod === 'ONLINE'
+                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg border-2 border-coffee-amber'
+                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60 border-2 border-coffee-brown/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">💳</span>
+                            <div className="flex-1">
+                              <div className="font-bold">Pay Online</div>
+                              <div className="text-xs opacity-80">Secure payment via Razorpay</div>
+                            </div>
+                            {paymentMethod === 'ONLINE' && <span className="text-lg">✓</span>}
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('PAY_AT_ENTRY')}
+                          className={`w-full px-4 py-3 rounded-lg font-semibold transition-all text-left ${
+                            paymentMethod === 'PAY_AT_ENTRY'
+                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg border-2 border-coffee-amber'
+                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60 border-2 border-coffee-brown/40'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <span className="text-xl">🏪</span>
+                            <div className="flex-1">
+                              <div className="font-bold">Pay at Entry</div>
+                              <div className="text-xs opacity-80">Pay when you arrive at the workshop</div>
+                            </div>
+                            {paymentMethod === 'PAY_AT_ENTRY' && <span className="text-lg">✓</span>}
+                          </div>
+                        </button>
+                      </div>
+                      {paymentMethod === 'PAY_AT_ENTRY' && (
+                        <div className="mt-3 p-3 bg-yellow-500/20 border border-yellow-500/40 rounded-lg">
+                          <p className="text-yellow-200 text-sm font-semibold">
+                            ⚠️ Important: Entry will be allowed only after payment at the counter.
+                          </p>
+                        </div>
+                      )}
+                      <div className="mt-3 p-3 bg-coffee-brown/30 rounded-lg border border-coffee-brown/50">
+                        <div className="flex justify-between items-center">
+                          <span className="text-coffee-light">Workshop Fee:</span>
+                          <span className="text-coffee-amber font-bold text-lg">₹{(selectedWorkshop.price || 0).toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="flex gap-4 flex-shrink-0 pt-2">
                     <button
                       type="submit"
-                      className="flex-1 bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                      disabled={processingPayment || ((selectedWorkshop.price || 0) > 0 && !paymentMethod)}
+                      className="flex-1 bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      Register
+                      {processingPayment ? 'Processing...' : (selectedWorkshop.price || 0) > 0 ? 'Continue' : 'Register'}
                     </button>
                     <button
                       type="button"
                       onClick={() => {
                         setShowRegistration(false);
                         setRegistrationSuccess(false);
+                        setPaymentMethod(null);
                       }}
                       className="flex-1 bg-coffee-brown/40 text-coffee-cream py-3 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors"
                     >

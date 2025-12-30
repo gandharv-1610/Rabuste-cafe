@@ -103,6 +103,84 @@ router.delete('/registrations/:id', async (req, res) => {
   }
 });
 
+// Mark entry payment as paid
+router.put('/registrations/:id/mark-paid', async (req, res) => {
+  try {
+    const registration = await WorkshopRegistration.findById(req.params.id);
+    if (!registration) {
+      return res.status(404).json({ message: 'Registration not found' });
+    }
+
+    if (registration.paymentStatus !== 'PENDING_ENTRY_PAYMENT') {
+      return res.status(400).json({ 
+        message: `Cannot mark as paid. Current payment status: ${registration.paymentStatus}` 
+      });
+    }
+
+    // Update payment status
+    registration.paymentStatus = 'PAID_AT_ENTRY';
+    await registration.save();
+
+    // Send updated confirmation email
+    const workshop = await Workshop.findById(registration.workshopId);
+    if (workshop) {
+      const { sendWorkshopConfirmationEmail } = require('../services/emailService');
+      const { generateGoogleCalendarUrl } = require('../utils/calendar');
+      
+      let calendarUrl = null;
+      if (workshop.date && workshop.time) {
+        calendarUrl = generateGoogleCalendarUrl({
+          title: workshop.title,
+          description: workshop.description || '',
+          location: 'Rabuste Coffee',
+          startDate: new Date(workshop.date),
+          endDate: new Date(new Date(workshop.date).getTime() + (workshop.duration ? parseInt(workshop.duration) * 60000 : 120 * 60000))
+        });
+      }
+
+      await sendWorkshopConfirmationEmail(registration, workshop, calendarUrl, {
+        paymentMethod: registration.paymentMethod,
+        paymentStatus: 'PAID_AT_ENTRY',
+        amount: registration.amount
+      });
+    }
+
+    res.json({
+      message: 'Payment marked as paid successfully',
+      registration: await WorkshopRegistration.findById(req.params.id).populate('workshopId')
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Search registrations by name or phone (for entry counter)
+router.get('/registrations/search', async (req, res) => {
+  try {
+    const { query } = req.query;
+    if (!query) {
+      return res.status(400).json({ message: 'Search query is required' });
+    }
+
+    const registrations = await WorkshopRegistration.find({
+      $or: [
+        { name: { $regex: query, $options: 'i' } },
+        { phone: { $regex: query, $options: 'i' } },
+        { email: { $regex: query, $options: 'i' } },
+        { confirmationCode: { $regex: query, $options: 'i' } }
+      ],
+      bookingStatus: 'BOOKED'
+    })
+      .populate('workshopId')
+      .sort({ createdAt: -1 })
+      .limit(20);
+
+    res.json(registrations);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Enhanced Order Analytics (with advanced metrics)
 router.get('/orders/analytics', async (req, res) => {
   try {

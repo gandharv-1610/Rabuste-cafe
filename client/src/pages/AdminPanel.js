@@ -294,6 +294,7 @@ const AdminPanel = () => {
             loading={loading}
             onRefresh={fetchWorkshops}
             onRefreshRegistrations={fetchRegistrations}
+            setRegistrations={setRegistrations}
           />
         )}
 
@@ -1143,8 +1144,61 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
   );
 };
 
+// Entry Counter Search Component
+const EntryCounterSearch = ({ onSearch, onClear }) => {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      onClear();
+      return;
+    }
+    try {
+      const response = await api.get('/admin/registrations/search', {
+        params: { query: searchQuery.trim() }
+      });
+      onSearch(response.data);
+    } catch (error) {
+      console.error('Error searching registrations:', error);
+      alert('Error searching registrations');
+    }
+  };
+
+  return (
+    <div className="flex gap-2 mb-4">
+      <input
+        type="text"
+        placeholder="Search by name, phone, email, or confirmation code..."
+        value={searchQuery}
+        onChange={(e) => setSearchQuery(e.target.value)}
+        onKeyPress={(e) => {
+          if (e.key === 'Enter') {
+            handleSearch();
+          }
+        }}
+        className="flex-1 bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-coffee-amber"
+      />
+      <button
+        onClick={handleSearch}
+        className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+      >
+        Search
+      </button>
+      <button
+        onClick={() => {
+          setSearchQuery('');
+          onClear();
+        }}
+        className="bg-coffee-brown/40 text-coffee-cream px-6 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors"
+      >
+        Clear
+      </button>
+    </div>
+  );
+};
+
 // Workshops Management Component
-const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onRefreshRegistrations }) => {
+const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onRefreshRegistrations, setRegistrations }) => {
   const [showForm, setShowForm] = useState(false);
   const [editingWorkshop, setEditingWorkshop] = useState(null);
   const [formData, setFormData] = useState({
@@ -1449,15 +1503,52 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
         ))}
       </div>
 
+      {/* Entry Counter Search */}
+      <div className="mt-8 mb-6">
+        <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">Entry Counter Search</h3>
+        <EntryCounterSearch onSearch={setRegistrations} onClear={onRefreshRegistrations} />
+      </div>
+
       {/* Registrations */}
       <div className="mt-8">
-        <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">Recent Registrations</h3>
+        <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">Registrations</h3>
         <div className="space-y-4">
           {registrations.length === 0 ? (
             <p className="text-coffee-light">No registrations yet.</p>
           ) : (
-            registrations.slice(0, 10).map((reg) => (
-              <div key={reg._id} className="bg-coffee-brown/20 rounded-lg p-4">
+            registrations.slice(0, 10).map((reg) => {
+              // Payment status badge styling
+              const getPaymentStatusBadge = (status) => {
+                const badges = {
+                  'FREE': 'bg-green-500/20 text-green-400 border-green-500/40',
+                  'PAID_ONLINE': 'bg-blue-500/20 text-blue-400 border-blue-500/40',
+                  'PENDING_ENTRY_PAYMENT': 'bg-yellow-500/20 text-yellow-400 border-yellow-500/40',
+                  'PAID_AT_ENTRY': 'bg-green-500/20 text-green-400 border-green-500/40'
+                };
+                return badges[status] || 'bg-gray-500/20 text-gray-400 border-gray-500/40';
+              };
+
+              const getPaymentMethodLabel = (method) => {
+                const labels = {
+                  'FREE': 'Free',
+                  'ONLINE': 'Online',
+                  'PAY_AT_ENTRY': 'Pay at Entry'
+                };
+                return labels[method] || method;
+              };
+
+              const getPaymentStatusLabel = (status) => {
+                const labels = {
+                  'FREE': 'Free',
+                  'PAID_ONLINE': 'Paid Online',
+                  'PENDING_ENTRY_PAYMENT': 'Payment Pending',
+                  'PAID_AT_ENTRY': 'Paid at Entry'
+                };
+                return labels[status] || status;
+              };
+
+              return (
+                <div key={reg._id} className="bg-coffee-brown/20 rounded-lg p-4">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <p className="text-coffee-amber font-semibold">{reg.name}</p>
@@ -1465,21 +1556,62 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
                     <p className="text-coffee-light text-sm">
                       Workshop: {reg.workshopId?.title || 'N/A'}
                     </p>
+                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                      <span className={`text-xs px-2 py-1 rounded border ${getPaymentStatusBadge(reg.paymentStatus)}`}>
+                        {getPaymentStatusLabel(reg.paymentStatus)}
+                      </span>
+                      {reg.paymentMethod && reg.paymentMethod !== 'FREE' && (
+                        <span className="text-xs text-coffee-light">
+                          ({getPaymentMethodLabel(reg.paymentMethod)})
+                        </span>
+                      )}
+                      {reg.amount > 0 && (
+                        <span className="text-xs text-coffee-amber font-semibold">
+                          ₹{reg.amount.toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                    {reg.confirmationCode && (
+                      <p className="text-coffee-light text-xs mt-1">
+                        Code: {reg.confirmationCode}
+                      </p>
+                    )}
                     {reg.message && (
                       <p className="text-coffee-light text-sm mt-2 italic">"{reg.message}"</p>
                     )}
-                    {reg.confirmationCode && (
-                      <p className="text-coffee-light text-xs mt-1">Code: {reg.confirmationCode}</p>
-                    )}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs ${
-                      reg.status === 'Confirmed' ? 'bg-green-500/20 text-green-400' :
-                      reg.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
-                      'bg-yellow-500/20 text-yellow-400'
-                    }`}>
-                      {reg.status}
-                    </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className={`px-3 py-1 rounded-full text-xs ${
+                        reg.status === 'Confirmed' ? 'bg-green-500/20 text-green-400' :
+                        reg.status === 'Cancelled' ? 'bg-red-500/20 text-red-400' :
+                        'bg-yellow-500/20 text-yellow-400'
+                      }`}>
+                        {reg.status}
+                      </span>
+                    </div>
+                    {reg.paymentStatus === 'PENDING_ENTRY_PAYMENT' && (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm(`Mark payment as paid for ${reg.name}?`)) {
+                            try {
+                              await api.put(`/admin/registrations/${reg._id}/mark-paid`);
+                              if (onRefreshRegistrations) {
+                                onRefreshRegistrations();
+                              }
+                              alert('Payment marked as paid successfully');
+                            } catch (error) {
+                              alert(error.response?.data?.message || 'Error marking payment as paid');
+                              console.error(error);
+                            }
+                          }
+                        }}
+                        className="bg-green-500/20 text-green-400 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-green-500/30 transition-colors"
+                        title="Mark Payment as Paid"
+                      >
+                        ✓ Mark Paid
+                      </button>
+                    )}
                     <button
                       onClick={async () => {
                         if (window.confirm(`Are you sure you want to delete the registration for ${reg.name}?`)) {
@@ -1503,7 +1635,8 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
                   </div>
                 </div>
               </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>

@@ -115,9 +115,37 @@ function buildGoogleCalendarUrlForWorkshop(workshop) {
   });
 }
 
+// Alias for compatibility
+const generateGoogleCalendarUrl = (options) => {
+  if (options.workshop) {
+    return buildGoogleCalendarUrlForWorkshop(options.workshop);
+  }
+  // Handle the new format with startDate and endDate
+  if (options.startDate && options.endDate) {
+    const startDate = options.startDate instanceof Date ? options.startDate : new Date(options.startDate);
+    const endDate = options.endDate instanceof Date ? options.endDate : new Date(options.endDate);
+    
+    const startStr = formatForCalendar(startDate);
+    const endStr = formatForCalendar(endDate);
+    
+    const params = new URLSearchParams({
+      action: 'TEMPLATE',
+      text: options.title || 'Workshop at Rabuste Coffee',
+      details: options.description || '',
+      location: options.location || 'Rabuste Coffee',
+      dates: `${startStr}/${endStr}`,
+    });
+    
+    return `${GOOGLE_CALENDAR_BASE_URL}?${params.toString()}`;
+  }
+  // Fallback to original format
+  return buildGoogleCalendarUrl(options);
+};
+
 module.exports = {
   buildGoogleCalendarUrl,
   buildGoogleCalendarUrlForWorkshop,
+  generateGoogleCalendarUrl,
 };
 
 
