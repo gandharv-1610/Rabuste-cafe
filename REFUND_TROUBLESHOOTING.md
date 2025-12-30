@@ -1,5 +1,7 @@
 # Refund Troubleshooting Guide
 
+This guide covers refund troubleshooting for the Rabuste Coffee platform, specifically for pre-orders that are cancelled by the admin.
+
 ## Why Refunds Might Not Be Possible
 
 Refunds through Razorpay may fail for several reasons:
@@ -29,12 +31,13 @@ Refunds through Razorpay may fail for several reasons:
 ## How the System Handles Refunds
 
 ### Automatic Refund Process
-1. When an admin cancels a pre-order, the system attempts to process an automatic refund
+1. When an admin cancels a pre-order (via Admin Panel → Orders → Cancel Order), the system attempts to process an automatic refund
 2. The refund is processed using the `razorpayPaymentId` stored in the order
 3. Refund information is stored in the order:
    - `refundId`: Razorpay refund ID
    - `refundAmount`: Amount refunded
    - `refundStatus`: Status of the refund (Pending, Processed, Failed)
+4. The order's `paymentStatus` is updated to `'Refunded'` upon successful refund
 
 ### Error Handling
 The system provides specific error messages based on the type of failure:
