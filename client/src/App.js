@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
+import ScrollToTop from './components/ScrollToTop';
 import Home from './pages/Home';
 import About from './pages/About';
 import WhyRobusta from './pages/WhyRobusta';
@@ -25,6 +26,7 @@ import './App.css';
 function App() {
   return (
     <Router>
+      <ScrollToTop />
       {/* Crema Mesh Animated Background */}
       <div className="mesh-background">
         <div className="mesh-gradient"></div>

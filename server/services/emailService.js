@@ -67,7 +67,8 @@ const sendOTPEmail = async (email, otp, type) => {
 
 // Send Workshop Confirmation Email
 // calendarUrl is optional; when provided, a Google Calendar button is included.
-const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl) => {
+// paymentInfo is optional; contains { paymentMethod, paymentStatus, amount }
+const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl, paymentInfo = null) => {
   const formatDate = (date) => {
     return new Date(date).toLocaleDateString('en-US', { 
       year: 'numeric', 
@@ -76,18 +77,71 @@ const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl
     });
   };
 
+  // Determine email content based on payment status
+  const paymentMethod = paymentInfo?.paymentMethod || registration.paymentMethod || 'FREE';
+  const paymentStatus = paymentInfo?.paymentStatus || registration.paymentStatus || 'FREE';
+  const amount = paymentInfo?.amount || registration.amount || workshop.price || 0;
+
+  let paymentSection = '';
+  let mainMessage = '';
+  let subjectSuffix = '';
+
+  if (paymentMethod === 'FREE' || paymentStatus === 'FREE') {
+    // Free workshop
+    mainMessage = 'Your registration for <strong>' + workshop.title + '</strong> has been confirmed!';
+    subjectSuffix = 'Registration Confirmed';
+  } else if (paymentStatus === 'PAID_ONLINE') {
+    // Online payment confirmed
+    mainMessage = 'Your registration and payment for <strong>' + workshop.title + '</strong> have been confirmed!';
+    subjectSuffix = 'Payment Confirmed';
+    paymentSection = `
+      <div style="background-color: #1B5E20; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+        <p style="color: #C8E6C9; margin: 5px 0; font-weight: 600;">✓ Payment Confirmed</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Amount Paid:</strong> ₹${amount.toFixed(2)}</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Payment Method:</strong> Online (Razorpay)</p>
+        <p style="color: #C8E6C9; margin: 10px 0 5px 0; font-size: 14px;">Your entry is confirmed. See you at the workshop!</p>
+      </div>
+    `;
+  } else if (paymentStatus === 'PENDING_ENTRY_PAYMENT') {
+    // Pay at entry - pending payment
+    mainMessage = 'Your seat for <strong>' + workshop.title + '</strong> has been reserved!';
+    subjectSuffix = 'Seat Reserved - Payment Pending';
+    paymentSection = `
+      <div style="background-color: #E65100; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FF6F00;">
+        <p style="color: #FFE0B2; margin: 5px 0; font-weight: 600;">⚠️ Payment Pending</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Amount to Pay:</strong> ₹${amount.toFixed(2)}</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Payment Method:</strong> Pay at Entry</p>
+        <p style="color: #FFE0B2; margin: 10px 0 5px 0; font-size: 14px; font-weight: 600;">
+          ⚠️ IMPORTANT: Payment must be completed at the entry counter. Entry will not be allowed without payment.
+        </p>
+      </div>
+    `;
+  } else if (paymentStatus === 'PAID_AT_ENTRY') {
+    // Payment marked as paid at entry
+    mainMessage = 'Your registration and payment for <strong>' + workshop.title + '</strong> have been confirmed!';
+    subjectSuffix = 'Payment Confirmed';
+    paymentSection = `
+      <div style="background-color: #1B5E20; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+        <p style="color: #C8E6C9; margin: 5px 0; font-weight: 600;">✓ Payment Confirmed</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Amount Paid:</strong> ₹${amount.toFixed(2)}</p>
+        <p style="color: #EFEBE9; margin: 5px 0;"><strong>Payment Method:</strong> Paid at Entry</p>
+        <p style="color: #C8E6C9; margin: 10px 0 5px 0; font-size: 14px;">Your entry is confirmed. See you at the workshop!</p>
+      </div>
+    `;
+  }
+
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
       <div style="text-align: center; margin-bottom: 30px;">
         <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
       </div>
       <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
-        <h2 style="color: #FF6F00; margin-bottom: 20px;">Workshop Registration Confirmed!</h2>
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Workshop ${subjectSuffix}</h2>
         <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
           Hello ${registration.name},
         </p>
         <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
-          Your registration for <strong>${workshop.title}</strong> has been confirmed!
+          ${mainMessage}
         </p>
         <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <h3 style="color: #FF6F00; margin-bottom: 15px;">Workshop Details</h3>
@@ -95,8 +149,9 @@ const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl
           <p style="color: #EFEBE9; margin: 10px 0;"><strong>Time:</strong> ${workshop.time} (${workshop.duration})</p>
           <p style="color: #EFEBE9; margin: 10px 0;"><strong>Type:</strong> ${workshop.type}</p>
           ${workshop.instructor ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Instructor:</strong> ${workshop.instructor}</p>` : ''}
-          ${workshop.price > 0 ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${workshop.price}</p>` : ''}
+          ${amount > 0 ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${amount.toFixed(2)}</p>` : ''}
         </div>
+        ${paymentSection}
         <div style="background-color: #3E2723; padding: 15px; border-radius: 8px; margin: 20px 0;">
           <p style="color: #EFEBE9; margin: 5px 0;"><strong>Confirmation Code:</strong> ${registration.confirmationCode}</p>
         </div>
@@ -138,7 +193,7 @@ const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl
     await transporter.sendMail({
       from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
       to: registration.email,
-      subject: `Workshop Confirmation: ${workshop.title}`,
+      subject: `Workshop ${subjectSuffix}: ${workshop.title}`,
       html
     });
     return true;

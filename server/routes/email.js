@@ -58,6 +58,34 @@ router.post('/workshop/otp', async (req, res) => {
   }
 });
 
+// Verify OTP only (for online payments - doesn't create registration)
+router.post('/workshop/verify-otp-only', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const otpRecord = await OTP.findOne({ 
+      email, 
+      otp, 
+      type: 'workshop',
+      verified: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Mark OTP as verified but don't create registration
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    res.json({ message: 'OTP verified successfully' });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Verify OTP and Complete Workshop Registration
 router.post('/workshop/verify', async (req, res) => {
   try {
@@ -106,13 +134,39 @@ router.post('/workshop/verify', async (req, res) => {
       });
     }
 
+    // Determine payment method and status
+    const workshopPrice = workshop.price || 0;
+    const paymentMethod = otpRecord.data.paymentMethod || (workshopPrice === 0 ? 'FREE' : null);
+    let finalPaymentMethod = 'FREE';
+    let finalPaymentStatus = 'FREE';
+
+    if (workshopPrice === 0) {
+      finalPaymentMethod = 'FREE';
+      finalPaymentStatus = 'FREE';
+    } else if (workshopPrice > 0) {
+      if (paymentMethod === 'PAY_AT_ENTRY') {
+        finalPaymentMethod = 'PAY_AT_ENTRY';
+        finalPaymentStatus = 'PENDING_ENTRY_PAYMENT';
+      } else if (paymentMethod === 'ONLINE') {
+        // For online payment, OTP verification is done, but payment will be handled separately
+        // This should not reach here for online payments
+        return res.status(400).json({ message: 'Invalid payment flow for online payment' });
+      } else {
+        return res.status(400).json({ message: 'Payment method required for paid workshops' });
+      }
+    }
+
     // Create registration
     const confirmationCode = `WRK${Date.now().toString().slice(-6)}`;
     const registration = new WorkshopRegistration({
       ...otpRecord.data,
       email: email.toLowerCase().trim(), // Ensure lowercase
       workshopId: workshop._id,
-      confirmationCode
+      confirmationCode,
+      bookingStatus: 'BOOKED',
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: finalPaymentStatus,
+      amount: workshopPrice
     });
     
     try {
@@ -140,7 +194,11 @@ router.post('/workshop/verify', async (req, res) => {
     }
 
     // Send confirmation email
-    await sendWorkshopConfirmationEmail(registration, workshop, calendarUrl);
+    await sendWorkshopConfirmationEmail(registration, workshop, calendarUrl, {
+      paymentMethod: finalPaymentMethod,
+      paymentStatus: finalPaymentStatus,
+      amount: workshopPrice
+    });
 
     res.status(201).json({
       message: 'Registration successful',

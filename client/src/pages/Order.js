@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
 import Toast from '../components/Toast';
@@ -45,6 +46,9 @@ const Order = () => {
   const [showToast, setShowToast] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(new Set()); // Track items just added
   const [cartShake, setCartShake] = useState(0); // For cart shake animation
+  const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false); // AI Discovery modal state
+  const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true); // Show promotional banner
+  const [showMobileCart, setShowMobileCart] = useState(false); // Mobile cart drawer state
   const cartRef = useRef(null);
 
   // Load customer session and favorites on mount
@@ -739,6 +743,53 @@ const Order = () => {
 
   return (
     <div className="pt-20 min-h-screen">
+      {/* AI Discovery Promotional Banner */}
+      <AnimatePresence>
+        {showDiscoveryBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="bg-gradient-to-r from-coffee-amber/20 via-coffee-gold/20 to-coffee-amber/20 border-b border-coffee-amber/30 px-4 py-3"
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm md:text-base text-coffee-cream font-semibold">
+                    <span className="text-coffee-amber">✨ New!</span> Not sure what to order? Try our <span className="text-coffee-amber font-bold">AI Coffee Discovery</span> to find your perfect brew!
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsDiscoveryOpen(true);
+                    setShowDiscoveryBanner(false);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-lg font-bold text-sm hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg hover:shadow-xl"
+                >
+                  Try It Now
+                </button>
+                <button
+                  onClick={() => setShowDiscoveryBanner(false)}
+                  className="p-1 text-coffee-light hover:text-coffee-cream transition-colors"
+                  aria-label="Close banner"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <section className="py-8 px-4 bg-gradient-to-b from-coffee-darker to-coffee-dark">
         <div className="max-w-6xl mx-auto">
@@ -752,6 +803,16 @@ const Order = () => {
               </p>
             </div>
             <div className="flex gap-2">
+              <button
+                onClick={() => setIsDiscoveryOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-lg font-semibold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                <span className="hidden sm:inline">AI Discovery</span>
+                <span className="sm:hidden">AI</span>
+              </button>
               <button
                 onClick={() => navigate('/your-orders')}
                 className="px-4 py-2 bg-coffee-brown/60 text-coffee-cream rounded-lg font-semibold hover:bg-coffee-brown/80"
@@ -1285,6 +1346,321 @@ const Order = () => {
         requireName={false}
         title={loginForFavorite ? "Login to Save Favorites" : "Login to Place Order"}
       />
+
+      {/* Animated Discovery Sidebar */}
+      <AnimatePresence>
+        {isDiscoveryOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setIsDiscoveryOpen(false)}
+              className="fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
+            />
+            
+            {/* Sidebar Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-full md:w-[500px] lg:w-[600px] bg-coffee-darkest z-50 shadow-2xl overflow-y-auto"
+              style={{ boxShadow: '-10px 0 40px rgba(0, 0, 0, 0.5)' }}
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-coffee-darkest border-b border-coffee-amber/20 p-4 md:p-6 flex items-center justify-between z-10 backdrop-blur-sm">
+                <h2 className="text-xl md:text-2xl font-heading font-bold text-coffee-amber flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  AI Coffee Discovery
+                </h2>
+                <button
+                  onClick={() => setIsDiscoveryOpen(false)}
+                  className="p-2 rounded-full hover:bg-coffee-brown/30 text-coffee-light hover:text-coffee-amber transition-colors duration-200"
+                  aria-label="Close"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Content */}
+              <div className="p-4 md:p-6">
+                <CoffeeDiscovery />
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
+      {/* Floating Cart Button for Mobile */}
+      {cart.length > 0 && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          onClick={() => setShowMobileCart(true)}
+          className="lg:hidden fixed bottom-24 right-4 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.4)' }}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          {cart.length > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
+            >
+              {cart.reduce((sum, item) => sum + item.quantity, 0)}
+            </motion.span>
+          )}
+        </motion.button>
+      )}
+
+      {/* Mobile Cart Drawer */}
+      <AnimatePresence>
+        {showMobileCart && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileCart(false)}
+              className="lg:hidden fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
+            />
+            
+            {/* Cart Drawer */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="lg:hidden fixed bottom-0 left-0 right-0 bg-coffee-darkest z-50 shadow-2xl rounded-t-3xl max-h-[85vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-coffee-darker border-b border-coffee-brown/30 p-4 flex items-center justify-between z-10 rounded-t-3xl">
+                <h2 className="text-xl font-heading font-bold text-coffee-amber flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Your Order ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)
+                </h2>
+                <button
+                  onClick={() => setShowMobileCart(false)}
+                  className="p-2 rounded-full hover:bg-coffee-brown/30 text-coffee-light hover:text-coffee-amber transition-colors duration-200"
+                  aria-label="Close cart"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Cart Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-light">
+                    <p>Your cart is empty</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Cart Items */}
+                    <div>
+                      <div className="text-sm text-coffee-light/70 mb-3 font-semibold">Cart Items</div>
+                      <div className="space-y-2">
+                        {cart.map((item, idx) => (
+                          <div key={idx} className="bg-coffee-brown/40 rounded-lg p-3 border border-coffee-brown/30">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-sm font-semibold text-coffee-cream">{item.name}</p>
+                                {item.priceType !== 'Standard' && (
+                                  <p className="text-xs text-coffee-light/80">{item.priceType}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => removeFromCart(item.itemId, item.priceType)}
+                                className="text-coffee-light hover:text-red-400 flex-shrink-0 ml-2"
+                                title="Remove"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, -1)}
+                                  className="w-7 h-7 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown text-sm flex items-center justify-center"
+                                >
+                                  -
+                                </button>
+                                <span className="text-sm text-coffee-cream w-8 text-center">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, 1)}
+                                  className="w-7 h-7 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown text-sm flex items-center justify-center"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="text-sm font-semibold text-coffee-amber">
+                                ₹{(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Totals */}
+                    <div className="border-t border-coffee-brown/50 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">Subtotal:</span>
+                        <span className="text-coffee-cream">₹{subtotal.toFixed(2)}</span>
+                      </div>
+                      {offerDiscountAmount > 0 && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-coffee-light">Daily Offer:</span>
+                            <span className="text-green-400">-₹{offerDiscountAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
+                            <span className="text-coffee-light font-semibold">Discounted Subtotal:</span>
+                            <span className="text-coffee-cream font-semibold">₹{discountedSubtotal.toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">CGST ({cgstRate.toFixed(1)}%):</span>
+                        <span className="text-coffee-cream">₹{cgstAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">SGST ({sgstRate.toFixed(1)}%):</span>
+                        <span className="text-coffee-cream">₹{sgstAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold pt-2 border-t border-coffee-brown/50">
+                        <span className="text-coffee-amber">Total:</span>
+                        <span className="text-coffee-amber">₹{total.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Customer Info Section */}
+                    <div className="space-y-3 pt-4 border-t border-coffee-brown/50">
+                      <input
+                        type="tel"
+                        placeholder="Mobile number * (10 digits)"
+                        value={customerMobile}
+                        onChange={(e) => {
+                          setCustomerMobile(e.target.value);
+                          setMobileError('');
+                        }}
+                        className={`w-full bg-coffee-brown/40 border ${
+                          mobileError ? 'border-red-500' : 'border-coffee-brown'
+                        } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                        maxLength={13}
+                      />
+                      {mobileError && (
+                        <p className="text-red-400 text-xs">{mobileError}</p>
+                      )}
+                      <input
+                        type="text"
+                        placeholder="Your name *"
+                        value={customerName}
+                        onChange={(e) => {
+                          setCustomerName(e.target.value);
+                          setNameError('');
+                        }}
+                        className={`w-full bg-coffee-brown/40 border ${
+                          nameError ? 'border-red-500' : 'border-coffee-brown'
+                        } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                      />
+                      {nameError && (
+                        <p className="text-red-400 text-xs">{nameError}</p>
+                      )}
+                      <input
+                        type="email"
+                        placeholder="Email for receipt (optional)"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2.5 text-sm"
+                      />
+                      <textarea
+                        placeholder="Special instructions (optional)"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows="2"
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2.5 text-sm"
+                      />
+                    </div>
+
+                    {/* Payment Method */}
+                    <div className="pt-4 border-t border-coffee-brown/50">
+                      <label className="block text-sm font-semibold text-coffee-amber mb-2">
+                        Payment Method *
+                      </label>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('online')}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                            paymentMethod === 'online'
+                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                          }`}
+                        >
+                          💳 Pay Online
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPaymentMethod('counter')}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
+                            paymentMethod === 'counter'
+                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                          }`}
+                        >
+                          🏪 Pay at Counter
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Marketing Consent */}
+                    <div className="pt-2">
+                      <label className="flex items-start gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={marketingConsent}
+                          onChange={(e) => setMarketingConsent(e.target.checked)}
+                          className="mt-1 w-4 h-4 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded focus:ring-coffee-amber"
+                        />
+                        <span className="text-xs text-coffee-light">
+                          I'd like to receive updates about new coffee items, offers, and workshops
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed Button at Bottom */}
+              {cart.length > 0 && (
+                <div className="sticky bottom-0 bg-coffee-darker border-t border-coffee-brown/50 p-4 pt-4">
+                  <button
+                    onClick={handlePlaceOrder}
+                    className="w-full bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker py-3.5 rounded-lg font-bold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg text-base"
+                  >
+                    {paymentMethod === 'counter' ? 'Place Order (Pay at Counter)' : 'Place Order & Pay'}
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       <Chatbot />
     </div>

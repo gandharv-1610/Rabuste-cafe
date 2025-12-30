@@ -34,6 +34,35 @@ const workshopRegistrationSchema = new mongoose.Schema({
   confirmationCode: {
     type: String,
     default: ''
+  },
+  // Payment fields
+  bookingStatus: {
+    type: String,
+    enum: ['BOOKED', 'CANCELLED', 'EXPIRED'],
+    default: 'BOOKED'
+  },
+  paymentMethod: {
+    type: String,
+    enum: ['FREE', 'ONLINE', 'PAY_AT_ENTRY'],
+    default: 'FREE'
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['FREE', 'PAID_ONLINE', 'PENDING_ENTRY_PAYMENT', 'PAID_AT_ENTRY'],
+    default: 'FREE'
+  },
+  amount: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
+  razorpayOrderId: {
+    type: String,
+    default: ''
+  },
+  razorpayPaymentId: {
+    type: String,
+    default: ''
   }
 }, {
   timestamps: true
