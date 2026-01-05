@@ -22,6 +22,8 @@ const Workshops = () => {
   const [backgroundMedia, setBackgroundMedia] = useState(null);
   const [paymentMethod, setPaymentMethod] = useState(null); // 'ONLINE' or 'PAY_AT_ENTRY'
   const [processingPayment, setProcessingPayment] = useState(false);
+  const [sendingOTP, setSendingOTP] = useState(false);
+  const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
 
   useEffect(() => {
     fetchWorkshops();
@@ -122,14 +124,17 @@ const Workshops = () => {
     };
     
     setPendingRegistration(registrationPayload);
+    setSendingOTP(true);
     
     try {
       await api.post('/email/workshop/otp', {
         email: registrationData.email,
         registrationData: registrationPayload
       });
+      setSendingOTP(false);
       setShowOTPModal(true);
     } catch (error) {
+      setSendingOTP(false);
       const errorMessage = error.response?.data?.message || 'Failed to send OTP. Please try again.';
       alert(errorMessage);
       // If it's a duplicate registration error, reset the form
@@ -144,12 +149,15 @@ const Workshops = () => {
   const handleOTPVerify = async (otp, resend = false) => {
     if (resend) {
       // Resend OTP
+      setSendingOTP(true);
       try {
         await api.post('/email/workshop/otp', {
           email: pendingRegistration.email,
           registrationData: pendingRegistration
         });
+        setSendingOTP(false);
       } catch (error) {
+        setSendingOTP(false);
         throw new Error(error.response?.data?.message || 'Failed to resend OTP');
       }
       return;
@@ -172,6 +180,7 @@ const Workshops = () => {
         setPaymentMethod(null);
         setShowOTPModal(false);
         setShowRegistration(false);
+        setShowConfirmationPopup(true);
         fetchWorkshops();
       } catch (error) {
         const errorMessage = error.response?.data?.message || 'Invalid OTP. Please try again.';
@@ -254,6 +263,7 @@ const Workshops = () => {
             setPendingRegistration(null);
             setPaymentMethod(null);
             setShowRegistration(false);
+            setShowConfirmationPopup(true);
             fetchWorkshops();
             setProcessingPayment(false);
           } catch (error) {
@@ -689,6 +699,85 @@ const Workshops = () => {
         onVerify={handleOTPVerify}
         type="workshop"
       />
+
+      {/* Sending OTP Popup */}
+      {sendingOTP && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-sm w-full text-center"
+          >
+            <div className="flex flex-col items-center gap-4">
+              <div className="w-16 h-16 border-4 border-coffee-amber border-t-transparent rounded-full animate-spin"></div>
+              <h3 className="text-xl font-heading font-bold text-coffee-amber">
+                Sending OTP...
+              </h3>
+              <p className="text-coffee-light text-sm">
+                Please wait while we send the verification code to your email.
+              </p>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* Registration Confirmation Popup */}
+      {showConfirmationPopup && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/70 z-[60] flex items-center justify-center p-4"
+          onClick={() => setShowConfirmationPopup(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-coffee-darker border-2 border-coffee-amber rounded-lg p-8 max-w-md w-full text-center"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-col items-center gap-4">
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 200, delay: 0.1 }}
+                className="w-20 h-20 bg-coffee-amber/20 rounded-full flex items-center justify-center"
+              >
+                <svg className="w-12 h-12 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </motion.div>
+              <h3 className="text-2xl font-heading font-bold text-coffee-amber">
+                Registration Successful!
+              </h3>
+              <p className="text-coffee-light">
+                Your workshop registration has been confirmed. A confirmation email has been sent to your registered email address.
+              </p>
+              {selectedWorkshop && (
+                <div className="mt-2 p-4 bg-coffee-brown/30 rounded-lg border border-coffee-brown/50 w-full">
+                  <p className="text-coffee-amber font-semibold mb-1">Workshop Details:</p>
+                  <p className="text-coffee-light text-sm">{selectedWorkshop.title}</p>
+                  <p className="text-coffee-light text-sm">{formatDate(selectedWorkshop.date)} at {selectedWorkshop.time}</p>
+                </div>
+              )}
+              <button
+                onClick={() => {
+                  setShowConfirmationPopup(false);
+                  setSelectedWorkshop(null);
+                }}
+                className="mt-4 bg-coffee-amber text-coffee-darker px-8 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
 
       <Chatbot />
     </div>
