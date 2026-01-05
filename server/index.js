@@ -13,9 +13,22 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // MongoDB Connection
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/rabuste-coffee';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/test';
+
+// Validate connection string format
+if (MONGODB_URI.includes('mongodb+srv://') && !MONGODB_URI.match(/mongodb\+srv:\/\/[^/]+\/[^?]+/)) {
+  console.error('❌ MongoDB Connection String Error: Database name is missing in MONGODB_URI');
+  console.error('   Format should be: mongodb+srv://user:pass@cluster.mongodb.net/database?options');
+  console.error('   Current URI:', MONGODB_URI.replace(/:[^:@]+@/, ':****@')); // Hide password
+  process.exit(1);
+}
 
 console.log('🔄 Connecting to MongoDB...');
+if (MONGODB_URI.includes('mongodb+srv://')) {
+  console.log('   Using MongoDB Atlas (cloud)');
+} else {
+  console.log('   Using local MongoDB');
+}
 
 mongoose.connect(MONGODB_URI, {
   serverSelectionTimeoutMS: 10000,
@@ -28,8 +41,24 @@ mongoose.connect(MONGODB_URI, {
   })
   .catch(err => {
     console.error('❌ MongoDB Connection Error:', err.message);
-    console.error('   Please check your MONGODB_URI in .env file');
-    console.error('   Full error:', err);
+    console.error('\n📋 Troubleshooting Steps:');
+    
+    if (MONGODB_URI.includes('mongodb+srv://')) {
+      console.error('   For MongoDB Atlas:');
+      console.error('   1. Check if your IP is whitelisted in MongoDB Atlas Network Access');
+      console.error('   2. Verify username and password are correct');
+      console.error('   3. Ensure the cluster is not paused (free tier clusters pause after inactivity)');
+      console.error('   4. Check database name is included in connection string');
+      console.error('   5. Verify connection string format: mongodb+srv://user:pass@cluster.mongodb.net/database');
+    } else {
+      console.error('   For Local MongoDB:');
+      console.error('   1. Ensure MongoDB service is running: mongod');
+      console.error('   2. Check if MongoDB is listening on port 27017');
+      console.error('   3. Verify connection string format: mongodb://localhost:27017/database');
+    }
+    
+    console.error('\n   Connection String (password hidden):', MONGODB_URI.replace(/:[^:@]+@/, ':****@'));
+    console.error('   Full error details:', err);
     process.exit(1);
   });
 
