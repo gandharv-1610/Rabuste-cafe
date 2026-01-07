@@ -5,6 +5,7 @@ const Art = require('../models/Art');
 const Workshop = require('../models/Workshop');
 const WorkshopRegistration = require('../models/WorkshopRegistration');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
+const ArtEnquiry = require('../models/ArtEnquiry');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
 const auth = require('../middleware/auth');
@@ -26,7 +27,9 @@ router.get('/stats', async (req, res) => {
       activeWorkshops: await Workshop.countDocuments({ isActive: true }),
       registrations: await WorkshopRegistration.countDocuments(),
       franchiseEnquiries: await FranchiseEnquiry.countDocuments(),
-      newEnquiries: await FranchiseEnquiry.countDocuments({ status: 'New' })
+      newEnquiries: await FranchiseEnquiry.countDocuments({ status: 'New' }),
+      artEnquiries: await ArtEnquiry.countDocuments(),
+      newArtEnquiries: await ArtEnquiry.countDocuments({ status: 'New' })
     };
     res.json(stats);
   } catch (error) {
@@ -411,6 +414,64 @@ router.post('/customer-engagement/notify-subscribers', async (req, res) => {
     });
   } catch (error) {
     console.error('Notify subscribers error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all art enquiries (Admin)
+router.get('/art-enquiries', async (req, res) => {
+  try {
+    const enquiries = await ArtEnquiry.find()
+      .populate('artId', 'title artistName price image')
+      .sort({ createdAt: -1 });
+    res.json(enquiries);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get single art enquiry (Admin)
+router.get('/art-enquiries/:id', async (req, res) => {
+  try {
+    const enquiry = await ArtEnquiry.findById(req.params.id)
+      .populate('artId', 'title artistName price image description');
+    if (!enquiry) {
+      return res.status(404).json({ message: 'Enquiry not found' });
+    }
+    res.json(enquiry);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Update art enquiry status (Admin)
+router.put('/art-enquiries/:id/status', async (req, res) => {
+  try {
+    const { status } = req.body;
+    const enquiry = await ArtEnquiry.findByIdAndUpdate(
+      req.params.id,
+      { status },
+      { new: true, runValidators: true }
+    ).populate('artId', 'title artistName price image');
+    
+    if (!enquiry) {
+      return res.status(404).json({ message: 'Enquiry not found' });
+    }
+    res.json(enquiry);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+// Delete art enquiry (Admin)
+router.delete('/art-enquiries/:id', async (req, res) => {
+  try {
+    const enquiry = await ArtEnquiry.findByIdAndDelete(req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({ message: 'Enquiry not found' });
+    }
+    res.json({ message: 'Art enquiry deleted successfully' });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 });

@@ -16,6 +16,7 @@ const AdminPanel = () => {
   const [workshops, setWorkshops] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
+  const [artEnquiries, setArtEnquiries] = useState([]);
   const [siteMedia, setSiteMedia] = useState([]);
   const [billingSettings, setBillingSettings] = useState(null);
   const [billingOffers, setBillingOffers] = useState([]);
@@ -25,7 +26,10 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchStats();
     if (activeTab === 'coffee') fetchCoffees();
-    if (activeTab === 'art') fetchArts();
+    if (activeTab === 'art') {
+      fetchArts();
+      fetchArtEnquiries();
+    }
     if (activeTab === 'workshops') {
       fetchWorkshops();
       fetchRegistrations();
@@ -100,6 +104,18 @@ const AdminPanel = () => {
       setEnquiries(response.data);
     } catch (error) {
       console.error('Error fetching enquiries:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchArtEnquiries = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/art-enquiries');
+      setArtEnquiries(response.data);
+    } catch (error) {
+      console.error('Error fetching art enquiries:', error);
     } finally {
       setLoading(false);
     }
@@ -233,6 +249,13 @@ const AdminPanel = () => {
                     <p className="text-sm text-coffee-amber mt-2">{stats.newEnquiries} new</p>
                   )}
                 </div>
+                <div className="bg-coffee-brown/20 rounded-lg p-6">
+                  <h3 className="text-coffee-light text-sm mb-2">Art Enquiries</h3>
+                  <p className="text-3xl font-bold text-coffee-amber">{stats.artEnquiries || 0}</p>
+                  {stats.newArtEnquiries > 0 && (
+                    <p className="text-sm text-coffee-amber mt-2">{stats.newArtEnquiries} new</p>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="text-center py-12">
@@ -281,8 +304,10 @@ const AdminPanel = () => {
         {activeTab === 'art' && (
           <ArtManagement
             arts={arts}
+            artEnquiries={artEnquiries}
             loading={loading}
             onRefresh={fetchArts}
+            onRefreshEnquiries={fetchArtEnquiries}
           />
         )}
 
@@ -898,7 +923,8 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
 };
 
 // Art Management Component
-const ArtManagement = ({ arts, loading, onRefresh }) => {
+const ArtManagement = ({ arts, artEnquiries, loading, onRefresh, onRefreshEnquiries }) => {
+  const [showEnquiries, setShowEnquiries] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [editingArt, setEditingArt] = useState(null);
   const [formData, setFormData] = useState({
@@ -988,27 +1014,70 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-display font-bold text-coffee-amber">Art Gallery Management</h2>
-        <button
-          onClick={() => {
-            setShowForm(true);
-            setEditingArt(null);
-            setFormData({
-              title: '',
-              artistName: '',
-              artistStory: '',
-              description: '',
-              price: '',
-              image: '',
-              availability: 'Available',
-              dimensions: '',
-            });
-          }}
-          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
-        >
-          Add Art Piece
-        </button>
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">
+          {showEnquiries ? 'Art Enquiries' : 'Art Gallery Management'}
+        </h2>
+        <div className="flex gap-4">
+          <button
+            onClick={() => setShowEnquiries(false)}
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              !showEnquiries
+                ? 'bg-coffee-amber text-coffee-darker'
+                : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+            }`}
+          >
+            Art Pieces
+          </button>
+          <button
+            onClick={() => {
+              setShowEnquiries(true);
+              onRefreshEnquiries();
+            }}
+            className={`px-4 py-2 rounded-lg font-semibold relative ${
+              showEnquiries
+                ? 'bg-coffee-amber text-coffee-darker'
+                : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+            }`}
+          >
+            Enquiries
+            {artEnquiries.filter(e => e.status === 'New').length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {artEnquiries.filter(e => e.status === 'New').length}
+              </span>
+            )}
+          </button>
+        </div>
       </div>
+
+      {showEnquiries ? (
+        <ArtEnquiries
+          enquiries={artEnquiries}
+          loading={loading}
+          onRefresh={onRefreshEnquiries}
+        />
+      ) : (
+        <>
+          <div className="mb-6">
+            <button
+              onClick={() => {
+                setShowForm(true);
+                setEditingArt(null);
+                setFormData({
+                  title: '',
+                  artistName: '',
+                  artistStory: '',
+                  description: '',
+                  price: '',
+                  image: '',
+                  availability: 'Available',
+                  dimensions: '',
+                });
+              }}
+              className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+            >
+              Add Art Piece
+            </button>
+          </div>
 
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-coffee-brown/20 rounded-lg p-6 mb-6 space-y-4">
@@ -1140,6 +1209,151 @@ const ArtManagement = ({ arts, loading, onRefresh }) => {
           </div>
         ))}
       </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Art Enquiries Component
+const ArtEnquiries = ({ enquiries, loading, onRefresh }) => {
+  const [selectedEnquiry, setSelectedEnquiry] = useState(null);
+
+  const handleStatusUpdate = async (id, status) => {
+    try {
+      await api.put(`/admin/art-enquiries/${id}/status`, { status });
+      onRefresh();
+      setSelectedEnquiry(null);
+    } catch (error) {
+      alert('Error updating status');
+    }
+  };
+
+  if (loading) return <div className="text-coffee-light">Loading...</div>;
+
+  return (
+    <div>
+      <div className="space-y-4">
+        {enquiries.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-coffee-light">No art enquiries yet.</p>
+          </div>
+        ) : (
+          enquiries.map((enquiry) => (
+            <div
+              key={enquiry._id}
+              className="bg-coffee-brown/20 rounded-lg p-6 cursor-pointer hover:bg-coffee-brown/30"
+              onClick={() => setSelectedEnquiry(enquiry)}
+            >
+              <div className="flex justify-between items-start">
+                <div className="flex-1">
+                  <h3 className="text-xl font-display font-bold text-coffee-amber">{enquiry.name}</h3>
+                  <p className="text-coffee-light">{enquiry.email} | {enquiry.phone}</p>
+                  {enquiry.artId && (
+                    <p className="text-coffee-light">
+                      Art: {enquiry.artId.title} by {enquiry.artId.artistName}
+                    </p>
+                  )}
+                  <p className="text-coffee-light text-sm">
+                    Type: {enquiry.enquiryType} | Submitted: {new Date(enquiry.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  enquiry.status === 'New' ? 'bg-green-500/20 text-green-400' :
+                  enquiry.status === 'Contacted' ? 'bg-blue-500/20 text-blue-400' :
+                  enquiry.status === 'In Progress' ? 'bg-coffee-amber/30 text-coffee-amber' :
+                  enquiry.status === 'Resolved' ? 'bg-green-500/30 text-green-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {enquiry.status}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {selectedEnquiry && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedEnquiry(null)}
+        >
+          <motion.div
+            initial={{ scale: 0.9 }}
+            animate={{ scale: 1 }}
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="text-2xl font-display font-bold text-coffee-amber mb-6">{selectedEnquiry.name}</h2>
+            <div className="space-y-4 mb-6">
+              <div>
+                <h3 className="text-coffee-amber font-semibold mb-2">Contact Information</h3>
+                <p className="text-coffee-light">Email: {selectedEnquiry.email}</p>
+                <p className="text-coffee-light">Phone: {selectedEnquiry.phone}</p>
+              </div>
+              {selectedEnquiry.artId && (
+                <div>
+                  <h3 className="text-coffee-amber font-semibold mb-2">Art Piece</h3>
+                  <p className="text-coffee-light">Title: {selectedEnquiry.artId.title}</p>
+                  <p className="text-coffee-light">Artist: {selectedEnquiry.artId.artistName}</p>
+                  <p className="text-coffee-light">Price: ₹{selectedEnquiry.artId.price}</p>
+                  {selectedEnquiry.artId.image && (
+                    <img
+                      src={selectedEnquiry.artId.image}
+                      alt={selectedEnquiry.artId.title}
+                      className="w-full max-w-xs h-auto rounded-lg mt-2"
+                    />
+                  )}
+                </div>
+              )}
+              <div>
+                <h3 className="text-coffee-amber font-semibold mb-2">Enquiry Type</h3>
+                <p className="text-coffee-light">{selectedEnquiry.enquiryType}</p>
+              </div>
+              {selectedEnquiry.message && (
+                <div>
+                  <h3 className="text-coffee-amber font-semibold mb-2">Message</h3>
+                  <p className="text-coffee-light">{selectedEnquiry.message}</p>
+                </div>
+              )}
+              <div>
+                <h3 className="text-coffee-amber font-semibold mb-2">Submitted</h3>
+                <p className="text-coffee-light">{new Date(selectedEnquiry.createdAt).toLocaleString()}</p>
+              </div>
+            </div>
+            <div className="flex gap-4 flex-wrap">
+              <button
+                onClick={() => handleStatusUpdate(selectedEnquiry._id, 'Contacted')}
+                className="bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg font-semibold"
+              >
+                Mark Contacted
+              </button>
+              <button
+                onClick={() => handleStatusUpdate(selectedEnquiry._id, 'In Progress')}
+                className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold"
+              >
+                Mark In Progress
+              </button>
+              <button
+                onClick={() => handleStatusUpdate(selectedEnquiry._id, 'Resolved')}
+                className="bg-green-500/20 text-green-400 px-4 py-2 rounded-lg font-semibold"
+              >
+                Mark Resolved
+              </button>
+              <button
+                onClick={() => {
+                  setSelectedEnquiry(null);
+                }}
+                className="bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold"
+              >
+                Close
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   );
 };
