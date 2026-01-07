@@ -26,10 +26,19 @@ mongoose.connect(MONGODB_URI, {
   serverSelectionTimeoutMS: 10000,
   socketTimeoutMS: 45000,
 })
-  .then(() => {
+  .then(async () => {
     console.log('✅ MongoDB Connected');
     console.log(`   Database: ${mongoose.connection.db.databaseName}`);
     console.log(`   Host: ${mongoose.connection.host}`);
+    
+    // Clean up expired and inactive daily offers on startup
+    try {
+      const { cleanupDailyOffers, scheduleDailyCleanup } = require('./services/dailyOfferCleanupService');
+      await cleanupDailyOffers();
+      scheduleDailyCleanup();
+    } catch (error) {
+      console.error('⚠️  Error setting up daily offer cleanup:', error.message);
+    }
   })
   .catch(err => {
     console.error('❌ MongoDB Connection Error:', err.message);
