@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
+import OTPModal from '../components/OTPModal';
 
 const ArtGallery = () => {
   const [arts, setArts] = useState([]);
@@ -10,6 +11,17 @@ const ArtGallery = () => {
   const [selectedArt, setSelectedArt] = useState(null);
   const [filter, setFilter] = useState('all');
   const [backgroundMedia, setBackgroundMedia] = useState(null);
+  const [showEnquiryForm, setShowEnquiryForm] = useState(false);
+  const [enquiryFormData, setEnquiryFormData] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    message: '',
+    enquiryType: 'Information'
+  });
+  const [enquiryLoading, setEnquiryLoading] = useState(false);
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingEnquiry, setPendingEnquiry] = useState(null);
 
   useEffect(() => {
     fetchArts();
@@ -217,7 +229,7 @@ const ArtGallery = () => {
                     {art.title}
                   </h3>
                   <p className="text-coffee-light mb-3">by {art.artistName}</p>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-2xl font-bold text-coffee-amber">
                       ₹{art.price}
                     </span>
@@ -233,6 +245,23 @@ const ArtGallery = () => {
                       {art.availability}
                     </span>
                   </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedArt(art);
+                      setEnquiryFormData({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        message: '',
+                        enquiryType: art.availability === 'Available' ? 'Purchase' : 'Information'
+                      });
+                      setShowEnquiryForm(true);
+                    }}
+                    className="w-full bg-coffee-amber text-coffee-darker py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors mt-2"
+                  >
+                    Enquire
+                  </button>
                 </div>
               </motion.div>
             ))}
@@ -314,15 +343,240 @@ const ArtGallery = () => {
                   </div>
                 )}
                 {selectedArt.availability === 'Available' && (
-                  <button className="w-full bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors">
-                    Contact to Purchase
+                  <button 
+                    onClick={() => {
+                      setEnquiryFormData({
+                        name: '',
+                        email: '',
+                        phone: '',
+                        message: '',
+                        enquiryType: 'Purchase'
+                      });
+                      setShowEnquiryForm(true);
+                    }}
+                    className="w-full bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                  >
+                    Enquire About This Art
                   </button>
                 )}
+                <button 
+                  onClick={() => {
+                    setEnquiryFormData({
+                      name: '',
+                      email: '',
+                      phone: '',
+                      message: '',
+                      enquiryType: 'Information'
+                    });
+                    setShowEnquiryForm(true);
+                  }}
+                  className="w-full bg-coffee-brown/40 text-coffee-cream py-3 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors mt-3"
+                >
+                  Get More Information
+                </button>
               </div>
             </div>
           </motion.div>
         </motion.div>
       )}
+
+      {/* Enquiry Form Modal */}
+      {showEnquiryForm && selectedArt && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4"
+          onClick={() => setShowEnquiryForm(false)}
+        >
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between mb-6">
+              <h2 className="text-3xl font-heading font-bold text-coffee-amber">
+                Art Enquiry
+              </h2>
+              <button
+                onClick={() => setShowEnquiryForm(false)}
+                className="text-coffee-light hover:text-coffee-amber"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="mb-6 p-4 bg-coffee-brown/20 rounded-lg">
+              <h3 className="text-xl font-heading font-bold text-coffee-amber mb-2">
+                {selectedArt.title}
+              </h3>
+              <p className="text-coffee-light">by {selectedArt.artistName}</p>
+              <p className="text-coffee-amber font-semibold mt-2">₹{selectedArt.price}</p>
+            </div>
+
+            <form onSubmit={async (e) => {
+              e.preventDefault();
+              setEnquiryLoading(true);
+
+              try {
+                await api.post('/email/art/otp', {
+                  email: enquiryFormData.email,
+                  enquiryData: {
+                    ...enquiryFormData,
+                    artId: selectedArt._id
+                  }
+                });
+                
+                setPendingEnquiry(enquiryFormData);
+                setShowOTPModal(true);
+                setShowEnquiryForm(false);
+              } catch (error) {
+                alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+                console.error('Art enquiry error:', error);
+              } finally {
+                setEnquiryLoading(false);
+              }
+            }} className="space-y-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={enquiryFormData.name}
+                  onChange={(e) => setEnquiryFormData({ ...enquiryFormData, name: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="Your full name"
+                />
+              </div>
+
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Email *
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={enquiryFormData.email}
+                  onChange={(e) => setEnquiryFormData({ ...enquiryFormData, email: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="your.email@example.com"
+                />
+              </div>
+
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Phone *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  value={enquiryFormData.phone}
+                  onChange={(e) => setEnquiryFormData({ ...enquiryFormData, phone: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="Your phone number"
+                />
+              </div>
+
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Enquiry Type *
+                </label>
+                <select
+                  required
+                  value={enquiryFormData.enquiryType}
+                  onChange={(e) => setEnquiryFormData({ ...enquiryFormData, enquiryType: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                >
+                  <option value="Information">Get More Information</option>
+                  <option value="Purchase">Purchase Inquiry</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Message
+                </label>
+                <textarea
+                  value={enquiryFormData.message}
+                  onChange={(e) => setEnquiryFormData({ ...enquiryFormData, message: e.target.value })}
+                  rows="4"
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="Tell us more about your enquiry..."
+                />
+              </div>
+
+              <div className="flex gap-4">
+                <button
+                  type="submit"
+                  disabled={enquiryLoading}
+                  className="flex-1 bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50"
+                >
+                  {enquiryLoading ? 'Sending...' : 'Submit Enquiry'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowEnquiryForm(false)}
+                  className="flex-1 bg-coffee-brown/40 text-coffee-cream py-3 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          setPendingEnquiry(null);
+        }}
+        email={pendingEnquiry?.email || ''}
+        type="art"
+        onVerify={async (otp, resend = false) => {
+          if (resend) {
+            try {
+              await api.post('/email/art/otp', {
+                email: pendingEnquiry.email,
+                enquiryData: {
+                  ...pendingEnquiry,
+                  artId: selectedArt._id
+                }
+              });
+            } catch (error) {
+              throw new Error(error.response?.data?.message || 'Failed to resend OTP');
+            }
+            return;
+          }
+
+          try {
+            await api.post('/email/art/verify', {
+              email: pendingEnquiry.email,
+              otp
+            });
+
+            alert('Enquiry submitted successfully! We will get back to you soon.');
+            setPendingEnquiry(null);
+            setShowOTPModal(false);
+            setShowEnquiryForm(false);
+            setEnquiryFormData({
+              name: '',
+              email: '',
+              phone: '',
+              message: '',
+              enquiryType: 'Information'
+            });
+          } catch (error) {
+            throw new Error(error.response?.data?.message || 'Invalid OTP. Please try again.');
+          }
+        }}
+      />
 
       <Chatbot />
     </div>

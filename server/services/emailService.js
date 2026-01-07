@@ -20,6 +20,8 @@ const sendOTPEmail = async (email, otp, type) => {
     subject = 'Verify Your Workshop Registration - Rabuste Coffee';
   } else if (type === 'franchise') {
     subject = 'Verify Your Franchise Enquiry - Rabuste Coffee';
+  } else if (type === 'art') {
+    subject = 'Verify Your Art Enquiry - Rabuste Coffee';
   } else if (type === 'customer-email') {
     subject = 'Verify Your Email - Rabuste Coffee';
   } else {
@@ -243,6 +245,58 @@ const sendFranchiseConfirmationEmail = async (enquiry) => {
     return true;
   } catch (error) {
     console.error('Franchise confirmation email error:', error);
+    return false;
+  }
+};
+
+// Send Art Enquiry Confirmation
+const sendArtEnquiryConfirmationEmail = async (enquiry, art) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Art Enquiry Received</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${enquiry.name},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Thank you for your interest in our art gallery! We've received your enquiry regarding <strong>${art.title}</strong> by ${art.artistName} and our team will get back to you shortly.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Artwork Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Title:</strong> ${art.title}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artist:</strong> ${art.artistName}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${art.price}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Enquiry Type:</strong> ${enquiry.enquiryType}</p>
+        </div>
+        ${enquiry.message ? `
+          <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+            <h3 style="color: #FF6F00; margin-bottom: 15px;">Your Message</h3>
+            <p style="color: #EFEBE9; margin: 10px 0; line-height: 1.6;">${enquiry.message}</p>
+          </div>
+        ` : ''}
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          We'll be in touch with you soon. In the meantime, feel free to explore our art gallery to discover more beautiful pieces.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: enquiry.email,
+      subject: 'Art Enquiry Received - Rabuste Coffee',
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Art enquiry confirmation email error:', error);
     return false;
   }
 };
@@ -716,6 +770,7 @@ module.exports = {
   sendOTPEmail,
   sendWorkshopConfirmationEmail,
   sendFranchiseConfirmationEmail,
+  sendArtEnquiryConfirmationEmail,
   // Marketing emails
   sendCoffeeAnnouncementEmail,
   sendOfferAnnouncementEmail,

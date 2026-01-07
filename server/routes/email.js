@@ -4,7 +4,9 @@ const OTP = require('../models/OTP');
 const WorkshopRegistration = require('../models/WorkshopRegistration');
 const Workshop = require('../models/Workshop');
 const FranchiseEnquiry = require('../models/FranchiseEnquiry');
-const { generateOTP, sendOTPEmail, sendWorkshopConfirmationEmail, sendFranchiseConfirmationEmail } = require('../services/emailService');
+const ArtEnquiry = require('../models/ArtEnquiry');
+const Art = require('../models/Art');
+const { generateOTP, sendOTPEmail, sendWorkshopConfirmationEmail, sendFranchiseConfirmationEmail, sendArtEnquiryConfirmationEmail } = require('../services/emailService');
 const { buildGoogleCalendarUrlForWorkshop } = require('../utils/calendar');
 
 // Send OTP for Workshop Registration
@@ -278,6 +280,91 @@ router.post('/franchise/verify', async (req, res) => {
 
     res.status(201).json({
       message: 'Franchise enquiry submitted successfully',
+      enquiry
+    });
+  } catch (error) {
+    console.error('OTP verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Send OTP for Art Enquiry
+router.post('/art/otp', async (req, res) => {
+  try {
+    const { email, enquiryData } = req.body;
+
+    if (!email || !enquiryData) {
+      return res.status(400).json({ message: 'Email and enquiry data are required' });
+    }
+
+    // Verify art exists
+    const art = await Art.findById(enquiryData.artId);
+    if (!art) {
+      return res.status(404).json({ message: 'Art piece not found' });
+    }
+
+    const otp = generateOTP();
+    
+    const otpRecord = new OTP({
+      email,
+      otp,
+      type: 'art',
+      data: enquiryData,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000)
+    });
+    await otpRecord.save();
+
+    const emailSent = await sendOTPEmail(email, otp, 'art');
+    
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
+
+    res.json({ 
+      message: 'OTP sent to your email',
+      expiresIn: 600
+    });
+  } catch (error) {
+    console.error('OTP generation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify OTP and Submit Art Enquiry
+router.post('/art/verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const otpRecord = await OTP.findOne({ 
+      email, 
+      otp, 
+      type: 'art',
+      verified: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    // Verify art still exists
+    const art = await Art.findById(otpRecord.data.artId);
+    if (!art) {
+      return res.status(404).json({ message: 'Art piece not found' });
+    }
+
+    // Create enquiry
+    const enquiry = new ArtEnquiry(otpRecord.data);
+    await enquiry.save();
+
+    // Send confirmation email
+    await sendArtEnquiryConfirmationEmail(enquiry, art);
+
+    res.status(201).json({
+      message: 'Art enquiry submitted successfully',
       enquiry
     });
   } catch (error) {
