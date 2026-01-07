@@ -191,7 +191,7 @@ const WhyRobusta = () => {
           className="max-w-4xl mx-auto text-center relative z-20"
         >
           <motion.h1 
-            className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-coffee-amber mb-4 md:mb-6 tracking-tight px-4"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -199,7 +199,7 @@ const WhyRobusta = () => {
             Why Robusta?
           </motion.h1>
           <motion.p 
-            className="text-xl text-coffee-light"
+            className="text-lg sm:text-xl text-coffee-light px-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -219,7 +219,7 @@ const WhyRobusta = () => {
           className="mb-20"
         >
           <motion.h2 
-            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-8 text-center tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-6 md:mb-8 text-center tracking-tight px-4"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -228,14 +228,14 @@ const WhyRobusta = () => {
             What is Robusta Coffee?
           </motion.h2>
           <motion.div 
-            className="modern-card p-8 md:p-12"
+            className="modern-card p-6 sm:p-8 md:p-12 px-4 md:px-0"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
             <motion.p 
-              className="text-lg text-coffee-light mb-6 leading-relaxed"
+              className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -244,7 +244,7 @@ const WhyRobusta = () => {
               Robusta (Coffea canephora) is one of the two main species of coffee plants cultivated worldwide, alongside Arabica. While Arabica often gets the spotlight, Robusta brings its own exceptional qualities to the table that make it a premium choice for coffee enthusiasts.
             </motion.p>
             <motion.p 
-              className="text-lg text-coffee-light mb-6 leading-relaxed"
+              className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -253,7 +253,7 @@ const WhyRobusta = () => {
               Grown primarily in Africa and Asia, Robusta coffee plants are known for their resilience. They thrive at lower elevations (200-800 meters), resist diseases better, and produce higher yields. But more importantly for coffee lovers, they produce beans with a distinctly bold and powerful flavor profile that stands out in every cup.
             </motion.p>
             <motion.p 
-              className="text-lg text-coffee-light leading-relaxed"
+              className="text-base sm:text-lg text-coffee-light leading-relaxed"
               initial={{ opacity: 0, x: -20 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
@@ -397,7 +397,7 @@ const WhyRobusta = () => {
           className="mb-20"
         >
           <motion.h2 
-            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-12 text-center tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-6 md:mb-12 text-center tracking-tight px-4"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -406,7 +406,7 @@ const WhyRobusta = () => {
             Why Robusta Stands Out
           </motion.h2>
           <motion.p 
-            className="text-center text-coffee-light mb-8 max-w-2xl mx-auto"
+            className="text-center text-sm sm:text-base text-coffee-light mb-6 md:mb-8 max-w-2xl mx-auto px-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -420,14 +420,14 @@ const WhyRobusta = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
-            className="grid md:grid-cols-2 gap-8"
+            className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 px-4 md:px-0"
           >
             {features.map((feature, idx) => (
               <motion.div
                 key={idx}
                 variants={itemVariants}
                 className="flip-card"
-                style={{ minHeight: '400px', height: '400px' }}
+                style={{ minHeight: '350px', height: '350px' }}
               >
                 <div className="flip-card-inner">
                   <div className="flip-card-front">
@@ -475,10 +475,10 @@ const WhyRobusta = () => {
           whileInView={{ opacity: 1, y: 0, scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          className="modern-card p-8 md:p-12 text-center"
+          className="modern-card p-6 sm:p-8 md:p-12 text-center"
         >
           <motion.h2 
-            className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-4 md:mb-6 tracking-tight px-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -487,7 +487,7 @@ const WhyRobusta = () => {
             Why Rabuste Promotes Robusta
           </motion.h2>
           <motion.p 
-            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
+            className="text-base sm:text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-4 md:mb-6 px-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -496,7 +496,7 @@ const WhyRobusta = () => {
             We've made a conscious decision to champion Robusta coffee because we believe in its unmatched potential. By dedicating ourselves to promoting this exceptional variety, we can showcase every aspect of Robusta's excellence, from bean selection to extraction techniques.
           </motion.p>
           <motion.p 
-            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6"
+            className="text-base sm:text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-4 md:mb-6 px-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
@@ -505,7 +505,7 @@ const WhyRobusta = () => {
             Our commitment to Robusta allows us to become true advocates for this bold variety, offering you the finest expressions of its unique character. Our baristas are trained specifically in Robusta preparation, understanding how to extract the perfect balance of strength, flavor, and crema that makes Robusta special.
           </motion.p>
           <motion.p 
-            className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed"
+            className="text-base sm:text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed px-4"
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}

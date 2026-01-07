@@ -196,7 +196,7 @@ const About = () => {
           className="max-w-4xl mx-auto text-center relative z-20"
         >
           <motion.h1 
-            className="text-5xl md:text-6xl font-heading font-bold text-coffee-amber mb-6 tracking-tight"
+            className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold text-coffee-amber mb-4 md:mb-6 tracking-tight px-4"
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6, delay: 0.2 }}
@@ -204,7 +204,7 @@ const About = () => {
             About Rabuste Coffee
           </motion.h1>
           <motion.p 
-            className="text-xl text-coffee-light"
+            className="text-lg sm:text-xl text-coffee-light px-4"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.4 }}
@@ -223,20 +223,20 @@ const About = () => {
           transition={{ duration: 0.8 }}
           className="mb-20"
         >
-          <h2 className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-12 text-center tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-8 md:mb-12 text-center tracking-tight px-4">
             Our Journey
           </h2>
           
-          <div className="relative">
+          <div className="relative px-4 md:px-0">
             {/* Timeline Line */}
-            <div className="absolute left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-coffee-amber/50 via-coffee-amber/30 to-transparent transform md:-translate-x-1/2"></div>
+            <div className="absolute left-6 sm:left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-coffee-amber/50 via-coffee-amber/30 to-transparent transform md:-translate-x-1/2"></div>
             
             <motion.div
               variants={containerVariants}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-50px" }}
-              className="space-y-12"
+              className="space-y-8 md:space-y-12"
             >
               {storyPoints.map((point, idx) => (
                 <motion.div
@@ -248,15 +248,15 @@ const About = () => {
                   }}
                 >
                   {/* Timeline Dot */}
-                  <div className="absolute left-8 md:left-1/2 w-4 h-4 bg-coffee-amber rounded-full border-4 border-coffee-darker transform md:-translate-x-1/2 z-10"></div>
+                  <div className="absolute left-6 sm:left-8 md:left-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-coffee-amber rounded-full border-2 sm:border-4 border-coffee-darker transform md:-translate-x-1/2 z-10"></div>
                   
                   {/* Content Card */}
-                  <div className={`ml-16 md:ml-0 md:w-5/12 ${idx % 2 === 0 ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'}`}>
-                    <div className="modern-card p-6 md:p-8">
-                      <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
+                  <div className={`ml-12 sm:ml-16 md:ml-0 md:w-5/12 ${idx % 2 === 0 ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'}`}>
+                    <div className="modern-card p-4 sm:p-6 md:p-8">
+                      <h3 className="text-xl sm:text-2xl font-heading font-semibold text-coffee-amber mb-2 md:mb-3">
                         {point.title}
                       </h3>
-                      <p className="text-coffee-light leading-relaxed">
+                      <p className="text-sm sm:text-base text-coffee-light leading-relaxed">
                         {point.content}
                       </p>
                     </div>
@@ -275,7 +275,7 @@ const About = () => {
           transition={{ duration: 0.8 }}
           className="mb-20"
         >
-          <h2 className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-12 text-center tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-8 md:mb-12 text-center tracking-tight px-4">
             Our Philosophy
           </h2>
           
@@ -284,25 +284,25 @@ const About = () => {
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-50px" }}
-            className="grid md:grid-cols-2 gap-6"
+            className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 px-4 md:px-0"
           >
             {values.map((value, idx) => (
               <motion.div
                 key={idx}
                 variants={itemVariants}
-                className="modern-card p-8 group"
+                className="modern-card p-6 sm:p-8 group"
               >
                 <div className="mb-4 flex justify-center transform group-hover:scale-110 transition-transform duration-300">
                   {value.icon}
                 </div>
-                <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
+                <h3 className="text-xl sm:text-2xl font-heading font-semibold text-coffee-amber mb-3 md:mb-4">
                   {value.title}
                 </h3>
-                <p className="text-coffee-light leading-relaxed mb-4">
+                <p className="text-sm sm:text-base text-coffee-light leading-relaxed mb-3 md:mb-4">
                   {value.description}
                 </p>
-                <div className="pt-4 border-t border-coffee-brown/30">
-                  <p className="text-sm text-coffee-light/80 leading-relaxed">
+                <div className="pt-3 md:pt-4 border-t border-coffee-brown/30">
+                  <p className="text-xs sm:text-sm text-coffee-light/80 leading-relaxed">
                     {value.details}
                   </p>
                 </div>
@@ -317,15 +317,15 @@ const About = () => {
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true, margin: "-100px" }}
           transition={{ duration: 0.8 }}
-          className="modern-card p-8 md:p-12 text-center"
+          className="modern-card p-6 sm:p-8 md:p-12 text-center"
         >
-          <h2 className="text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-6 tracking-tight">
+          <h2 className="text-3xl sm:text-4xl md:text-5xl font-heading font-bold text-coffee-amber mb-4 md:mb-6 tracking-tight px-4">
             Cultural & Creative Inspiration
           </h2>
-          <p className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-6">
+          <p className="text-base sm:text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed mb-4 md:mb-6 px-4">
             Rabuste Coffee draws inspiration from the bold, unapologetic nature of Robusta coffee itself. We celebrate strength, character, and authenticity—values that resonate in both coffee culture and contemporary art.
           </p>
-          <p className="text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed">
+          <p className="text-base sm:text-lg text-coffee-light max-w-3xl mx-auto leading-relaxed px-4">
             Our space is designed to be a canvas where coffee expertise meets artistic expression, creating a unique experience that stimulates both the palate and the mind. Every element, from our bean selection to our art curation, reflects our commitment to uncompromising quality and creative innovation.
           </p>
         </motion.div>

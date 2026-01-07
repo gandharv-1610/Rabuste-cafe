@@ -15,14 +15,6 @@ app.use(express.urlencoded({ extended: true }));
 // MongoDB Connection
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/test';
 
-// Validate connection string format
-if (MONGODB_URI.includes('mongodb+srv://') && !MONGODB_URI.match(/mongodb\+srv:\/\/[^/]+\/[^?]+/)) {
-  console.error('❌ MongoDB Connection String Error: Database name is missing in MONGODB_URI');
-  console.error('   Format should be: mongodb+srv://user:pass@cluster.mongodb.net/database?options');
-  console.error('   Current URI:', MONGODB_URI.replace(/:[^:@]+@/, ':****@')); // Hide password
-  process.exit(1);
-}
-
 console.log('🔄 Connecting to MongoDB...');
 if (MONGODB_URI.includes('mongodb+srv://')) {
   console.log('   Using MongoDB Atlas (cloud)');

@@ -322,17 +322,24 @@ const GoogleReviewsSlider = ({ placeId }) => {
         >
           <Swiper
             modules={[Autoplay, Navigation, Pagination]}
-            spaceBetween={24}
+            spaceBetween={16}
             slidesPerView={1}
             speed={600}
+            touchRatio={1}
+            threshold={10}
+            resistance={true}
+            resistanceRatio={0.85}
             breakpoints={{
               640: {
+                spaceBetween: 20,
                 slidesPerView: 1,
               },
               768: {
+                spaceBetween: 24,
                 slidesPerView: 2,
               },
               1024: {
+                spaceBetween: 24,
                 slidesPerView: 3,
               },
             }}
@@ -345,7 +352,13 @@ const GoogleReviewsSlider = ({ placeId }) => {
               clickable: true,
               dynamicBullets: true,
             }}
-            navigation={true}
+            navigation={{
+              nextEl: '.swiper-button-next',
+              prevEl: '.swiper-button-prev',
+              hideOnClick: false,
+            }}
+            touchEventsTarget="container"
+            allowTouchMove={true}
             loop={reviews.length >= 3}
             className="google-reviews-swiper"
           >
@@ -451,6 +464,13 @@ const GoogleReviewsSlider = ({ placeId }) => {
           color: #FF6F00 !important;
           transition: opacity 0.2s ease;
         }
+        /* Hide navigation arrows on mobile/small screens */
+        @media (max-width: 768px) {
+          .google-reviews-swiper .swiper-button-next,
+          .google-reviews-swiper .swiper-button-prev {
+            display: none !important;
+          }
+        }
         .google-reviews-swiper .swiper-pagination-bullet-active {
           background-color: #FF6F00 !important;
         }
@@ -459,6 +479,13 @@ const GoogleReviewsSlider = ({ placeId }) => {
         }
         .google-reviews-swiper .swiper-slide {
           transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* Enable touch/swipe on mobile */
+        .google-reviews-swiper {
+          touch-action: pan-y;
+          -webkit-touch-callout: none;
+          -webkit-user-select: none;
+          user-select: none;
         }
       `}</style>
     </section>
