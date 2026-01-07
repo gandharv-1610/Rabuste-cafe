@@ -19,11 +19,59 @@ import {
 
 const COLORS = ['#FF8C00', '#FF6B35', '#F7931E', '#FFA500', '#FFD700'];
 
+// SVG Icon Components
+const PackageIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+  </svg>
+);
+
+const MoneyIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const TimerIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ClockIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+  </svg>
+);
+
+const ForecastIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+  </svg>
+);
+
+const RobotIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+  </svg>
+);
+
+const LightbulbIcon = ({ className = "w-5 h-5" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+  </svg>
+);
+
+const ChatIcon = ({ className = "w-6 h-6" }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+  </svg>
+);
+
 const OrderAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [insights, setInsights] = useState([]);
   const [forecast, setForecast] = useState(null);
-  const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(false);
   const [forecastLoading, setForecastLoading] = useState(false);
@@ -32,8 +80,6 @@ const OrderAnalytics = () => {
   const [conversationalQuery, setConversationalQuery] = useState('');
   const [conversationalAnswer, setConversationalAnswer] = useState(null);
   const [conversationalLoading, setConversationalLoading] = useState(false);
-  const [unreadAlerts, setUnreadAlerts] = useState(0);
-  const [showAlerts, setShowAlerts] = useState(false);
   
   // Date filter state
   const getDatePreset = (preset) => {
@@ -95,7 +141,6 @@ const OrderAnalytics = () => {
     fetchAnalytics();
     fetchInsights();
     fetchForecast();
-    fetchAlerts();
   }, [dateRange]);
 
   const fetchAnalytics = async () => {
@@ -151,20 +196,6 @@ const OrderAnalytics = () => {
     }
   };
 
-  const fetchAlerts = async () => {
-    try {
-      const params = new URLSearchParams({
-        startDate: dateRange.startDate,
-        endDate: dateRange.endDate
-      });
-      const response = await api.get(`/admin/analytics/alerts?${params}`);
-      setAlerts(response.data.alerts || []);
-      setUnreadAlerts(response.data.alerts?.filter(a => !a.read).length || 0);
-    } catch (error) {
-      console.error('Error fetching alerts:', error);
-      setAlerts([]);
-    }
-  };
 
   const handleConversationalQuery = async () => {
     if (!conversationalQuery.trim()) return;
@@ -291,13 +322,14 @@ const OrderAnalytics = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with Date Filters and Alerts */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex-1">
-          <h2 className="text-3xl font-heading font-bold text-coffee-amber mb-4">Analytics Dashboard</h2>
-          
-          {/* Date Filter Presets */}
-          <div className="flex flex-wrap gap-2 mb-3">
+      {/* Header with Date Filters */}
+      <div className="space-y-4">
+        <h2 className="text-3xl font-heading font-bold text-coffee-amber">Analytics Dashboard</h2>
+        
+        {/* Date Filter Row - Days Option Left, Date Inputs Right */}
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          {/* Date Filter Presets - Left Side */}
+          <div className="flex flex-wrap gap-2 items-center">
             {['today', 'yesterday', 'last7', 'last30'].map(preset => (
               <button
                 key={preset}
@@ -313,8 +345,8 @@ const OrderAnalytics = () => {
             ))}
           </div>
 
-          {/* Custom Date Range */}
-          <div className="flex gap-4 items-end flex-wrap">
+          {/* Custom Date Range - Right Side */}
+          <div className="flex gap-3 items-end flex-wrap">
             <div>
               <label className="block text-sm text-coffee-amber mb-1">Start Date</label>
               <input
@@ -335,72 +367,18 @@ const OrderAnalytics = () => {
             </div>
             <button
               onClick={fetchAnalytics}
-              className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold"
+              className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg font-semibold hover:bg-coffee-gold h-fit"
             >
               Refresh
             </button>
           </div>
-
-          {/* Active Filter Badge */}
-          <div className="mt-2">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-coffee-brown/40 text-coffee-amber border border-coffee-brown/50">
-              Showing: {dateRange.label || 'Custom Range'}
-            </span>
-          </div>
         </div>
 
-        {/* Alerts Bell */}
-        <div className="relative">
-          <button
-            onClick={() => setShowAlerts(!showAlerts)}
-            className="relative p-3 bg-coffee-brown/40 hover:bg-coffee-brown/60 rounded-lg border border-coffee-brown/50 transition-colors"
-          >
-            <svg className="w-6 h-6 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-            </svg>
-            {unreadAlerts > 0 && (
-              <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                {unreadAlerts}
-              </span>
-            )}
-          </button>
-          
-          {/* Alerts Dropdown */}
-          <AnimatePresence>
-            {showAlerts && (
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="absolute right-0 mt-2 w-80 bg-coffee-darker border border-coffee-brown rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
-              >
-                <div className="p-4 border-b border-coffee-brown">
-                  <h3 className="text-lg font-bold text-coffee-amber">Alerts</h3>
-                </div>
-                <div className="p-2">
-                  {alerts.length === 0 ? (
-                    <p className="text-coffee-light text-sm p-4 text-center">No alerts</p>
-                  ) : (
-                    alerts.map((alert, idx) => (
-                      <div
-                        key={idx}
-                        className={`p-3 mb-2 rounded-lg border-l-4 ${
-                          alert.severity === 'high' ? 'border-red-500 bg-red-900/20' :
-                          alert.severity === 'medium' ? 'border-orange-500 bg-orange-900/20' :
-                          'border-yellow-500 bg-yellow-900/20'
-                        }`}
-                      >
-                        <p className="text-sm text-coffee-cream">{alert.message}</p>
-                        <p className="text-xs text-coffee-light mt-1">
-                          {new Date(alert.timestamp).toLocaleString()}
-                        </p>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        {/* Active Filter Badge */}
+        <div>
+          <span className="inline-flex items-center px-3 py-1 rounded-full text-sm bg-coffee-brown/40 text-coffee-amber border border-coffee-brown/50">
+            Showing: {dateRange.label || 'Custom Range'}
+          </span>
         </div>
       </div>
 
@@ -410,27 +388,27 @@ const OrderAnalytics = () => {
           title="Total Orders"
           value={analytics.totalOrders}
           trend={ordersTrend}
-          icon="📦"
+          icon={<PackageIcon className="w-8 h-8" />}
           onClick={() => {/* Can add drill-down functionality */}}
         />
         <KPICard
           title="Total Revenue"
           value={`₹${analytics.totalRevenue.total.toFixed(2)}`}
           trend={revenueTrend}
-          icon="💰"
+          icon={<MoneyIcon className="w-8 h-8" />}
         />
         <KPICard
           title="Avg Prep Time"
           value={`${analytics.averagePrepTime} min`}
           trend={prepTimeTrend}
-          icon="⏱️"
+          icon={<TimerIcon className="w-8 h-8" />}
           isReverseTrend={true}
         />
         <KPICard
           title="Peak Hour"
           value={analytics.peakOrderingTime !== null ? `${analytics.peakOrderingTime}:00` : 'N/A'}
           trend={null}
-          icon="🕐"
+          icon={<ClockIcon className="w-8 h-8" />}
         />
       </div>
 
@@ -442,7 +420,8 @@ const OrderAnalytics = () => {
           className="bg-gradient-to-br from-coffee-brown/40 to-coffee-dark/40 rounded-lg p-6 border border-coffee-brown/50"
         >
           <h3 className="text-xl font-heading font-bold text-coffee-amber mb-4 flex items-center gap-2">
-            <span>🔮</span> Tomorrow's Forecast
+            <ForecastIcon className="w-6 h-6 text-coffee-amber" />
+            Tomorrow's Forecast
           </h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
@@ -472,7 +451,8 @@ const OrderAnalytics = () => {
         className="bg-coffee-brown/20 rounded-lg p-6 border border-coffee-brown/50"
       >
         <h3 className="text-xl font-heading font-bold text-coffee-amber mb-4 flex items-center gap-2">
-          <span>🤖</span> AI Insights
+          <RobotIcon className="w-6 h-6 text-coffee-amber" />
+          AI Insights
           {insightsLoading && <span className="text-sm font-normal text-coffee-light">(Generating...)</span>}
         </h3>
         {insightsLoading ? (
@@ -485,7 +465,7 @@ const OrderAnalytics = () => {
           <div className="space-y-3">
             {insights.map((insight, idx) => (
               <div key={idx} className="flex items-start gap-3 p-3 bg-coffee-darker/40 rounded-lg border border-coffee-brown/30">
-                <span className="text-coffee-amber mt-1">💡</span>
+                <LightbulbIcon className="w-5 h-5 text-coffee-amber mt-1 flex-shrink-0" />
                 <p className="text-coffee-cream flex-1">{insight}</p>
               </div>
             ))}
@@ -806,7 +786,8 @@ const OrderAnalytics = () => {
         className="bg-coffee-brown/20 rounded-lg p-6 border border-coffee-brown/50"
       >
         <h3 className="text-xl font-heading font-bold text-coffee-amber mb-4 flex items-center gap-2">
-          <span>💬</span> Ask Analytics
+          <ChatIcon className="w-6 h-6 text-coffee-amber" />
+          Ask Analytics
         </h3>
         <div className="space-y-4">
           <div className="flex gap-2">
@@ -864,7 +845,7 @@ const KPICard = ({ title, value, trend, icon, onClick, isReverseTrend = false })
     >
       <div className="flex items-center justify-between mb-2">
         <p className="text-sm text-coffee-light">{title}</p>
-        <span className="text-2xl">{icon}</span>
+        <div className="text-coffee-amber">{icon}</div>
       </div>
       <p className="text-3xl font-bold text-coffee-amber mb-1">{value}</p>
       {trend !== null && (
