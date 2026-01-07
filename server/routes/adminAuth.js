@@ -14,15 +14,21 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ message: 'Email and password are required' });
     }
 
-    const admin = await Admin.findOne({ email: email.toLowerCase().trim() });
+    const normalizedEmail = email.toLowerCase().trim();
+    console.log(`[Admin Login] Attempting login for email: ${normalizedEmail}`);
+
+    const admin = await Admin.findOne({ email: normalizedEmail });
 
     if (!admin) {
+      console.log(`[Admin Login] Admin not found for email: ${normalizedEmail}`);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
+    console.log(`[Admin Login] Admin found, comparing password...`);
     const isMatch = await admin.comparePassword(password);
 
     if (!isMatch) {
+      console.log(`[Admin Login] Password mismatch for email: ${normalizedEmail}`);
       return res.status(401).json({ message: 'Invalid email or password' });
     }
 
@@ -30,14 +36,15 @@ router.post('/login', async (req, res) => {
     const secret = process.env.JWT_SECRET;
 
     if (!secret) {
-      console.error('JWT_SECRET is not set');
-      return res.status(500).json({ message: 'Server configuration error' });
+      console.error('[Admin Login] JWT_SECRET is not set');
+      return res.status(500).json({ message: 'Server configuration error: JWT_SECRET is not set' });
     }
 
     const token = jwt.sign(payload, secret, {
       expiresIn: '7d',
     });
 
+    console.log(`[Admin Login] Successfully logged in: ${normalizedEmail}`);
     return res.json({
       token,
       admin: {
@@ -46,8 +53,9 @@ router.post('/login', async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Admin login error:', error);
-    return res.status(500).json({ message: 'Internal server error' });
+    console.error('[Admin Login] Error:', error);
+    console.error('[Admin Login] Error stack:', error.stack);
+    return res.status(500).json({ message: 'Internal server error', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 });
 

@@ -98,7 +98,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 }}
-            className="text-6xl md:text-8xl font-heading font-bold mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent leading-tight"
+            className="text-4xl sm:text-5xl md:text-6xl lg:text-8xl font-heading font-bold mb-4 md:mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent leading-tight px-4"
           >
             Bold Robusta.
           </motion.h1>
@@ -106,7 +106,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.4 }}
-            className="text-2xl md:text-4xl font-heading text-coffee-creamLight mb-6 font-medium"
+            className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-heading text-coffee-creamLight mb-4 md:mb-6 font-medium px-4"
           >
             Coffee × Art × Technology
           </motion.p>
@@ -114,7 +114,7 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.6 }}
-            className="text-lg md:text-xl text-coffee-light max-w-3xl mx-auto mb-12 leading-relaxed"
+            className="text-base sm:text-lg md:text-xl text-coffee-light max-w-3xl mx-auto mb-8 md:mb-12 leading-relaxed px-4"
           >
             Experience the finest Robusta coffee in a cozy space where bold flavors meet creative art and innovative technology.
           </motion.p>
@@ -122,18 +122,18 @@ const Home = () => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.8 }}
-            className="flex flex-wrap gap-5 justify-center"
+            className="flex flex-wrap gap-4 sm:gap-5 justify-center px-4"
           >
             <Link
               to="/coffee"
-              className="group relative bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darkest px-10 py-4 rounded-xl font-semibold hover:from-coffee-amberLight hover:to-coffee-goldLight transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform"
+              className="group relative bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darkest px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base hover:from-coffee-amberLight hover:to-coffee-goldLight transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105 transform w-full sm:w-auto"
             >
               <span className="relative z-10">Explore Coffee</span>
               <div className="absolute inset-0 bg-gradient-to-r from-coffee-gold to-coffee-amber rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
             </Link>
             <Link
               to="/art"
-              className="group relative bg-transparent border-2 border-coffee-amber/80 text-coffee-amber px-10 py-4 rounded-xl font-semibold hover:bg-coffee-amber/10 hover:border-coffee-amber transition-all duration-300 backdrop-blur-sm hover:scale-105 transform"
+              className="group relative bg-transparent border-2 border-coffee-amber/80 text-coffee-amber px-6 sm:px-8 md:px-10 py-3 sm:py-4 rounded-xl font-semibold text-sm sm:text-base hover:bg-coffee-amber/10 hover:border-coffee-amber transition-all duration-300 backdrop-blur-sm hover:scale-105 transform w-full sm:w-auto"
             >
               View Art Gallery
             </Link>
@@ -154,10 +154,10 @@ const Home = () => {
           <p className="text-sm uppercase tracking-[0.3em] text-coffee-gold/70 mb-4 font-semibold">
             Discover Our Journey
           </p>
-          <h2 className="text-5xl md:text-6xl font-heading font-bold mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 md:mb-6 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent px-4">
             Our Story
           </h2>
-          <p className="text-xl md:text-2xl text-coffee-light max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-coffee-light max-w-3xl mx-auto leading-relaxed px-4">
             Rabuste Coffee is more than a café—it's a bold statement about what coffee can be.
           </p>
         </motion.div>
@@ -169,17 +169,17 @@ const Home = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8 }}
-            className="grid md:grid-cols-2 gap-12 items-center"
+            className="grid md:grid-cols-2 gap-8 md:gap-12 items-center"
 
           >
-            <div>
-              <h3 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
+            <div className="px-4 md:px-0">
+              <h3 className="text-2xl sm:text-3xl font-heading font-bold text-coffee-amber mb-3 md:mb-4">
                 Bold Coffee, Cozy Space
               </h3>
-              <p className="text-coffee-light text-lg mb-4">
+              <p className="text-coffee-light text-base sm:text-lg mb-3 md:mb-4 leading-relaxed">
                 We've made a deliberate choice to serve only Robusta coffee—the boldest, most full-bodied coffee experience available. Our grab-and-go concept brings premium quality to your daily routine.
               </p>
-              <p className="text-coffee-light text-lg">
+              <p className="text-coffee-light text-base sm:text-lg leading-relaxed">
                 Step into our cozy space where every cup tells a story of strength, character, and uncompromising flavor.
               </p>
             </div>
@@ -397,24 +397,24 @@ const Home = () => {
             <p className="text-sm uppercase tracking-[0.3em] text-coffee-gold/80 mb-4 font-semibold">
               Find Us
             </p>
-            <h2 className="text-5xl md:text-6xl font-heading font-bold mb-4 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent">
+            <h2 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-3 md:mb-4 bg-gradient-to-r from-coffee-amber via-coffee-gold to-coffee-amber bg-clip-text text-transparent px-4">
               Visit Us
             </h2>
-            <p className="text-xl md:text-2xl text-coffee-light">
+            <p className="text-lg sm:text-xl md:text-2xl text-coffee-light px-4">
               Come experience bold Robusta coffee in our cozy space
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-2 gap-8 lg:gap-12 relative z-10">
+          <div className="grid md:grid-cols-2 gap-6 md:gap-8 lg:gap-12 relative z-10 px-4 md:px-0">
             {/* Contact Information */}
             <motion.div
               initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
               transition={{ duration: 0.8 }}
-              className="bg-gradient-to-br from-coffee-brown/30 to-coffee-dark/40 rounded-2xl p-8 border border-coffee-amber/20 shadow-xl hover:shadow-2xl transition-all duration-300"
+              className="bg-gradient-to-br from-coffee-brown/30 to-coffee-dark/40 rounded-2xl p-6 sm:p-8 border border-coffee-amber/20 shadow-xl hover:shadow-2xl transition-all duration-300"
             >
-              <h3 className="text-2xl font-heading font-bold text-coffee-amber mb-6">
+              <h3 className="text-xl sm:text-2xl font-heading font-bold text-coffee-amber mb-4 md:mb-6">
                 Contact & Location
               </h3>
               
@@ -532,7 +532,7 @@ const Home = () => {
               transition={{ duration: 0.8 }}
               className="bg-gradient-to-br from-coffee-brown/30 to-coffee-dark/40 rounded-2xl overflow-hidden border border-coffee-amber/20 shadow-xl"
             >
-              <div className="h-full min-h-[400px]">
+              <div className="h-full min-h-[300px] sm:min-h-[400px]">
                 {process.env.REACT_APP_GOOGLE_MAPS_API_KEY ? (
                   <iframe
                     title="Rabuste Coffee Location"
