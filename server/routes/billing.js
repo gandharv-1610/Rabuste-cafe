@@ -61,6 +61,15 @@ router.put('/settings', auth, async (req, res) => {
 // Get all daily offers
 router.get('/offers', async (req, res) => {
   try {
+    // Clean up expired/inactive offers before fetching (optional, but ensures fresh data)
+    try {
+      const { cleanupDailyOffers } = require('../services/dailyOfferCleanupService');
+      await cleanupDailyOffers();
+    } catch (cleanupError) {
+      console.error('Error during offer cleanup:', cleanupError);
+      // Continue even if cleanup fails
+    }
+    
     const { active } = req.query;
     let query = {};
     
@@ -84,6 +93,15 @@ router.get('/offers', async (req, res) => {
 // Get active offers for today
 router.get('/offers/active', async (req, res) => {
   try {
+    // Clean up expired/inactive offers before fetching active ones
+    try {
+      const { cleanupDailyOffers } = require('../services/dailyOfferCleanupService');
+      await cleanupDailyOffers();
+    } catch (cleanupError) {
+      console.error('Error during offer cleanup:', cleanupError);
+      // Continue even if cleanup fails
+    }
+    
     const offers = await DailyOffer.getActiveOffers();
     res.json(offers);
   } catch (error) {
@@ -223,6 +241,21 @@ router.delete('/offers/:id', auth, async (req, res) => {
   } catch (error) {
     console.error('Error deleting offer:', error);
     res.status(500).json({ message: error.message || 'Failed to delete offer' });
+  }
+});
+
+// Cleanup expired and inactive daily offers (Admin only)
+router.post('/offers/cleanup', auth, async (req, res) => {
+  try {
+    const { cleanupDailyOffers } = require('../services/dailyOfferCleanupService');
+    const result = await cleanupDailyOffers();
+    res.json({ 
+      message: result.message,
+      deleted: result.deleted
+    });
+  } catch (error) {
+    console.error('Error cleaning up offers:', error);
+    res.status(500).json({ message: error.message || 'Failed to cleanup offers' });
   }
 });
 
