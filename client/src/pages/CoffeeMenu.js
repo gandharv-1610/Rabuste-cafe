@@ -17,6 +17,7 @@ const CoffeeMenu = () => {
   const [backgroundMedia, setBackgroundMedia] = useState(null);
   const [activeCategory, setActiveCategory] = useState(null);
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
+  const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true);
   const [offers, setOffers] = useState([]);
   const categoryRefs = {
     coffee: useRef(null),
@@ -215,6 +216,53 @@ const CoffeeMenu = () => {
 
   return (
     <div className="pt-20 min-h-screen relative">
+      {/* AI Discovery Promotional Banner */}
+      <AnimatePresence>
+        {showDiscoveryBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -50 }}
+            className="bg-gradient-to-r from-coffee-amber/20 via-coffee-gold/20 to-coffee-amber/20 border-b border-coffee-amber/30 px-4 py-3"
+          >
+            <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 flex-1">
+                <div className="flex-shrink-0">
+                  <svg className="w-6 h-6 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm md:text-base text-coffee-cream font-semibold">
+                    <span className="text-coffee-amber">✨ New!</span> Not sure what to order? Try our <span className="text-coffee-amber font-bold">AI Coffee Discovery</span> to find your perfect brew!
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    setIsDiscoveryOpen(true);
+                    setShowDiscoveryBanner(false);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-lg font-bold text-sm hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg hover:shadow-xl"
+                >
+                  Try It Now
+                </button>
+                <button
+                  onClick={() => setShowDiscoveryBanner(false)}
+                  className="p-1 text-coffee-light hover:text-coffee-cream transition-colors"
+                  aria-label="Close banner"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Sticky Category Switcher */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
