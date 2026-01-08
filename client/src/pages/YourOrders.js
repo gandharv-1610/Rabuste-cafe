@@ -49,7 +49,7 @@ const YourOrders = () => {
 
       return () => clearInterval(interval);
     }
-  }, [ordersData, isCustomerLoggedIn]);
+  }, [ordersData]);
 
   // Fetch orders by mobile
   const fetchOrdersByMobile = async (mobileNumber) => {

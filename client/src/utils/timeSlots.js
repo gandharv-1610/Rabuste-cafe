@@ -7,7 +7,6 @@ export const generateTimeSlots = () => {
   const slots = [];
   const now = new Date();
   const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
   
   // Cafe opens at 11 AM (hour 11)
   const openHour = 11;

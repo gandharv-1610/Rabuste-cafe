@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ReceiptModal from './ReceiptModal';
 
@@ -25,6 +26,33 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     if ('Notification' in window && Notification.permission === 'default') {
       Notification.requestPermission();
     }
+  }, []);
+
+  // Create a simple beep sound using Web Audio API
+  const playBeep = () => {
+    try {
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800; // 800 Hz tone
+      oscillator.type = 'sine';
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.2);
+    } catch (e) {
+      console.log('Audio not supported:', e);
+    }
+  };
+
+  const playOrderSound = useCallback(() => {
+    playBeep();
   }, []);
 
   useEffect(() => {
@@ -55,7 +83,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
       lastOrderIdsRef.current = new Set(orders.map(order => order._id));
       isInitialLoadRef.current = false;
     }
-  }, [orders, soundEnabled]);
+  }, [orders, soundEnabled, playOrderSound]);
 
   // Check for pre-orders approaching pickup time (15 minutes before)
   useEffect(() => {
@@ -63,7 +91,6 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
 
     const checkPreOrderAlerts = () => {
       const now = new Date();
-      const fifteenMinutesFromNow = new Date(now.getTime() + 15 * 60 * 1000);
 
       orders.forEach(order => {
         if (order.isPreOrder && order.pickupTime && order.status !== 'Completed' && order.status !== 'Cancelled') {
@@ -92,30 +119,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     checkPreOrderAlerts(); // Check immediately
 
     return () => clearInterval(interval);
-  }, [orders, soundEnabled]);
-
-  // Create a simple beep sound using Web Audio API
-  const playBeep = () => {
-    try {
-      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800; // 800 Hz tone
-      oscillator.type = 'sine';
-      
-      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
-      
-      oscillator.start(audioContext.currentTime);
-      oscillator.stop(audioContext.currentTime + 0.2);
-    } catch (e) {
-      console.log('Audio not supported:', e);
-    }
-  };
+  }, [orders, soundEnabled, playOrderSound]);
 
   const fetchOrders = async () => {
     try {
@@ -128,17 +132,13 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     }
   };
 
-  const playOrderSound = () => {
-    playBeep();
-  };
-
   const updateOrderStatus = async (orderId, newStatus) => {
     try {
       await api.put(`/orders/${orderId}/status`, { status: newStatus });
       fetchOrders();
     } catch (error) {
       console.error('Error updating order status:', error);
-      alert('Failed to update order status');
+      toast.error('Failed to update order status');
     }
   };
 
@@ -147,10 +147,10 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
     try {
       await api.put(`/orders/${orderId}/accept-preorder`);
       fetchOrders();
-      alert('Pre-order accepted! Customer has been notified.');
+      toast.success('Pre-order accepted! Customer has been notified.');
     } catch (error) {
       console.error('Error accepting pre-order:', error);
-      alert(error.response?.data?.message || 'Failed to accept pre-order');
+      toast.error(error.response?.data?.message || 'Failed to accept pre-order');
     }
   };
 
@@ -162,7 +162,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
       fetchOrders();
     } catch (error) {
       console.error('Error updating estimated prep time:', error);
-      alert('Failed to update estimated prep time');
+      toast.error('Failed to update estimated prep time');
     }
   };
 
@@ -178,7 +178,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
       setShowReceipt(true);
     } catch (error) {
       console.error('Error fetching receipt:', error);
-      alert('Failed to load receipt');
+      toast.error('Failed to load receipt');
     }
   };
 
@@ -409,7 +409,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                         fetchOrders();
                       } catch (error) {
                         console.error('Error confirming payment:', error);
-                        alert('Failed to confirm payment');
+                        toast.error('Failed to confirm payment');
                       }
                     }}
                     className="w-full px-4 py-2 bg-green-500/20 text-green-400 rounded-lg font-semibold hover:bg-green-500/30 border border-green-500/50"
@@ -465,11 +465,11 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
                         // Use cancel-preorder endpoint for preorders (sends email)
                         try {
                           const response = await api.put(`/orders/${order._id}/cancel-preorder`);
-                          alert(response.data.message || 'Pre-order cancelled successfully');
+                          toast.success(response.data.message || 'Pre-order cancelled successfully');
                           fetchOrders();
                         } catch (error) {
                           console.error('Error cancelling pre-order:', error);
-                          alert(error.response?.data?.message || 'Failed to cancel pre-order');
+                          toast.error(error.response?.data?.message || 'Failed to cancel pre-order');
                         }
                       } else {
                         // Regular cancel for non-preorders

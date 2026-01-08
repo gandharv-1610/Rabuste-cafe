@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import OTPModal from '../components/OTPModal';
 
@@ -22,6 +23,28 @@ const ArtCheckout = () => {
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingOrderData, setPendingOrderData] = useState(null);
 
+  const fetchArtwork = useCallback(async () => {
+    try {
+      const response = await api.get(`/art/${id}`);
+      const art = response.data;
+      
+      // Check if artwork is available
+      if (art.status !== 'available' && art.availability !== 'Available') {
+        toast.error('This artwork is not available for purchase online.');
+        navigate('/art-gallery');
+        return;
+      }
+      
+      setArtwork(art);
+    } catch (error) {
+      console.error('Error fetching artwork:', error);
+      toast.error('Artwork not found');
+      navigate('/art-gallery');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, navigate]);
+
   useEffect(() => {
     fetchArtwork();
     
@@ -38,29 +61,7 @@ const ArtCheckout = () => {
         document.body.removeChild(existingScript);
       }
     };
-  }, [id]);
-
-  const fetchArtwork = async () => {
-    try {
-      const response = await api.get(`/art/${id}`);
-      const art = response.data;
-      
-      // Check if artwork is available
-      if (art.status !== 'available' && art.availability !== 'Available') {
-        alert('This artwork is not available for purchase online.');
-        navigate('/art-gallery');
-        return;
-      }
-      
-      setArtwork(art);
-    } catch (error) {
-      console.error('Error fetching artwork:', error);
-      alert('Artwork not found');
-      navigate('/art-gallery');
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [fetchArtwork]);
 
   const validateForm = () => {
     const newErrors = {};
@@ -124,7 +125,7 @@ const ArtCheckout = () => {
       setProcessing(false);
     } catch (error) {
       console.error('OTP sending error:', error);
-      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
       setProcessing(false);
     }
   };
@@ -184,12 +185,12 @@ const ArtCheckout = () => {
             });
 
             if (verifyResponse.data.success) {
-              alert('Order placed successfully! Check your email for confirmation. You can view your orders using the "My Orders" button on the art gallery page.');
+              toast.success('Order placed successfully! Check your email for confirmation. You can view your orders using the "My Orders" button on the art gallery page.');
               navigate('/art-gallery');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert(error.response?.data?.message || 'Payment verification failed. Please contact support.');
+            toast.error(error.response?.data?.message || 'Payment verification failed. Please contact support.');
           } finally {
             setProcessing(false);
           }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
@@ -16,9 +16,23 @@ const CoffeeCategory = () => {
     fetchCoffees();
   }, []);
 
+  const filterCoffees = useCallback(() => {
+    let filtered = [...coffees];
+
+    if (subcategoryFilter !== 'All') {
+      filtered = filtered.filter(coffee => coffee.subcategory === subcategoryFilter);
+    }
+
+    if (milkFilter !== 'All') {
+      filtered = filtered.filter(coffee => coffee.milkType === milkFilter);
+    }
+
+    setFilteredCoffees(filtered);
+  }, [coffees, subcategoryFilter, milkFilter]);
+
   useEffect(() => {
     filterCoffees();
-  }, [coffees, subcategoryFilter, milkFilter]);
+  }, [filterCoffees]);
 
   const fetchCoffees = async () => {
     try {
@@ -31,20 +45,6 @@ const CoffeeCategory = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const filterCoffees = () => {
-    let filtered = [...coffees];
-
-    if (subcategoryFilter !== 'All') {
-      filtered = filtered.filter(coffee => coffee.subcategory === subcategoryFilter);
-    }
-
-    if (milkFilter !== 'All') {
-      filtered = filtered.filter(coffee => coffee.milkType === milkFilter);
-    }
-
-    setFilteredCoffees(filtered);
   };
 
   const strengthColors = {

@@ -104,6 +104,7 @@ const CoffeeMenu = () => {
     return () => {
       observers.forEach((observer) => observer?.disconnect());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [coffees, shakes, tea, sides]);
 
   const fetchBackground = async () => {

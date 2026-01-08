@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import OTPModal from '../components/OTPModal';
@@ -75,7 +76,7 @@ const Franchise = () => {
       setPendingEnquiry(formData);
       setShowOTPModal(true);
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
       console.error('Franchise enquiry error:', error);
     } finally {
       setLoading(false);
@@ -98,7 +99,7 @@ const Franchise = () => {
 
     // Verify OTP and submit enquiry
     try {
-      const response = await api.post('/email/franchise/verify', {
+      await api.post('/email/franchise/verify', {
         email: pendingEnquiry.email,
         otp
       });

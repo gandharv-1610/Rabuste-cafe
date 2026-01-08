@@ -1,21 +1,19 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
 import OTPModal from '../components/OTPModal';
-import Toast from '../components/Toast';
 import { generateTimeSlots, isCafeOpen } from '../utils/timeSlots';
 import { 
   getCustomerSession, 
   setCustomerSession, 
   isCustomerLoggedIn,
-  getCustomerMobile,
-  getCustomerName,
-  getCustomerEmail
+  getCustomerMobile
 } from '../utils/customerAuth';
 
 const PreOrder = () => {
@@ -37,7 +35,6 @@ const PreOrder = () => {
   const [mobileError, setMobileError] = useState('');
   const [nameError, setNameError] = useState('');
   const [emailError, setEmailError] = useState('');
-  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -50,8 +47,6 @@ const PreOrder = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [preorderSettings, setPreorderSettings] = useState(null);
   const [preorderEnabled, setPreorderEnabled] = useState(true);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(new Set());
   const [cartShake, setCartShake] = useState(0);
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false); // AI Discovery modal state
@@ -230,11 +225,7 @@ const PreOrder = () => {
     setRecentlyAdded(prev => new Set([...prev, itemKey]));
     
     // Show toast notification
-    setToastMessage(`${item.name} added`);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
+    toast.success(`${item.name} added`);
 
     // Trigger cart shake animation
     setCartShake(prev => prev + 1);
@@ -517,17 +508,17 @@ const PreOrder = () => {
     setEmailError('');
 
     if (cart.length === 0) {
-      alert('Your cart is empty');
+      toast.error('Your cart is empty');
       return;
     }
 
     if (!cafeOpen) {
-      alert('Cafe is currently closed. Pre-orders are available from 11 AM to 11 PM.');
+      toast.error('Cafe is currently closed. Pre-orders are available from 11 AM to 11 PM.');
       return;
     }
 
     if (!selectedTimeSlot) {
-      alert('Please select a pickup time slot');
+      toast.error('Please select a pickup time slot');
       return;
     }
 
@@ -570,7 +561,7 @@ const PreOrder = () => {
       // Find selected time slot details
       const slot = timeSlots.find(s => s.value === selectedTimeSlot);
       if (!slot) {
-        alert('Invalid time slot selected');
+        toast.error('Invalid time slot selected');
         return;
       }
 
@@ -627,11 +618,11 @@ const PreOrder = () => {
               setCart([]);
               setShowReceipt(true);
             } else {
-              alert('Payment verification failed. Please contact support.');
+              toast.error('Payment verification failed. Please contact support.');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support with your order number.');
+            toast.error('Payment verification failed. Please contact support with your order number.');
           }
         },
         prefill: {
@@ -643,7 +634,7 @@ const PreOrder = () => {
         },
         modal: {
           ondismiss: function() {
-            alert('Payment cancelled. Your pre-order has been created but payment is pending.');
+            toast.warning('Payment cancelled. Your pre-order has been created but payment is pending.');
           }
         }
       };
@@ -653,7 +644,7 @@ const PreOrder = () => {
     } catch (error) {
       console.error('Error placing pre-order:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to place pre-order. Please try again.';
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     }
   };
 
@@ -1167,14 +1158,9 @@ const PreOrder = () => {
                           }}
                           className={`w-full bg-coffee-brown/40 border ${
                             mobileError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2 text-sm pr-10`}
+                          } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
                           maxLength={13}
                         />
-                        {isLoadingCustomer && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <div className="w-4 h-4 border-2 border-coffee-amber border-t-transparent rounded-full animate-spin"></div>
-                          </div>
-                        )}
                       </div>
                       {mobileError && (
                         <p className="text-red-400 text-xs mt-1">{mobileError}</p>
@@ -1264,12 +1250,6 @@ const PreOrder = () => {
         </div>
       </div>
 
-      {/* Toast Notification */}
-      <Toast
-        message={toastMessage}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
 
       {/* Login Modal */}
       <CustomerLoginModal

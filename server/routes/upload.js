@@ -40,8 +40,21 @@ router.post('/image', upload.single('image'), async (req, res) => {
       return res.status(400).json({ message: 'No file uploaded' });
     }
 
+    // Check Cloudinary configuration
+    if (!process.env.CLOUDINARY_CLOUD_NAME || !process.env.CLOUDINARY_API_KEY || !process.env.CLOUDINARY_API_SECRET) {
+      console.error('Cloudinary configuration missing');
+      return res.status(500).json({ 
+        message: 'Upload service not configured. Please contact administrator.',
+        error: 'Cloudinary credentials missing'
+      });
+    }
+
     const folder = req.body.folder || 'rabuste-coffee';
     const result = await uploadImage(req.file.buffer, folder);
+
+    if (!result || !result.url) {
+      throw new Error('Upload succeeded but no URL returned');
+    }
 
     res.json({
       url: result.url,
@@ -49,7 +62,12 @@ router.post('/image', upload.single('image'), async (req, res) => {
     });
   } catch (error) {
     console.error('Upload error:', error);
-    res.status(500).json({ message: 'Upload failed', error: error.message });
+    const errorMessage = error.message || 'Unknown error occurred';
+    res.status(500).json({ 
+      message: 'Upload failed', 
+      error: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import OTPModal from '../components/OTPModal';
@@ -136,7 +137,7 @@ const Workshops = () => {
     } catch (error) {
       setSendingOTP(false);
       const errorMessage = error.response?.data?.message || 'Failed to send OTP. Please try again.';
-      alert(errorMessage);
+      toast.error(errorMessage);
       // If it's a duplicate registration error, reset the form
       if (errorMessage.includes('already registered')) {
         setShowRegistration(false);
@@ -169,7 +170,7 @@ const Workshops = () => {
     // If free workshop or pay at entry, verify OTP and register directly
     if (workshopPrice === 0 || paymentMethod === 'PAY_AT_ENTRY') {
       try {
-        const response = await api.post('/email/workshop/verify', {
+        await api.post('/email/workshop/verify', {
           email: pendingRegistration.email,
           otp
         });
@@ -200,7 +201,7 @@ const Workshops = () => {
     if (paymentMethod === 'ONLINE') {
       try {
         // Verify OTP only (don't create registration yet)
-        const otpRecord = await api.post('/email/workshop/verify-otp-only', {
+        await api.post('/email/workshop/verify-otp-only', {
           email: pendingRegistration.email,
           otp
         });
@@ -250,7 +251,7 @@ const Workshops = () => {
         handler: async function (response) {
           try {
             // Verify payment using the same endpoint as orders
-            const verifyResponse = await api.post('/payment/verify-payment', {
+            await api.post('/payment/verify-payment', {
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
@@ -268,7 +269,7 @@ const Workshops = () => {
             setProcessingPayment(false);
           } catch (error) {
             console.error('Payment verification error:', error);
-            alert('Payment verification failed. Please contact support.');
+            toast.error('Payment verification failed. Please contact support.');
             setProcessingPayment(false);
           }
         },
@@ -291,7 +292,7 @@ const Workshops = () => {
       razorpay.open();
     } catch (error) {
       console.error('Payment initiation error:', error);
-      alert(error.response?.data?.message || 'Failed to initiate payment. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to initiate payment. Please try again.');
       setProcessingPayment(false);
     }
   };
