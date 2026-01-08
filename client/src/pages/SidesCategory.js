@@ -6,7 +6,6 @@ import Chatbot from '../components/Chatbot';
 const SidesCategory = () => {
   const [sides, setSides] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedSide, setSelectedSide] = useState(null);
   const [flippedCards, setFlippedCards] = useState(new Set());
 
   useEffect(() => {

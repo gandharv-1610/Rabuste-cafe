@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
-import ImageUpload from '../components/ImageUpload';
 
 const ArtistSubmission = () => {
   const navigate = useNavigate();
@@ -56,8 +56,23 @@ const ArtistSubmission = () => {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = async (files) => {
+  const handleImageUpload = async (e) => {
+    const files = Array.from(e.target.files || []);
     if (files.length === 0) return;
+
+    // Validate file types
+    const invalidFiles = files.filter(file => !file.type.startsWith('image/'));
+    if (invalidFiles.length > 0) {
+      toast.error('Please select only image files');
+      return;
+    }
+
+    // Validate file sizes (10MB each)
+    const oversizedFiles = files.filter(file => file.size > 10 * 1024 * 1024);
+    if (oversizedFiles.length > 0) {
+      toast.error('File size must be less than 10MB per image');
+      return;
+    }
 
     setUploading(true);
     const uploadedImages = [];
@@ -83,9 +98,13 @@ const ArtistSubmission = () => {
 
       setImages([...images, ...uploadedImages]);
       setCloudinaryPublicIds([...cloudinaryPublicIds, ...uploadedPublicIds]);
+      toast.success(`Successfully uploaded ${uploadedImages.length} image(s)`);
+      
+      // Reset file input
+      e.target.value = '';
     } catch (error) {
       console.error('Image upload error:', error);
-      alert('Failed to upload images. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to upload images. Please try again.');
     } finally {
       setUploading(false);
     }
@@ -113,11 +132,11 @@ const ArtistSubmission = () => {
         cloudinary_public_ids: cloudinaryPublicIds
       });
 
-      alert('Your submission has been received! We\'ll review it and get back to you soon.');
+      toast.success('Your submission has been received! We\'ll review it and get back to you soon.');
       navigate('/art-gallery');
     } catch (error) {
       console.error('Submission error:', error);
-      alert(error.response?.data?.message || 'Failed to submit. Please try again.');
+      toast.error(error.response?.data?.message || 'Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -273,11 +292,22 @@ const ArtistSubmission = () => {
               <label className="block text-coffee-amber font-semibold mb-2">
                 Artwork Photos * (At least 1 required)
               </label>
-              <ImageUpload
-                onUpload={handleImageUpload}
-                uploading={uploading}
-                multiple={true}
-              />
+              <div className="mb-4">
+                <input
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  disabled={uploading}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-coffee-amber disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {uploading && (
+                  <p className="text-coffee-amber text-sm mt-2">Uploading images...</p>
+                )}
+                <p className="text-coffee-light/60 text-xs mt-1">
+                  You can select multiple images. Each image must be less than 10MB.
+                </p>
+              </div>
               {errors.images && (
                 <p className="text-red-400 text-sm mt-1">{errors.images}</p>
               )}

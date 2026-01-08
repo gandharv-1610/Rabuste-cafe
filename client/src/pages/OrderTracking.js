@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import OTPModal from '../components/OTPModal';
 
@@ -12,17 +13,17 @@ const OrderTracking = () => {
   const [order, setOrder] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     if (orderNumber && email) {
       requestOTP();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const requestOTP = async () => {
     if (!orderNumber || !email) {
-      alert('Please enter order number and email');
+      toast.error('Please enter order number and email');
       return;
     }
 
@@ -32,10 +33,9 @@ const OrderTracking = () => {
         email,
         orderNumber
       });
-      setOtpSent(true);
       setShowOTPModal(true);
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to send OTP. Please check your order number and email.');
+      toast.error(error.response?.data?.message || 'Failed to send OTP. Please check your order number and email.');
       console.error('OTP request error:', error);
     } finally {
       setLoading(false);
@@ -285,9 +285,6 @@ const OrderTracking = () => {
           isOpen={showOTPModal}
           onClose={() => {
             setShowOTPModal(false);
-            if (!order) {
-              setOtpSent(false);
-            }
           }}
           email={email}
           type="order-tracking"

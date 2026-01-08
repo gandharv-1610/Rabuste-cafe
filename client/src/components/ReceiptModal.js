@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 
 const ReceiptModal = ({ order, onClose }) => {
@@ -109,7 +110,7 @@ const ReceiptModal = ({ order, onClose }) => {
       }, 250);
     } catch (error) {
       console.error('Error generating receipt:', error);
-      alert('Failed to generate receipt. You can still print this page.');
+      toast.error('Failed to generate receipt. You can still print this page.');
     }
   };
 

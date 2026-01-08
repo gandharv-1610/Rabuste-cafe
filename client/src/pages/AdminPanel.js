@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ImageUpload from '../components/ImageUpload';
 import VideoUpload from '../components/VideoUpload';
@@ -650,7 +651,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       });
       onRefresh();
     } catch (error) {
-      alert('Error saving menu item');
+      toast.error('Error saving menu item');
       console.error(error);
     }
   };
@@ -683,7 +684,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
       await api.delete(`/coffee/${id}`);
       onRefresh();
     } catch (error) {
-      alert('Error deleting coffee item');
+      toast.error('Error deleting coffee item');
     }
   };
 
@@ -1030,7 +1031,7 @@ const ArtManagement = ({ arts, artEnquiries, loading, onRefresh, onRefreshEnquir
       });
       onRefresh();
     } catch (error) {
-      alert('Error saving art piece');
+      toast.error('Error saving art piece');
     }
   };
 
@@ -1057,7 +1058,7 @@ const ArtManagement = ({ arts, artEnquiries, loading, onRefresh, onRefreshEnquir
       await api.delete(`/art/${id}`);
       onRefresh();
     } catch (error) {
-      alert('Error deleting art piece');
+      toast.error('Error deleting art piece');
     }
   };
 
@@ -1277,7 +1278,7 @@ const ArtEnquiries = ({ enquiries, loading, onRefresh }) => {
       onRefresh();
       setSelectedEnquiry(null);
     } catch (error) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -1426,7 +1427,7 @@ const EntryCounterSearch = ({ onSearch, onClear }) => {
       onSearch(response.data);
     } catch (error) {
       console.error('Error searching registrations:', error);
-      alert('Error searching registrations');
+      toast.error('Error searching registrations');
     }
   };
 
@@ -1536,7 +1537,7 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
       });
       onRefresh();
     } catch (error) {
-      alert('Error saving workshop');
+      toast.error('Error saving workshop');
     }
   };
 
@@ -1568,7 +1569,7 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
       await api.delete(`/workshops/${id}`);
       onRefresh();
     } catch (error) {
-      alert('Error deleting workshop');
+      toast.error('Error deleting workshop');
     }
   };
 
@@ -1865,9 +1866,9 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
                               if (onRefreshRegistrations) {
                                 onRefreshRegistrations();
                               }
-                              alert('Payment marked as paid successfully');
+                              toast.success('Payment marked as paid successfully');
                             } catch (error) {
-                              alert(error.response?.data?.message || 'Error marking payment as paid');
+                              toast.error(error.response?.data?.message || 'Error marking payment as paid');
                               console.error(error);
                             }
                           }
@@ -1888,7 +1889,7 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
                               onRefreshRegistrations();
                             }
                           } catch (error) {
-                            alert('Error deleting registration');
+                            toast.error('Error deleting registration');
                             console.error(error);
                           }
                         }
@@ -1920,7 +1921,7 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
       onRefresh();
       setSelectedEnquiry(null);
     } catch (error) {
-      alert('Error updating status');
+      toast.error('Error updating status');
     }
   };
 
@@ -2090,7 +2091,7 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
       });
       onRefresh();
     } catch (error) {
-      alert('Error saving site media');
+      toast.error('Error saving site media');
       console.error(error);
     }
   };
@@ -2117,7 +2118,7 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
       await api.delete(`/site-media/${id}`);
       onRefresh();
     } catch (error) {
-      alert('Error deleting media entry');
+      toast.error('Error deleting media entry');
       console.error(error);
     }
   };
@@ -2397,7 +2398,7 @@ const CustomerEngagement = ({ stats, onRefresh }) => {
 
   const handleNotifySubscribers = async () => {
     if (!notificationType || !contentId) {
-      alert('Please select notification type and content');
+      toast.error('Please select notification type and content');
       return;
     }
 
@@ -2413,12 +2414,12 @@ const CustomerEngagement = ({ stats, onRefresh }) => {
         filterTags: filterTags.length > 0 ? filterTags : undefined
       });
 
-      alert(`✅ ${response.data.message}`);
+      toast.success(response.data.message);
       setNotificationType('');
       setContentId('');
       setFilterTags([]);
     } catch (error) {
-      alert(`Error: ${error.response?.data?.message || error.message}`);
+      toast.error(`Error: ${error.response?.data?.message || error.message}`);
     } finally {
       setNotifying(false);
     }
@@ -2672,11 +2673,11 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
     e.preventDefault();
     try {
       await api.put('/billing/preorder-settings', preorderFormData);
-      alert('Preorder settings updated successfully!');
+      toast.success('Preorder settings updated successfully!');
       const response = await api.get('/billing/preorder-settings');
       setPreorderSettings(response.data);
     } catch (error) {
-      alert(error.response?.data?.message || 'Error updating preorder settings');
+      toast.error(error.response?.data?.message || 'Error updating preorder settings');
       console.error(error);
     }
   };
@@ -2692,12 +2693,12 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
       };
       
       await api.put('/billing/settings', payload);
-      alert('Billing settings updated successfully!');
+      toast.success('Billing settings updated successfully!');
       onRefreshSettings();
       setShowSettingsForm(false);
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Error updating billing settings';
-      alert(errorMessage);
+      toast.error(errorMessage);
       console.error('Billing settings error:', error);
     }
   };
@@ -2720,13 +2721,13 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
       } else {
         await api.post('/billing/offers', payload);
       }
-      alert('Offer saved successfully!');
+      toast.success('Offer saved successfully!');
       setShowOfferForm(false);
       setEditingOffer(null);
       resetOfferForm();
       onRefreshOffers();
     } catch (error) {
-      alert(error.response?.data?.message || 'Error saving offer');
+      toast.error(error.response?.data?.message || 'Error saving offer');
       console.error(error);
     }
   };
@@ -2775,7 +2776,7 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
       await api.delete(`/billing/offers/${id}`);
       onRefreshOffers();
     } catch (error) {
-      alert('Error deleting offer');
+      toast.error('Error deleting offer');
       console.error(error);
     }
   };
@@ -3270,28 +3271,28 @@ const ArtOrdersManagement = ({ orders, loading, onRefresh }) => {
     
     try {
       await api.post(`/art-orders/${orderId}/accept`);
-      alert('Order accepted successfully!');
+      toast.success('Order accepted successfully!');
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to accept order');
+      toast.error(error.response?.data?.message || 'Failed to accept order');
     }
   };
 
   const handleCancel = async () => {
     if (!cancelReason.trim()) {
-      alert('Please provide a cancellation reason');
+      toast.error('Please provide a cancellation reason');
       return;
     }
 
     try {
       await api.post(`/art-orders/${selectedOrder._id}/cancel`, { reason: cancelReason });
-      alert('Order cancelled and refund processed');
+      toast.success('Order cancelled and refund processed');
       setShowCancelModal(false);
       setCancelReason('');
       setSelectedOrder(null);
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to cancel order');
+      toast.error(error.response?.data?.message || 'Failed to cancel order');
     }
   };
 
@@ -3473,19 +3474,19 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
 
   const handleApprove = async () => {
     if (!approveFormData.price || !approveFormData.description) {
-      alert('Price and description are required');
+      toast.error('Price and description are required');
       return;
     }
 
     try {
       await api.post(`/artist-requests/${selectedRequest._id}/approve`, approveFormData);
-      alert('Artist request approved and artwork created!');
+      toast.success('Artist request approved and artwork created!');
       setShowApproveModal(false);
       setSelectedRequest(null);
       setApproveFormData({ price: '', description: '', dimensions: '' });
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to approve request');
+      toast.error(error.response?.data?.message || 'Failed to approve request');
     }
   };
 
@@ -3495,10 +3496,10 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
 
     try {
       await api.post(`/artist-requests/${requestId}/reject`, { reason });
-      alert('Request rejected');
+      toast.success('Request rejected');
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to reject request');
+      toast.error(error.response?.data?.message || 'Failed to reject request');
     }
   };
 
@@ -3508,10 +3509,10 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
 
     try {
       await api.post(`/artist-requests/${requestId}/needs-info`, { message });
-      alert('Request marked as needs more info');
+      toast.success('Request marked as needs more info');
       onRefresh();
     } catch (error) {
-      alert(error.response?.data?.message || 'Failed to update request');
+      toast.error(error.response?.data?.message || 'Failed to update request');
     }
   };
 

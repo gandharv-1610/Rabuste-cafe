@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
@@ -40,9 +41,26 @@ const ArtGallery = () => {
     navigate(`/art-checkout/${art._id}`);
   };
 
+  const fetchArts = useCallback(async () => {
+    setLoading(true);
+    try {
+      // When filter is 'all', don't send availability param (backend will exclude sold)
+      // When filter is 'Sold' or 'Available', send the filter
+      const params = filter !== 'all' ? { availability: filter } : {};
+      params._t = Date.now(); // Cache busting
+      const response = await api.get('/art', { params });
+      setArts(response.data);
+    } catch (error) {
+      console.error('Error fetching arts:', error);
+      setArts([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filter]);
+
   useEffect(() => {
     fetchArts();
-  }, [filter]);
+  }, [fetchArts]);
 
   useEffect(() => {
     fetchBackground();
@@ -104,21 +122,6 @@ const ArtGallery = () => {
       console.error('Error response:', error.response?.data);
       console.error('Error message:', error.message);
       setBackgroundMedia(null);
-    }
-  };
-
-  const fetchArts = async () => {
-    try {
-      // When filter is 'all', don't send availability param (backend will exclude sold)
-      // When filter is 'Sold' or 'Available', send the filter
-      const params = filter !== 'all' ? { availability: filter } : {};
-      params._t = Date.now(); // Cache busting
-      const response = await api.get('/art', { params });
-      setArts(response.data);
-    } catch (error) {
-      console.error('Error fetching arts:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -282,7 +285,7 @@ const ArtGallery = () => {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          alert('This artwork is available for purchase at our café. Please visit us to buy!');
+                          toast.info('This artwork is available for purchase at our café. Please visit us to buy!');
                         }}
                         className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                       >
@@ -403,7 +406,7 @@ const ArtGallery = () => {
                     </button>
                   ) : selectedArt.status === 'in_cafe' ? (
                     <button 
-                      onClick={() => alert('This artwork is available for purchase at our café. Please visit us to buy!')}
+                      onClick={() => toast.info('This artwork is available for purchase at our café. Please visit us to buy!')}
                       className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
                     >
                       Buy at Café
@@ -491,7 +494,7 @@ const ArtGallery = () => {
                 setShowOTPModal(true);
                 setShowEnquiryForm(false);
               } catch (error) {
-                alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+                toast.error(error.response?.data?.message || 'Failed to send OTP. Please try again.');
                 console.error('Art enquiry error:', error);
               } finally {
                 setEnquiryLoading(false);
@@ -619,7 +622,7 @@ const ArtGallery = () => {
               otp
             });
 
-            alert('Enquiry submitted successfully! We will get back to you soon.');
+            toast.success('Enquiry submitted successfully! We will get back to you soon.');
             setPendingEnquiry(null);
             setShowOTPModal(false);
             setShowEnquiryForm(false);

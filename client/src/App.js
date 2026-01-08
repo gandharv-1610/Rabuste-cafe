@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -37,6 +38,47 @@ function App() {
       </div>
       
       <div className="App min-h-screen flex flex-col">
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#5D4037',
+              color: '#EFEBE9',
+              border: '1px solid #FF6F00',
+              borderRadius: '8px',
+              padding: '16px',
+              fontSize: '14px',
+              fontWeight: '500',
+            },
+            success: {
+              iconTheme: {
+                primary: '#4CAF50',
+                secondary: '#EFEBE9',
+              },
+              style: {
+                background: '#1B5E20',
+                border: '1px solid #4CAF50',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#F44336',
+                secondary: '#EFEBE9',
+              },
+              style: {
+                background: '#B71C1C',
+                border: '1px solid #F44336',
+              },
+            },
+            loading: {
+              iconTheme: {
+                primary: '#FF6F00',
+                secondary: '#EFEBE9',
+              },
+            },
+          }}
+        />
         <Navbar />
         <main className="flex-1">
           <Routes>

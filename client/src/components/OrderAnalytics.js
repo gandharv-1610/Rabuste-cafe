@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import React, { useState, useEffect, useCallback } from 'react';
+import { motion } from 'framer-motion';
 import api from '../api/axios';
 import {
   LineChart,
@@ -74,7 +74,6 @@ const OrderAnalytics = () => {
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(true);
   const [insightsLoading, setInsightsLoading] = useState(false);
-  const [forecastLoading, setForecastLoading] = useState(false);
   const [error, setError] = useState(null);
   const [selectedMetric, setSelectedMetric] = useState('orders'); // orders, revenue, prepTime
   const [conversationalQuery, setConversationalQuery] = useState('');
@@ -137,13 +136,7 @@ const OrderAnalytics = () => {
     };
   });
 
-  useEffect(() => {
-    fetchAnalytics();
-    fetchInsights();
-    fetchForecast();
-  }, [dateRange]);
-
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
@@ -160,9 +153,9 @@ const OrderAnalytics = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [dateRange]);
 
-  const fetchInsights = async () => {
+  const fetchInsights = useCallback(async () => {
     setInsightsLoading(true);
     try {
       const params = new URLSearchParams({
@@ -177,10 +170,9 @@ const OrderAnalytics = () => {
     } finally {
       setInsightsLoading(false);
     }
-  };
+  }, [dateRange]);
 
-  const fetchForecast = async () => {
-    setForecastLoading(true);
+  const fetchForecast = useCallback(async () => {
     try {
       const params = new URLSearchParams({
         startDate: dateRange.startDate,
@@ -191,10 +183,14 @@ const OrderAnalytics = () => {
     } catch (error) {
       console.error('Error fetching forecast:', error);
       setForecast(null);
-    } finally {
-      setForecastLoading(false);
     }
-  };
+  }, [dateRange]);
+
+  useEffect(() => {
+    fetchAnalytics();
+    fetchInsights();
+    fetchForecast();
+  }, [fetchAnalytics, fetchInsights, fetchForecast]);
 
 
   const handleConversationalQuery = async () => {

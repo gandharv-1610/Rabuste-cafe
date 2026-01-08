@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ReceiptModal from '../components/ReceiptModal';
-import Toast from '../components/Toast';
 
 const CounterOrder = () => {
   const navigate = useNavigate();
@@ -26,8 +26,6 @@ const CounterOrder = () => {
   const [billingSettings, setBillingSettings] = useState(null);
   const [offers, setOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(new Set());
   const [cartShake, setCartShake] = useState(0);
   const cartRef = useRef(null);
@@ -227,11 +225,7 @@ const CounterOrder = () => {
     setRecentlyAdded(prev => new Set([...prev, itemKey]));
     
     // Show toast notification
-    setToastMessage(`${item.name} added`);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
+    toast.success(`${item.name} added`);
 
     // Trigger cart shake animation
     setCartShake(prev => prev + 1);
@@ -336,7 +330,7 @@ const CounterOrder = () => {
     setNameError('');
 
     if (cart.length === 0) {
-      alert('Cart is empty');
+      toast.error('Cart is empty');
       return;
     }
 
@@ -390,7 +384,7 @@ const CounterOrder = () => {
     } catch (error) {
       console.error('Error placing order:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to place order.';
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     }
   };
 
@@ -798,12 +792,6 @@ const CounterOrder = () => {
         </div>
       </div>
 
-      {/* Toast Notification */}
-      <Toast
-        message={toastMessage}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
     </div>
   );
 };

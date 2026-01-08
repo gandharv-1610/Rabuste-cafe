@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import toast from 'react-hot-toast';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
-import Toast from '../components/Toast';
 import { 
   getCustomerSession, 
   setCustomerSession, 
   isCustomerLoggedIn,
-  getCustomerMobile,
-  getCustomerName,
-  getCustomerEmail
+  getCustomerMobile
 } from '../utils/customerAuth';
 
 const Order = () => {
@@ -42,8 +40,6 @@ const Order = () => {
   const [billingSettings, setBillingSettings] = useState(null);
   const [offers, setOffers] = useState([]);
   const [selectedOffer, setSelectedOffer] = useState(null);
-  const [toastMessage, setToastMessage] = useState('');
-  const [showToast, setShowToast] = useState(false);
   const [recentlyAdded, setRecentlyAdded] = useState(new Set()); // Track items just added
   const [cartShake, setCartShake] = useState(0); // For cart shake animation
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false); // AI Discovery modal state
@@ -104,48 +100,6 @@ const Order = () => {
       console.error('Error fetching menu:', error);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // Save favorites to server and localStorage
-  const saveFavorites = async (newFavorites, mobile = null) => {
-    // Save to localStorage as backup
-    localStorage.setItem('rabuste_favorites', JSON.stringify(newFavorites));
-    setFavorites(newFavorites);
-    
-    // Save to server if logged in
-    const customerMobile = mobile || getCustomerMobile();
-    if (customerMobile) {
-      try {
-        // Sync all favorites to server
-        const currentFavorites = [...newFavorites];
-        // Get current server favorites
-        const serverResponse = await api.get(`/customers/${customerMobile}/favorites`);
-        const serverFavorites = (serverResponse.data.favorites || []).map(f => f.toString());
-        
-        // Add missing favorites
-        for (const favId of currentFavorites) {
-          if (!serverFavorites.includes(favId)) {
-            await api.post(`/customers/${customerMobile}/favorites`, {
-              itemId: favId,
-              action: 'add'
-            });
-          }
-        }
-        
-        // Remove favorites not in current list
-        for (const favId of serverFavorites) {
-          if (!currentFavorites.includes(favId)) {
-            await api.post(`/customers/${customerMobile}/favorites`, {
-              itemId: favId,
-              action: 'remove'
-            });
-          }
-        }
-      } catch (error) {
-        console.error('Error syncing favorites to server:', error);
-        // Continue with localStorage only
-      }
     }
   };
 
@@ -260,11 +214,7 @@ const Order = () => {
     setRecentlyAdded(prev => new Set([...prev, itemKey]));
     
     // Show toast notification
-    setToastMessage(`${item.name} added`);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-    }, 3000);
+    toast.success(`${item.name} added`);
 
     // Trigger cart shake animation
     setCartShake(prev => prev + 1);
@@ -528,7 +478,7 @@ const Order = () => {
     setNameError('');
 
     if (cart.length === 0) {
-      alert('Your cart is empty');
+      toast.error('Your cart is empty');
       return;
     }
 
@@ -604,7 +554,7 @@ const Order = () => {
     // Validate cart items have valid prices
     const invalidItems = cart.filter(item => !item.itemId || item.price <= 0 || item.quantity <= 0);
     if (invalidItems.length > 0) {
-      alert('Some items in your cart have invalid prices or quantities. Please remove them and try again.');
+      toast.error('Some items in your cart have invalid prices or quantities. Please remove them and try again.');
       return;
     }
 
@@ -675,11 +625,11 @@ const Order = () => {
                 setCart([]);
                 setShowReceipt(true);
               } else {
-                alert('Payment verification failed. Please contact support.');
+                toast.error('Payment verification failed. Please contact support.');
               }
             } catch (error) {
               console.error('Payment verification error:', error);
-              alert('Payment verification failed. Please contact support with your order number.');
+              toast.error('Payment verification failed. Please contact support with your order number.');
             }
           },
           prefill: {
@@ -691,7 +641,7 @@ const Order = () => {
           },
           modal: {
             ondismiss: function() {
-              alert('Payment cancelled. Your order has been created but payment is pending.');
+              toast.warning('Payment cancelled. Your order has been created but payment is pending.');
             }
           }
         };
@@ -703,7 +653,7 @@ const Order = () => {
       console.error('Error placing order:', error);
       console.error('Error response:', error.response?.data);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to place order. Please try again.';
-      alert(`Error: ${errorMessage}`);
+      toast.error(`Error: ${errorMessage}`);
     }
   };
 
@@ -1324,12 +1274,6 @@ const Order = () => {
         </div>
       </div>
 
-      {/* Toast Notification */}
-      <Toast
-        message={toastMessage}
-        isVisible={showToast}
-        onClose={() => setShowToast(false)}
-      />
 
       {/* Login Modal */}
       <CustomerLoginModal

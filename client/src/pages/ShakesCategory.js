@@ -6,7 +6,6 @@ import Chatbot from '../components/Chatbot';
 const ShakesCategory = () => {
   const [shakes, setShakes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedShake, setSelectedShake] = useState(null);
   const [flippedCards, setFlippedCards] = useState(new Set());
 
   useEffect(() => {
