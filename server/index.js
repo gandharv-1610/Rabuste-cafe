@@ -68,6 +68,8 @@ try {
   console.log('🔄 Loading routes...');
   app.use('/api/coffee', require('./routes/coffee'));
   app.use('/api/art', require('./routes/art'));
+  app.use('/api/art-orders', require('./routes/artOrders'));
+  app.use('/api/artist-requests', require('./routes/artistRequests'));
   app.use('/api/workshops', require('./routes/workshops'));
   app.use('/api/franchise', require('./routes/franchise'));
   app.use('/api/admin/auth', require('./routes/adminAuth')); // public login

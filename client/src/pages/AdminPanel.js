@@ -17,6 +17,8 @@ const AdminPanel = () => {
   const [registrations, setRegistrations] = useState([]);
   const [enquiries, setEnquiries] = useState([]);
   const [artEnquiries, setArtEnquiries] = useState([]);
+  const [artOrders, setArtOrders] = useState([]);
+  const [artistRequests, setArtistRequests] = useState([]);
   const [siteMedia, setSiteMedia] = useState([]);
   const [billingSettings, setBillingSettings] = useState(null);
   const [billingOffers, setBillingOffers] = useState([]);
@@ -29,6 +31,12 @@ const AdminPanel = () => {
     if (activeTab === 'art') {
       fetchArts();
       fetchArtEnquiries();
+    }
+    if (activeTab === 'artOrders') {
+      fetchArtOrders();
+    }
+    if (activeTab === 'artistRequests') {
+      fetchArtistRequests();
     }
     if (activeTab === 'workshops') {
       fetchWorkshops();
@@ -121,6 +129,30 @@ const AdminPanel = () => {
     }
   };
 
+  const fetchArtOrders = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/art-orders');
+      setArtOrders(response.data);
+    } catch (error) {
+      console.error('Error fetching art orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchArtistRequests = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/artist-requests');
+      setArtistRequests(response.data);
+    } catch (error) {
+      console.error('Error fetching artist requests:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const fetchSiteMedia = async () => {
     setLoading(true);
     try {
@@ -175,6 +207,8 @@ const AdminPanel = () => {
     { id: 'analytics', label: 'Analytics' },
     { id: 'coffee', label: 'Coffee Menu' },
     { id: 'art', label: 'Art Gallery' },
+    { id: 'artOrders', label: 'Art Orders' },
+    { id: 'artistRequests', label: 'Artist Requests' },
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
     { id: 'billing', label: 'Billing' },
@@ -308,6 +342,24 @@ const AdminPanel = () => {
             loading={loading}
             onRefresh={fetchArts}
             onRefreshEnquiries={fetchArtEnquiries}
+          />
+        )}
+
+        {/* Art Orders Management */}
+        {activeTab === 'artOrders' && (
+          <ArtOrdersManagement
+            orders={artOrders}
+            loading={loading}
+            onRefresh={fetchArtOrders}
+          />
+        )}
+
+        {/* Artist Requests Management */}
+        {activeTab === 'artistRequests' && (
+          <ArtistRequestsManagement
+            requests={artistRequests}
+            loading={loading}
+            onRefresh={fetchArtistRequests}
           />
         )}
 
@@ -3198,6 +3250,459 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
           </form>
         )}
       </div>
+    </div>
+  );
+};
+
+// Art Orders Management Component
+const ArtOrdersManagement = ({ orders, loading, onRefresh }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+
+  const filteredOrders = filterStatus === 'all' 
+    ? orders 
+    : orders.filter(order => order.orderStatus === filterStatus);
+
+  const handleAccept = async (orderId) => {
+    if (!window.confirm('Are you sure you want to accept this order?')) return;
+    
+    try {
+      await api.post(`/art-orders/${orderId}/accept`);
+      alert('Order accepted successfully!');
+      onRefresh();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to accept order');
+    }
+  };
+
+  const handleCancel = async () => {
+    if (!cancelReason.trim()) {
+      alert('Please provide a cancellation reason');
+      return;
+    }
+
+    try {
+      await api.post(`/art-orders/${selectedOrder._id}/cancel`, { reason: cancelReason });
+      alert('Order cancelled and refund processed');
+      setShowCancelModal(false);
+      setCancelReason('');
+      setSelectedOrder(null);
+      onRefresh();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to cancel order');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'pending': 'bg-yellow-500/20 text-yellow-400',
+      'confirmed': 'bg-green-500/20 text-green-400',
+      'cancelled': 'bg-red-500/20 text-red-400',
+      'shipped': 'bg-blue-500/20 text-blue-400',
+      'delivered': 'bg-green-500/20 text-green-400'
+    };
+    return colors[status] || 'bg-gray-500/20 text-gray-400';
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Art Orders</h2>
+        <button
+          onClick={onRefresh}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-6">
+        {['all', 'pending', 'confirmed', 'cancelled'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              filterStatus === status
+                ? 'bg-coffee-amber text-coffee-darker'
+                : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+            }`}
+          >
+            {status.charAt(0).toUpperCase() + status.slice(1)}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="text-coffee-light">Loading orders...</div>
+      ) : filteredOrders.length === 0 ? (
+        <div className="text-center py-8 text-coffee-light">No orders found</div>
+      ) : (
+        <div className="space-y-4">
+          {filteredOrders.map(order => (
+            <div key={order._id} className="bg-coffee-brown/20 rounded-lg p-6 border border-coffee-brown/50">
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-coffee-amber mb-2">
+                    Order #{order.orderNumber}
+                  </h3>
+                  {order.artworkId && (
+                    <div className="flex gap-4">
+                      {order.artworkId.image && (
+                        <img
+                          src={order.artworkId.image}
+                          alt={order.artworkId.title}
+                          className="w-20 h-20 object-cover rounded-lg"
+                        />
+                      )}
+                      <div>
+                        <p className="text-coffee-cream font-semibold">{order.artworkId.title}</p>
+                        <p className="text-coffee-light text-sm">by {order.artworkId.artistName}</p>
+                        <p className="text-coffee-amber font-bold">₹{order.price}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <p className="text-coffee-light text-sm mb-1">Customer</p>
+                  <p className="text-coffee-cream font-semibold">{order.customerName}</p>
+                  <p className="text-coffee-light text-sm">{order.email}</p>
+                  <p className="text-coffee-light text-sm">{order.phone}</p>
+                  <p className="text-coffee-light text-sm mt-2">
+                    {order.address}, {order.city} - {order.pincode}
+                  </p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-4 mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.orderStatus)}`}>
+                  {order.orderStatus.charAt(0).toUpperCase() + order.orderStatus.slice(1)}
+                </span>
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  order.paymentStatus === 'paid' ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'
+                }`}>
+                  Payment: {order.paymentStatus.charAt(0).toUpperCase() + order.paymentStatus.slice(1)}
+                </span>
+                {order.trackingNumber && (
+                  <span className="text-coffee-light text-sm">
+                    Tracking: {order.trackingNumber}
+                  </span>
+                )}
+              </div>
+
+              {order.orderStatus === 'pending' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleAccept(order._id)}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
+                  >
+                    Accept Order
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedOrder(order);
+                      setShowCancelModal(true);
+                    }}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+                  >
+                    Cancel Order
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-coffee-amber mb-4">Cancel Order</h3>
+            <p className="text-coffee-light mb-4">
+              Please provide a reason for cancelling order #{selectedOrder?.orderNumber}
+            </p>
+            <textarea
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-4"
+              rows="3"
+              placeholder="Cancellation reason..."
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleCancel}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+              >
+                Cancel Order & Refund
+              </button>
+              <button
+                onClick={() => {
+                  setShowCancelModal(false);
+                  setCancelReason('');
+                  setSelectedOrder(null);
+                }}
+                className="flex-1 bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+// Artist Requests Management Component
+const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
+  const [filterStatus, setFilterStatus] = useState('all');
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [approveFormData, setApproveFormData] = useState({
+    price: '',
+    description: '',
+    dimensions: ''
+  });
+
+  const filteredRequests = filterStatus === 'all'
+    ? requests
+    : requests.filter(req => req.status === filterStatus);
+
+  const handleApprove = async () => {
+    if (!approveFormData.price || !approveFormData.description) {
+      alert('Price and description are required');
+      return;
+    }
+
+    try {
+      await api.post(`/artist-requests/${selectedRequest._id}/approve`, approveFormData);
+      alert('Artist request approved and artwork created!');
+      setShowApproveModal(false);
+      setSelectedRequest(null);
+      setApproveFormData({ price: '', description: '', dimensions: '' });
+      onRefresh();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to approve request');
+    }
+  };
+
+  const handleReject = async (requestId) => {
+    const reason = prompt('Please provide a reason for rejection:');
+    if (!reason) return;
+
+    try {
+      await api.post(`/artist-requests/${requestId}/reject`, { reason });
+      alert('Request rejected');
+      onRefresh();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to reject request');
+    }
+  };
+
+  const handleNeedsInfo = async (requestId) => {
+    const message = prompt('What additional information is needed?');
+    if (!message) return;
+
+    try {
+      await api.post(`/artist-requests/${requestId}/needs-info`, { message });
+      alert('Request marked as needs more info');
+      onRefresh();
+    } catch (error) {
+      alert(error.response?.data?.message || 'Failed to update request');
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'pending': 'bg-yellow-500/20 text-yellow-400',
+      'approved': 'bg-green-500/20 text-green-400',
+      'rejected': 'bg-red-500/20 text-red-400',
+      'needs_info': 'bg-blue-500/20 text-blue-400'
+    };
+    return colors[status] || 'bg-gray-500/20 text-gray-400';
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-display font-bold text-coffee-amber">Artist Requests</h2>
+        <button
+          onClick={onRefresh}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold"
+        >
+          Refresh
+        </button>
+      </div>
+
+      {/* Filters */}
+      <div className="flex gap-2 mb-6">
+        {['all', 'pending', 'approved', 'rejected', 'needs_info'].map(status => (
+          <button
+            key={status}
+            onClick={() => setFilterStatus(status)}
+            className={`px-4 py-2 rounded-lg font-semibold ${
+              filterStatus === status
+                ? 'bg-coffee-amber text-coffee-darker'
+                : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+            }`}
+          >
+            {status.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+          </button>
+        ))}
+      </div>
+
+      {loading ? (
+        <div className="text-coffee-light">Loading requests...</div>
+      ) : filteredRequests.length === 0 ? (
+        <div className="text-center py-8 text-coffee-light">No requests found</div>
+      ) : (
+        <div className="space-y-4">
+          {filteredRequests.map(request => (
+            <div key={request._id} className="bg-coffee-brown/20 rounded-lg p-6 border border-coffee-brown/50">
+              <div className="grid md:grid-cols-2 gap-4 mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-coffee-amber mb-2">
+                    {request.artworkTitle}
+                  </h3>
+                  <p className="text-coffee-light text-sm mb-1">by {request.artistName}</p>
+                  <p className="text-coffee-light text-sm">Medium: {request.medium}</p>
+                  <p className="text-coffee-amber font-bold mt-2">
+                    Expected Price: ₹{request.priceExpectation}
+                  </p>
+                  {request.artworkStory && (
+                    <p className="text-coffee-light text-sm mt-2">{request.artworkStory}</p>
+                  )}
+                </div>
+                <div>
+                  <p className="text-coffee-light text-sm mb-1">Contact</p>
+                  <p className="text-coffee-cream font-semibold">{request.email}</p>
+                  <p className="text-coffee-light text-sm">{request.phone}</p>
+                  
+                  {request.images && request.images.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mt-4">
+                      {request.images.slice(0, 3).map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img}
+                          alt={`Artwork ${idx + 1}`}
+                          className="w-full h-20 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 mb-4">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(request.status)}`}>
+                  {request.status.replace('_', ' ').split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}
+                </span>
+                {request.convertedArtworkId && (
+                  <span className="text-coffee-amber text-sm">
+                    ✓ Converted to Artwork
+                  </span>
+                )}
+              </div>
+
+              {request.status === 'pending' && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowApproveModal(true);
+                    }}
+                    className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => handleReject(request._id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+                  >
+                    Reject
+                  </button>
+                  <button
+                    onClick={() => handleNeedsInfo(request._id)}
+                    className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700"
+                  >
+                    Needs More Info
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      {showApproveModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-coffee-amber mb-4">Approve Artist Request</h3>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Selling Price (₹) *
+                </label>
+                <input
+                  type="number"
+                  value={approveFormData.price}
+                  onChange={(e) => setApproveFormData({ ...approveFormData, price: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="Enter selling price"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Description *
+                </label>
+                <textarea
+                  value={approveFormData.description}
+                  onChange={(e) => setApproveFormData({ ...approveFormData, description: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  rows="4"
+                  placeholder="Artwork description..."
+                />
+              </div>
+              <div>
+                <label className="block text-coffee-amber font-semibold mb-2">
+                  Dimensions (optional)
+                </label>
+                <input
+                  type="text"
+                  value={approveFormData.dimensions}
+                  onChange={(e) => setApproveFormData({ ...approveFormData, dimensions: e.target.value })}
+                  className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                  placeholder="e.g., 24x36 inches"
+                />
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleApprove}
+                  className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700"
+                >
+                  Approve & Create Artwork
+                </button>
+                <button
+                  onClick={() => {
+                    setShowApproveModal(false);
+                    setSelectedRequest(null);
+                    setApproveFormData({ price: '', description: '', dimensions: '' });
+                  }}
+                  className="flex-1 bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -24,6 +24,8 @@ const sendOTPEmail = async (email, otp, type) => {
     subject = 'Verify Your Art Enquiry - Rabuste Coffee';
   } else if (type === 'customer-email') {
     subject = 'Verify Your Email - Rabuste Coffee';
+  } else if (type === 'order-tracking') {
+    subject = 'Verify Your Email for Order Tracking - Rabuste Coffee';
   } else {
     subject = 'Email Verification - Rabuste Coffee';
   }
@@ -765,6 +767,335 @@ const sendPreOrderCancellationEmail = async (order) => {
   }
 };
 
+// Send Art Order Confirmation Email (after payment)
+const sendArtOrderConfirmationEmail = async (order, artwork) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const trackOrderUrl = `${frontendUrl}/track-order?orderId=${order.orderNumber}&email=${encodeURIComponent(order.email)}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Order Received! 🎨</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${order.customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          We've received your order for <strong>${artwork.title}</strong> by ${artwork.artistName}. Our team will review and confirm your order shortly.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Order Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artwork:</strong> ${artwork.title}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artist:</strong> ${artwork.artistName}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Amount Paid:</strong> ₹${order.price.toFixed(2)}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Status:</strong> Pending Admin Approval</p>
+        </div>
+        <div style="background-color: #1B5E20; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+          <p style="color: #C8E6C9; margin: 5px 0; font-weight: 600;">✓ Payment Received</p>
+          <p style="color: #EFEBE9; margin: 5px 0; font-size: 14px;">Your payment has been successfully processed. We'll notify you once your order is confirmed.</p>
+        </div>
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${trackOrderUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            Track Your Order
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
+          Thank you for your purchase! We'll be in touch soon with order confirmation and shipping details.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: order.email,
+      subject: `Order Received: ${artwork.title} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Art order confirmation email error:', error);
+    return false;
+  }
+};
+
+// Send Art Order Confirmed Email (after admin approval)
+const sendArtOrderConfirmedEmail = async (order, artwork) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const trackOrderUrl = `${frontendUrl}/track-order?orderId=${order.orderNumber}&email=${encodeURIComponent(order.email)}`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Order Confirmed! ✅</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${order.customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Great news! Your order for <strong>${artwork.title}</strong> by ${artwork.artistName} has been confirmed. Your artwork will be shipped soon.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Order Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artwork:</strong> ${artwork.title}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artist:</strong> ${artwork.artistName}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Shipping Address:</strong></p>
+          <p style="color: #EFEBE9; margin: 5px 0; padding-left: 20px;">
+            ${order.address}<br>
+            ${order.city} - ${order.pincode}
+          </p>
+          ${order.trackingNumber ? `<p style="color: #EFEBE9; margin: 10px 0;"><strong>Tracking Number:</strong> ${order.trackingNumber}</p>` : ''}
+        </div>
+        <div style="background-color: #1B5E20; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+          <p style="color: #C8E6C9; margin: 5px 0; font-weight: 600;">✓ Order Confirmed</p>
+          <p style="color: #EFEBE9; margin: 5px 0; font-size: 14px;">Your artwork is being prepared for shipment. We'll send you tracking details once it's shipped.</p>
+        </div>
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${trackOrderUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            Track Your Order
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
+          Thank you for your purchase! We appreciate your support for local artists.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: order.email,
+      subject: `Order Confirmed: ${artwork.title} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Art order confirmed email error:', error);
+    return false;
+  }
+};
+
+// Send Art Order Cancelled Email (with refund info)
+const sendArtOrderCancelledEmail = async (order, artwork, reason) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Order Cancelled</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${order.customerName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          We're sorry, but your order <strong>#${order.orderNumber}</strong> for <strong>${artwork.title}</strong> has been cancelled.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Order Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Order Number:</strong> ${order.orderNumber}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artwork:</strong> ${artwork.title}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Amount:</strong> ₹${order.price.toFixed(2)}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Reason:</strong> ${reason}</p>
+        </div>
+        ${order.paymentStatus === 'refunded' ? `
+          <div style="background-color: rgba(76, 175, 80, 0.2); border: 2px solid #4CAF50; padding: 15px; border-radius: 8px; margin: 20px 0;">
+            <p style="color: #4CAF50; font-weight: bold; margin: 0;">
+              💰 Refund Processed: A refund of ₹${order.price.toFixed(2)} has been initiated and will be credited to your account within 5-7 working days.
+            </p>
+          </div>
+        ` : ''}
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          We sincerely apologize for any inconvenience caused. If you have any questions or concerns regarding the refund process, please contact our customer support.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: order.email,
+      subject: `Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Art order cancelled email error:', error);
+    return false;
+  }
+};
+
+// Send Artist Request Confirmation Email
+const sendArtistRequestConfirmationEmail = async (request) => {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Artist Request Received</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${request.artistName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Thank you for your interest in partnering with Rabuste Coffee! We've received your submission for <strong>${request.artworkTitle}</strong> and our team will review it shortly.
+        </p>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Your Submission</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Artwork Title:</strong> ${request.artworkTitle}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Medium:</strong> ${request.medium}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Price Expectation:</strong> ₹${request.priceExpectation.toFixed(2)}</p>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 20px;">
+          We'll be in touch with you soon regarding your submission. In the meantime, feel free to explore our art gallery to see the beautiful works we showcase.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: request.email,
+      subject: `Artist Request Received: ${request.artworkTitle} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Artist request confirmation email error:', error);
+    return false;
+  }
+};
+
+// Send Artist Approval Email
+const sendArtistApprovalEmail = async (request, artwork) => {
+  const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+  const artGalleryUrl = `${frontendUrl}/art-gallery`;
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #FF6F00; font-size: 28px;">Rabuste Coffee</h1>
+      </div>
+      <div style="background-color: #5D4037; padding: 30px; border-radius: 10px;">
+        <h2 style="color: #FF6F00; margin-bottom: 20px;">Congratulations! 🎨</h2>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Hello ${request.artistName},
+        </p>
+        <p style="color: #EFEBE9; font-size: 16px; line-height: 1.6; margin-bottom: 20px;">
+          Great news! Your artwork <strong>${artwork.title}</strong> has been approved and is now live on our art gallery!
+        </p>
+        <div style="background-color: #1B5E20; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #4CAF50;">
+          <p style="color: #C8E6C9; margin: 5px 0; font-weight: 600;">✓ Exhibited at Rabuste Coffee</p>
+        </div>
+        <div style="background-color: #3E2723; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="color: #FF6F00; margin-bottom: 15px;">Artwork Details</h3>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Title:</strong> ${artwork.title}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Price:</strong> ₹${artwork.price.toFixed(2)}</p>
+          <p style="color: #EFEBE9; margin: 10px 0;"><strong>Status:</strong> Available for Purchase</p>
+        </div>
+        <div style="text-align: center; margin: 24px 0 12px 0;">
+          <a
+            href="${artGalleryUrl}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="
+              display: inline-block;
+              padding: 12px 22px;
+              background-color: #FF6F00;
+              color: #1B130E;
+              text-decoration: none;
+              border-radius: 999px;
+              font-size: 13px;
+              font-weight: 600;
+              letter-spacing: 0.08em;
+              text-transform: uppercase;
+              border: 1px solid #FFB74D;
+            "
+          >
+            View in Gallery
+          </a>
+        </div>
+        <p style="color: #EFEBE9; font-size: 14px; line-height: 1.6; margin-top: 16px;">
+          Thank you for partnering with Rabuste Coffee! We're excited to showcase your beautiful work.
+        </p>
+      </div>
+      <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
+        <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
+      </div>
+    </div>
+  `;
+
+  try {
+    await transporter.sendMail({
+      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
+      to: request.email,
+      subject: `Artwork Approved: ${artwork.title} - Rabuste Coffee`,
+      html
+    });
+    return true;
+  } catch (error) {
+    console.error('Artist approval email error:', error);
+    return false;
+  }
+};
+
 module.exports = {
   generateOTP,
   sendOTPEmail,
@@ -778,6 +1109,13 @@ module.exports = {
   sendBatchMarketingEmails,
   // Pre-order emails
   sendPreOrderAcceptanceEmail,
-  sendPreOrderCancellationEmail
+  sendPreOrderCancellationEmail,
+  // Art order emails
+  sendArtOrderConfirmationEmail,
+  sendArtOrderConfirmedEmail,
+  sendArtOrderCancelledEmail,
+  // Artist request emails
+  sendArtistRequestConfirmationEmail,
+  sendArtistApprovalEmail
 };
 

@@ -373,5 +373,93 @@ router.post('/art/verify', async (req, res) => {
   }
 });
 
+// Send OTP for Order Tracking
+router.post('/order-tracking/otp', async (req, res) => {
+  try {
+    const { email, orderNumber } = req.body;
+
+    if (!email || !orderNumber) {
+      return res.status(400).json({ message: 'Email and order number are required' });
+    }
+
+    const ArtOrder = require('../models/ArtOrder');
+    const order = await ArtOrder.findOne({
+      orderNumber: orderNumber.toUpperCase(),
+      email: email.toLowerCase().trim()
+    });
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found. Please check your order number and email.' });
+    }
+
+    const otp = generateOTP();
+    
+    const otpRecord = new OTP({
+      email: email.toLowerCase().trim(),
+      otp,
+      type: 'order-tracking',
+      data: { orderNumber: orderNumber.toUpperCase() },
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+    await otpRecord.save();
+
+    const emailSent = await sendOTPEmail(email, otp, 'order-tracking');
+    
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
+
+    res.json({ 
+      message: 'OTP sent to your email',
+      expiresIn: 600
+    });
+  } catch (error) {
+    console.error('Order tracking OTP generation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify OTP for Order Tracking
+router.post('/order-tracking/verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    const otpRecord = await OTP.findOne({ 
+      email: email.toLowerCase().trim(), 
+      otp, 
+      type: 'order-tracking',
+      verified: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    // Fetch order details
+    const ArtOrder = require('../models/ArtOrder');
+    const order = await ArtOrder.findOne({
+      orderNumber: otpRecord.data.orderNumber,
+      email: email.toLowerCase().trim()
+    }).populate('artworkId');
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully',
+      order: order
+    });
+  } catch (error) {
+    console.error('Order tracking OTP verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 

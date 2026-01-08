@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
 import OTPModal from '../components/OTPModal';
 
 const ArtGallery = () => {
+  const navigate = useNavigate();
   const [arts, setArts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedArt, setSelectedArt] = useState(null);
@@ -22,6 +24,21 @@ const ArtGallery = () => {
   const [enquiryLoading, setEnquiryLoading] = useState(false);
   const [showOTPModal, setShowOTPModal] = useState(false);
   const [pendingEnquiry, setPendingEnquiry] = useState(null);
+
+  const getStatusBadge = (art) => {
+    const status = art.status || art.availability?.toLowerCase() || 'available';
+    const statusMap = {
+      'available': { text: 'Available', class: 'bg-green-500/20 text-green-400' },
+      'reserved': { text: 'Reserved', class: 'bg-yellow-500/20 text-yellow-400' },
+      'sold': { text: 'Sold', class: 'bg-red-500/20 text-red-400' },
+      'in_cafe': { text: 'In Café', class: 'bg-blue-500/20 text-blue-400' }
+    };
+    return statusMap[status] || statusMap['available'];
+  };
+
+  const handleBuyNow = (art) => {
+    navigate(`/art-checkout/${art._id}`);
+  };
 
   useEffect(() => {
     fetchArts();
@@ -190,6 +207,24 @@ const ArtGallery = () => {
         </div>
       </section>
 
+      {/* Partner with Us Section */}
+      <section className="py-12 px-4 bg-coffee-brown/10">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
+            Selling Your Art?
+          </h2>
+          <p className="text-coffee-light mb-6">
+            Partner with Rabuste Coffee and showcase your artwork in our café space
+          </p>
+          <button
+            onClick={() => navigate('/artist-submission')}
+            className="bg-coffee-amber text-coffee-darker px-8 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+          >
+            Partner with Us
+          </button>
+        </div>
+      </section>
+
       {/* Art Grid */}
       <section className="py-20 px-4 max-w-6xl mx-auto">
         {arts.length === 0 ? (
@@ -234,34 +269,58 @@ const ArtGallery = () => {
                       ₹{art.price}
                     </span>
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        art.availability === 'Available'
-                          ? 'bg-green-500/20 text-green-400'
-                          : art.availability === 'Sold'
-                          ? 'bg-red-500/20 text-red-400'
-                          : 'bg-yellow-500/20 text-yellow-400'
-                      }`}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(art).class}`}
                     >
-                      {art.availability}
+                      {getStatusBadge(art).text}
                     </span>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedArt(art);
-                      setEnquiryFormData({
-                        name: '',
-                        email: '',
-                        phone: '',
-                        message: '',
-                        enquiryType: art.availability === 'Available' ? 'Purchase' : 'Information'
-                      });
-                      setShowEnquiryForm(true);
-                    }}
-                    className="w-full bg-coffee-amber text-coffee-darker py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors mt-2"
-                  >
-                    Enquire
-                  </button>
+                  <div className="flex gap-2 mt-2">
+                    {(art.status === 'available' || (!art.status && art.availability === 'Available')) ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleBuyNow(art);
+                        }}
+                        className="flex-1 bg-coffee-amber text-coffee-darker py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                      >
+                        Buy Now
+                      </button>
+                    ) : art.status === 'in_cafe' ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          alert('This artwork is available for purchase at our café. Please visit us to buy!');
+                        }}
+                        className="flex-1 bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                      >
+                        Buy at Café
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="flex-1 bg-gray-600 text-gray-400 py-2 rounded-lg font-semibold cursor-not-allowed"
+                      >
+                        {art.status === 'sold' ? 'Sold' : 'Reserved'}
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedArt(art);
+                        setEnquiryFormData({
+                          name: '',
+                          email: '',
+                          phone: '',
+                          message: '',
+                          enquiryType: 'Information'
+                        });
+                        setShowEnquiryForm(true);
+                      }}
+                      className="flex-1 bg-coffee-brown/40 text-coffee-cream py-2 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors"
+                    >
+                      Enquire
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             ))}
@@ -315,16 +374,15 @@ const ArtGallery = () => {
                 <div className="mb-6">
                   <span className="text-3xl font-bold text-coffee-amber">₹{selectedArt.price}</span>
                   <span
-                    className={`ml-4 px-3 py-1 rounded-full text-sm font-semibold ${
-                      selectedArt.availability === 'Available'
-                        ? 'bg-green-500/20 text-green-400'
-                        : selectedArt.availability === 'Sold'
-                        ? 'bg-red-500/20 text-red-400'
-                        : 'bg-yellow-500/20 text-yellow-400'
-                    }`}
+                    className={`ml-4 px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadge(selectedArt).class}`}
                   >
-                    {selectedArt.availability}
+                    {getStatusBadge(selectedArt).text}
                   </span>
+                  {selectedArt.exhibitedAtRabuste && (
+                    <span className="ml-2 px-3 py-1 rounded-full text-xs font-semibold bg-coffee-amber/20 text-coffee-amber">
+                      Exhibited at Rabuste Coffee
+                    </span>
+                  )}
                 </div>
                 <div className="mb-6">
                   <h3 className="text-coffee-amber font-semibold mb-2">Description</h3>
@@ -342,7 +400,29 @@ const ArtGallery = () => {
                     <p className="text-coffee-light">{selectedArt.dimensions}</p>
                   </div>
                 )}
-                {selectedArt.availability === 'Available' && (
+                <div className="flex gap-3">
+                  {(selectedArt.status === 'available' || (!selectedArt.status && selectedArt.availability === 'Available')) ? (
+                    <button 
+                      onClick={() => handleBuyNow(selectedArt)}
+                      className="flex-1 bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                    >
+                      Buy Now
+                    </button>
+                  ) : selectedArt.status === 'in_cafe' ? (
+                    <button 
+                      onClick={() => alert('This artwork is available for purchase at our café. Please visit us to buy!')}
+                      className="flex-1 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                    >
+                      Buy at Café
+                    </button>
+                  ) : (
+                    <button
+                      disabled
+                      className="flex-1 bg-gray-600 text-gray-400 py-3 rounded-lg font-semibold cursor-not-allowed"
+                    >
+                      {selectedArt.status === 'sold' ? 'Sold' : 'Reserved'}
+                    </button>
+                  )}
                   <button 
                     onClick={() => {
                       setEnquiryFormData({
@@ -350,30 +430,15 @@ const ArtGallery = () => {
                         email: '',
                         phone: '',
                         message: '',
-                        enquiryType: 'Purchase'
+                        enquiryType: 'Information'
                       });
                       setShowEnquiryForm(true);
                     }}
-                    className="w-full bg-coffee-amber text-coffee-darker py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+                    className="flex-1 bg-coffee-brown/40 text-coffee-cream py-3 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors"
                   >
-                    Enquire About This Art
+                    Enquire
                   </button>
-                )}
-                <button 
-                  onClick={() => {
-                    setEnquiryFormData({
-                      name: '',
-                      email: '',
-                      phone: '',
-                      message: '',
-                      enquiryType: 'Information'
-                    });
-                    setShowEnquiryForm(true);
-                  }}
-                  className="w-full bg-coffee-brown/40 text-coffee-cream py-3 rounded-lg font-semibold hover:bg-coffee-brown/60 transition-colors mt-3"
-                >
-                  Get More Information
-                </button>
+                </div>
               </div>
             </div>
           </motion.div>

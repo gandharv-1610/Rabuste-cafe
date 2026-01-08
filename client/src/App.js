@@ -13,6 +13,9 @@ import ShakesCategory from './pages/ShakesCategory';
 import SidesCategory from './pages/SidesCategory';
 import TeaCategory from './pages/TeaCategory';
 import ArtGallery from './pages/ArtGallery';
+import ArtCheckout from './pages/ArtCheckout';
+import OrderTracking from './pages/OrderTracking';
+import ArtistSubmission from './pages/ArtistSubmission';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
 import Order from './pages/Order';
@@ -45,6 +48,10 @@ function App() {
             <Route path="/coffee/sides" element={<SidesCategory />} />
             <Route path="/coffee/tea" element={<TeaCategory />} />
             <Route path="/art" element={<ArtGallery />} />
+            <Route path="/art-gallery" element={<ArtGallery />} />
+            <Route path="/art-checkout/:id" element={<ArtCheckout />} />
+            <Route path="/track-order" element={<OrderTracking />} />
+            <Route path="/artist-submission" element={<ArtistSubmission />} />
             <Route path="/workshops" element={<Workshops />} />
             <Route path="/franchise" element={<Franchise />} />
             <Route path="/order" element={<Order />} />
