@@ -7,8 +7,37 @@ const { deleteFromCloudinary } = require('../services/cloudinaryService');
 router.get('/', async (req, res) => {
   try {
     const filter = {};
-    if (req.query.availability) {
-      filter.availability = req.query.availability;
+    if (req.query.availability === 'Sold') {
+      // When filtering by 'Sold', show only sold paintings
+      // Check both availability field and status field for backward compatibility
+      filter.$or = [
+        { availability: 'Sold' },
+        { status: 'sold' }
+      ];
+    } else if (req.query.availability === 'Available') {
+      // When filtering by 'Available', show Available and Reserved paintings
+      // Explicitly exclude Sold items
+      // Check both availability field and status field for backward compatibility
+      filter.$and = [
+        {
+          $or: [
+            { availability: 'Available' },
+            { availability: 'Reserved' },
+            { status: 'available' },
+            { status: 'reserved' },
+            { status: 'in_cafe' }
+          ]
+        },
+        {
+          $nor: [
+            { availability: 'Sold' },
+            { status: 'sold' }
+          ]
+        }
+      ];
+    } else {
+      // When filter is 'all' or no filter, show ALL arts (sold, reserved, and available)
+      // No filter applied - return everything
     }
     const arts = await Art.find(filter).sort({ createdAt: -1 });
     res.json(arts);

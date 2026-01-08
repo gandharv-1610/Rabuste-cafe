@@ -109,6 +109,8 @@ const ArtGallery = () => {
 
   const fetchArts = async () => {
     try {
+      // When filter is 'all', don't send availability param (backend will exclude sold)
+      // When filter is 'Sold' or 'Available', send the filter
       const params = filter !== 'all' ? { availability: filter } : {};
       params._t = Date.now(); // Cache busting
       const response = await api.get('/art', { params });
@@ -172,7 +174,7 @@ const ArtGallery = () => {
       {/* Filter Section */}
       <section className="py-8 px-4 bg-coffee-brown/10">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-wrap gap-4 justify-center">
+          <div className="flex flex-wrap gap-4 justify-center items-center">
             <button
               onClick={() => setFilter('all')}
               className={`px-6 py-2 rounded-lg font-semibold transition-colors ${
@@ -203,25 +205,16 @@ const ArtGallery = () => {
             >
               Sold
             </button>
+            <button
+              onClick={() => navigate('/my-art-orders')}
+              className="px-6 py-2 rounded-lg font-semibold bg-coffee-amber/80 text-coffee-darker hover:bg-coffee-amber transition-colors flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
+              My Orders
+            </button>
           </div>
-        </div>
-      </section>
-
-      {/* Partner with Us Section */}
-      <section className="py-12 px-4 bg-coffee-brown/10">
-        <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
-            Selling Your Art?
-          </h2>
-          <p className="text-coffee-light mb-6">
-            Partner with Rabuste Coffee and showcase your artwork in our café space
-          </p>
-          <button
-            onClick={() => navigate('/artist-submission')}
-            className="bg-coffee-amber text-coffee-darker px-8 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
-          >
-            Partner with Us
-          </button>
         </div>
       </section>
 
@@ -642,6 +635,24 @@ const ArtGallery = () => {
           }
         }}
       />
+
+      {/* Partner with Us Section - Moved to bottom */}
+      <section className="py-12 px-4 bg-coffee-brown/10">
+        <div className="max-w-6xl mx-auto text-center">
+          <h2 className="text-3xl font-heading font-bold text-coffee-amber mb-4">
+            Selling Your Art?
+          </h2>
+          <p className="text-coffee-light mb-6">
+            Partner with Rabuste Coffee and showcase your artwork in our café space
+          </p>
+          <button
+            onClick={() => navigate('/artist-submission')}
+            className="bg-coffee-amber text-coffee-darker px-8 py-3 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+          >
+            Partner with Us
+          </button>
+        </div>
+      </section>
 
       <Chatbot />
     </div>

@@ -22,6 +22,8 @@ const sendOTPEmail = async (email, otp, type) => {
     subject = 'Verify Your Franchise Enquiry - Rabuste Coffee';
   } else if (type === 'art') {
     subject = 'Verify Your Art Enquiry - Rabuste Coffee';
+  } else if (type === 'art-order') {
+    subject = 'Verify Your Email for Art Purchase - Rabuste Coffee';
   } else if (type === 'customer-email') {
     subject = 'Verify Your Email - Rabuste Coffee';
   } else if (type === 'order-tracking') {

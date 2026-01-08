@@ -15,6 +15,7 @@ import TeaCategory from './pages/TeaCategory';
 import ArtGallery from './pages/ArtGallery';
 import ArtCheckout from './pages/ArtCheckout';
 import OrderTracking from './pages/OrderTracking';
+import MyArtOrders from './pages/MyArtOrders';
 import ArtistSubmission from './pages/ArtistSubmission';
 import Workshops from './pages/Workshops';
 import Franchise from './pages/Franchise';
@@ -51,6 +52,7 @@ function App() {
             <Route path="/art-gallery" element={<ArtGallery />} />
             <Route path="/art-checkout/:id" element={<ArtCheckout />} />
             <Route path="/track-order" element={<OrderTracking />} />
+            <Route path="/my-art-orders" element={<MyArtOrders />} />
             <Route path="/artist-submission" element={<ArtistSubmission />} />
             <Route path="/workshops" element={<Workshops />} />
             <Route path="/franchise" element={<Franchise />} />
