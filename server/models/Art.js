@@ -28,6 +28,10 @@ const artSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  images: {
+    type: [String],
+    default: []
+  },
   cloudinary_url: {
     type: String,
     default: ''
@@ -36,10 +40,23 @@ const artSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  cloudinary_public_ids: {
+    type: [String],
+    default: []
+  },
   availability: {
     type: String,
     enum: ['Available', 'Sold', 'Reserved'],
     default: 'Available'
+  },
+  status: {
+    type: String,
+    enum: ['available', 'reserved', 'sold', 'in_cafe'],
+    default: 'available'
+  },
+  isOfflineAvailable: {
+    type: Boolean,
+    default: false
   },
   category: {
     type: String,
@@ -48,6 +65,14 @@ const artSchema = new mongoose.Schema({
   dimensions: {
     type: String,
     default: ''
+  },
+  medium: {
+    type: String,
+    default: ''
+  },
+  exhibitedAtRabuste: {
+    type: Boolean,
+    default: false
   }
 }, {
   timestamps: true
