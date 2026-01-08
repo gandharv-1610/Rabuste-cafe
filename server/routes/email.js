@@ -373,23 +373,142 @@ router.post('/art/verify', async (req, res) => {
   }
 });
 
+// Send OTP for Art Order Checkout
+router.post('/art-order/otp', async (req, res) => {
+  try {
+    const { email, orderData } = req.body;
+
+    if (!email || !orderData) {
+      return res.status(400).json({ message: 'Email and order data are required' });
+    }
+
+    // Verify art exists and is available
+    const art = await Art.findById(orderData.artworkId);
+    if (!art) {
+      return res.status(404).json({ message: 'Art piece not found' });
+    }
+
+    const isAvailable = art.status === 'available' || 
+                       (!art.status && art.availability === 'Available');
+    
+    if (!isAvailable) {
+      return res.status(400).json({ 
+        message: 'This artwork is no longer available for purchase' 
+      });
+    }
+
+    const otp = generateOTP();
+    
+    const otpRecord = new OTP({
+      email: email.toLowerCase().trim(),
+      otp,
+      type: 'art-order',
+      data: orderData,
+      expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
+    });
+    await otpRecord.save();
+
+    const emailSent = await sendOTPEmail(email, otp, 'art-order');
+    
+    if (!emailSent) {
+      return res.status(500).json({ message: 'Failed to send OTP email' });
+    }
+
+    res.json({ 
+      message: 'OTP sent to your email',
+      expiresIn: 600
+    });
+  } catch (error) {
+    console.error('Art order OTP generation error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Verify OTP for Art Order Checkout
+router.post('/art-order/verify', async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ message: 'Email and OTP are required' });
+    }
+
+    const otpRecord = await OTP.findOne({ 
+      email: email.toLowerCase().trim(), 
+      otp, 
+      type: 'art-order',
+      verified: false,
+      expiresAt: { $gt: new Date() }
+    });
+
+    if (!otpRecord) {
+      return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Verify art still exists and is available
+    const art = await Art.findById(otpRecord.data.artworkId);
+    if (!art) {
+      return res.status(404).json({ message: 'Art piece not found' });
+    }
+
+    const isAvailable = art.status === 'available' || 
+                       (!art.status && art.availability === 'Available');
+    
+    if (!isAvailable) {
+      return res.status(400).json({ 
+        message: 'This artwork is no longer available for purchase' 
+      });
+    }
+
+    // Mark OTP as verified (order will be created in artOrders route)
+    otpRecord.verified = true;
+    await otpRecord.save();
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully',
+      orderData: otpRecord.data
+    });
+  } catch (error) {
+    console.error('Art order OTP verification error:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Send OTP for Order Tracking
 router.post('/order-tracking/otp', async (req, res) => {
   try {
     const { email, orderNumber } = req.body;
 
-    if (!email || !orderNumber) {
-      return res.status(400).json({ message: 'Email and order number are required' });
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
     }
 
-    const ArtOrder = require('../models/ArtOrder');
-    const order = await ArtOrder.findOne({
-      orderNumber: orderNumber.toUpperCase(),
-      email: email.toLowerCase().trim()
-    });
+    // Special case: ART_ORDERS_VIEW - just verify email has orders
+    if (orderNumber === 'ART_ORDERS_VIEW') {
+      const ArtOrder = require('../models/ArtOrder');
+      const orderCount = await ArtOrder.countDocuments({
+        email: email.toLowerCase().trim()
+      });
 
-    if (!order) {
-      return res.status(404).json({ message: 'Order not found. Please check your order number and email.' });
+      if (orderCount === 0) {
+        return res.status(404).json({ message: 'No orders found for this email address.' });
+      }
+    } else {
+      // Regular order tracking - require order number
+      if (!orderNumber) {
+        return res.status(400).json({ message: 'Order number is required' });
+      }
+
+      const ArtOrder = require('../models/ArtOrder');
+      const order = await ArtOrder.findOne({
+        orderNumber: orderNumber.toUpperCase(),
+        email: email.toLowerCase().trim()
+      });
+
+      if (!order) {
+        return res.status(404).json({ message: 'Order not found. Please check your order number and email.' });
+      }
     }
 
     const otp = generateOTP();
@@ -398,7 +517,7 @@ router.post('/order-tracking/otp', async (req, res) => {
       email: email.toLowerCase().trim(),
       otp,
       type: 'order-tracking',
-      data: { orderNumber: orderNumber.toUpperCase() },
+      data: { orderNumber: orderNumber === 'ART_ORDERS_VIEW' ? 'ART_ORDERS_VIEW' : orderNumber.toUpperCase() },
       expiresAt: new Date(Date.now() + 10 * 60 * 1000) // 10 minutes
     });
     await otpRecord.save();
@@ -439,7 +558,16 @@ router.post('/order-tracking/verify', async (req, res) => {
     otpRecord.verified = true;
     await otpRecord.save();
 
-    // Fetch order details
+    // Special case: ART_ORDERS_VIEW - just verify email, don't fetch specific order
+    if (otpRecord.data.orderNumber === 'ART_ORDERS_VIEW') {
+      return res.json({
+        success: true,
+        message: 'Email verified successfully. You can now view your orders.',
+        email: email.toLowerCase().trim()
+      });
+    }
+
+    // Regular order tracking - fetch specific order
     const ArtOrder = require('../models/ArtOrder');
     const order = await ArtOrder.findOne({
       orderNumber: otpRecord.data.orderNumber,

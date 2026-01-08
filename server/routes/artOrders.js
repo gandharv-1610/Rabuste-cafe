@@ -204,6 +204,23 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Get art orders by email
+router.get('/by-email/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const normalizedEmail = email.toLowerCase().trim();
+
+    const orders = await ArtOrder.find({ email: normalizedEmail })
+      .populate('artworkId')
+      .sort({ createdAt: -1 });
+
+    res.json(orders);
+  } catch (error) {
+    console.error('Error fetching art orders by email:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Track order by order number and email
 router.post('/track', async (req, res) => {
   try {

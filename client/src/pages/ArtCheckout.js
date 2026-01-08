@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
+import OTPModal from '../components/OTPModal';
 
 const ArtCheckout = () => {
   const { id } = useParams();
@@ -18,6 +19,8 @@ const ArtCheckout = () => {
     pincode: ''
   });
   const [errors, setErrors] = useState({});
+  const [showOTPModal, setShowOTPModal] = useState(false);
+  const [pendingOrderData, setPendingOrderData] = useState(null);
 
   useEffect(() => {
     fetchArtwork();
@@ -101,10 +104,63 @@ const ArtCheckout = () => {
     setProcessing(true);
 
     try {
-      // Create art order
-      const orderResponse = await api.post('/art-orders/create', {
+      // First, send OTP for email verification
+      await api.post('/email/art-order/otp', {
+        email: formData.email,
+        orderData: {
+          artworkId: id,
+          ...formData
+        }
+      });
+
+      // Store order data for after OTP verification
+      setPendingOrderData({
         artworkId: id,
         ...formData
+      });
+
+      // Show OTP modal
+      setShowOTPModal(true);
+      setProcessing(false);
+    } catch (error) {
+      console.error('OTP sending error:', error);
+      alert(error.response?.data?.message || 'Failed to send OTP. Please try again.');
+      setProcessing(false);
+    }
+  };
+
+  const handleOTPVerify = async (otp, resend = false) => {
+    if (resend) {
+      try {
+        await api.post('/email/art-order/otp', {
+          email: pendingOrderData.email,
+          orderData: pendingOrderData
+        });
+      } catch (error) {
+        throw new Error(error.response?.data?.message || 'Failed to resend OTP');
+      }
+      return;
+    }
+
+    try {
+      // Verify OTP
+      const verifyResponse = await api.post('/email/art-order/verify', {
+        email: pendingOrderData.email,
+        otp
+      });
+
+      if (!verifyResponse.data.success) {
+        throw new Error('OTP verification failed');
+      }
+
+      // OTP verified, now create order and proceed with payment
+      setShowOTPModal(false);
+      setProcessing(true);
+
+      // Create art order
+      const orderResponse = await api.post('/art-orders/create', {
+        artworkId: pendingOrderData.artworkId,
+        ...pendingOrderData
       });
 
       const { artOrder, razorpayOrder } = orderResponse.data;
@@ -128,8 +184,8 @@ const ArtCheckout = () => {
             });
 
             if (verifyResponse.data.success) {
-              alert('Order placed successfully! Check your email for confirmation.');
-              navigate(`/track-order?orderId=${artOrder.orderNumber}&email=${encodeURIComponent(formData.email)}`);
+              alert('Order placed successfully! Check your email for confirmation. You can view your orders using the "My Orders" button on the art gallery page.');
+              navigate('/art-gallery');
             }
           } catch (error) {
             console.error('Payment verification error:', error);
@@ -139,9 +195,9 @@ const ArtCheckout = () => {
           }
         },
         prefill: {
-          name: formData.customerName,
-          email: formData.email,
-          contact: formData.phone
+          name: pendingOrderData.customerName,
+          email: pendingOrderData.email,
+          contact: pendingOrderData.phone
         },
         theme: {
           color: '#FF6F00'
@@ -155,10 +211,9 @@ const ArtCheckout = () => {
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
+      setPendingOrderData(null);
     } catch (error) {
-      console.error('Order creation error:', error);
-      alert(error.response?.data?.message || 'Failed to create order. Please try again.');
-      setProcessing(false);
+      throw new Error(error.response?.data?.message || 'Invalid OTP. Please try again.');
     }
   };
 
@@ -344,6 +399,18 @@ const ArtCheckout = () => {
           </div>
         </motion.div>
       </div>
+
+      {/* OTP Modal */}
+      <OTPModal
+        isOpen={showOTPModal}
+        onClose={() => {
+          setShowOTPModal(false);
+          setPendingOrderData(null);
+        }}
+        email={pendingOrderData?.email || ''}
+        type="art-order"
+        onVerify={handleOTPVerify}
+      />
     </div>
   );
 };
