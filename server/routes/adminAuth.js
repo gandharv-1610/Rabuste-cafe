@@ -96,6 +96,92 @@ router.post('/change-password', auth, async (req, res) => {
   }
 });
 
+// GET /api/admin/auth/admins - Get all admins (protected)
+router.get('/admins', auth, async (req, res) => {
+  try {
+    const admins = await Admin.find({}, { password: 0 }).sort({ createdAt: -1 });
+    res.json(admins);
+  } catch (error) {
+    console.error('Error fetching admins:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// POST /api/admin/auth/admins - Create new admin (protected)
+router.post('/admins', auth, async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Email and password are required' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ message: 'Password must be at least 8 characters long' });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      return res.status(400).json({ message: 'Invalid email format' });
+    }
+
+    const normalizedEmail = email.toLowerCase().trim();
+
+    // Check if admin already exists
+    const existingAdmin = await Admin.findOne({ email: normalizedEmail });
+    if (existingAdmin) {
+      return res.status(400).json({ message: 'Admin with this email already exists' });
+    }
+
+    // Create new admin
+    const newAdmin = new Admin({
+      email: normalizedEmail,
+      password: password // Will be hashed by pre-save hook
+    });
+
+    await newAdmin.save();
+
+    // Return admin without password
+    const adminResponse = newAdmin.toObject();
+    delete adminResponse.password;
+
+    res.status(201).json({
+      message: 'Admin created successfully',
+      admin: adminResponse
+    });
+  } catch (error) {
+    console.error('Error creating admin:', error);
+    if (error.code === 11000) {
+      return res.status(400).json({ message: 'Admin with this email already exists' });
+    }
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
+// DELETE /api/admin/auth/admins/:id - Delete admin (protected)
+router.delete('/admins/:id', auth, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Prevent deleting yourself
+    if (id === req.adminId) {
+      return res.status(400).json({ message: 'You cannot delete your own account' });
+    }
+
+    const admin = await Admin.findById(id);
+    if (!admin) {
+      return res.status(404).json({ message: 'Admin not found' });
+    }
+
+    await Admin.findByIdAndDelete(id);
+    res.json({ message: 'Admin deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting admin:', error);
+    res.status(500).json({ message: 'Internal server error' });
+  }
+});
+
 module.exports = router;
 
 
