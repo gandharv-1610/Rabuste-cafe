@@ -228,39 +228,41 @@ const WhyRobusta = () => {
             What is Robusta Coffee?
           </motion.h2>
           <motion.div 
-            className="modern-card p-6 sm:p-8 md:p-12 px-4 md:px-0"
+            className="modern-card p-6 sm:p-8 md:p-10 lg:p-12 overflow-hidden"
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.8, delay: 0.3 }}
           >
-            <motion.p 
-              className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.4 }}
-            >
-              Robusta (Coffea canephora) is one of the two main species of coffee plants cultivated worldwide, alongside Arabica. While Arabica often gets the spotlight, Robusta brings its own exceptional qualities to the table that make it a premium choice for coffee enthusiasts.
-            </motion.p>
-            <motion.p 
-              className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.5 }}
-            >
-              Grown primarily in Africa and Asia, Robusta coffee plants are known for their resilience. They thrive at lower elevations (200-800 meters), resist diseases better, and produce higher yields. But more importantly for coffee lovers, they produce beans with a distinctly bold and powerful flavor profile that stands out in every cup.
-            </motion.p>
-            <motion.p 
-              className="text-base sm:text-lg text-coffee-light leading-relaxed"
-              initial={{ opacity: 0, x: -20 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.6 }}
-            >
-              At Rabuste Coffee, we've dedicated ourselves to showcasing Robusta's unique characteristics, proving that this "underdog" coffee variety deserves recognition as a premium specialty coffee. Our expertise in Robusta allows us to extract the finest flavors and create an experience that celebrates strength, character, and authenticity.
-            </motion.p>
+            <div className="px-4 sm:px-6 md:px-8">
+              <motion.p 
+                className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.4 }}
+              >
+                Robusta (Coffea canephora) is one of the two main species of coffee plants cultivated worldwide, alongside Arabica. While Arabica often gets the spotlight, Robusta brings its own exceptional qualities to the table that make it a premium choice for coffee enthusiasts.
+              </motion.p>
+              <motion.p 
+                className="text-base sm:text-lg text-coffee-light mb-4 md:mb-6 leading-relaxed"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.5 }}
+              >
+                Grown primarily in Africa and Asia, Robusta coffee plants are known for their resilience. They thrive at lower elevations (200-800 meters), resist diseases better, and produce higher yields. But more importantly for coffee lovers, they produce beans with a distinctly bold and powerful flavor profile that stands out in every cup.
+              </motion.p>
+              <motion.p 
+                className="text-base sm:text-lg text-coffee-light leading-relaxed"
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: 0.6 }}
+              >
+                At Rabuste Coffee, we've dedicated ourselves to showcasing Robusta's unique characteristics, proving that this "underdog" coffee variety deserves recognition as a premium specialty coffee. Our expertise in Robusta allows us to extract the finest flavors and create an experience that celebrates strength, character, and authenticity.
+              </motion.p>
+            </div>
           </motion.div>
         </motion.div>
 

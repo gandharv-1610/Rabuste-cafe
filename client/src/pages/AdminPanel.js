@@ -502,8 +502,22 @@ const AdminPanel = () => {
         )}
 
         {/* Settings Tab */}
-        {activeTab === 'settings' && <PasswordChange />}
+        {activeTab === 'settings' && <Settings />}
       </div>
+    </div>
+  );
+};
+
+// Settings Component
+const Settings = () => {
+  return (
+    <div className="space-y-8">
+      <h2 className="text-3xl font-display font-bold text-coffee-amber mb-6">
+        Settings
+      </h2>
+      
+      <PasswordChange />
+      <AdminManagement />
     </div>
   );
 };
@@ -552,7 +566,7 @@ const PasswordChange = () => {
         newPassword: formData.newPassword,
       });
 
-      setSuccess('Password changed successfully!');
+      toast.success('Password changed successfully!');
       setFormData({
         currentPassword: '',
         newPassword: '',
@@ -563,6 +577,7 @@ const PasswordChange = () => {
         err?.response?.data?.message ||
         'Failed to change password. Please try again.';
       setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -570,20 +585,14 @@ const PasswordChange = () => {
 
   return (
     <div>
-      <h2 className="text-2xl font-display font-bold text-coffee-amber mb-6">
+      <h3 className="text-2xl font-display font-bold text-coffee-amber mb-4">
         Change Password
-      </h2>
+      </h3>
 
       <div className="bg-coffee-brown/20 rounded-lg p-6 max-w-2xl">
         {error && (
           <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/40 px-4 py-3 text-sm text-red-300">
             {error}
-          </div>
-        )}
-
-        {success && (
-          <div className="mb-4 rounded-md bg-green-500/10 border border-green-500/40 px-4 py-3 text-sm text-green-300">
-            {success}
           </div>
         )}
 
@@ -651,6 +660,252 @@ const PasswordChange = () => {
             </button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+};
+
+// Admin Management Component
+const AdminManagement = () => {
+  const [admins, setAdmins] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState('');
+  const [currentAdminId, setCurrentAdminId] = useState(null);
+
+  useEffect(() => {
+    fetchAdmins();
+    // Get current admin ID from token
+    const token = localStorage.getItem('rabuste_admin_token');
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        setCurrentAdminId(payload.id);
+      } catch (e) {
+        console.error('Error parsing token:', e);
+      }
+    }
+  }, []);
+
+  const fetchAdmins = async () => {
+    setLoading(true);
+    try {
+      const response = await api.get('/admin/auth/admins');
+      setAdmins(response.data);
+    } catch (err) {
+      toast.error(err?.response?.data?.message || 'Failed to fetch admins');
+      console.error('Error fetching admins:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!formData.email || !formData.password || !formData.confirmPassword) {
+      setError('All fields are required');
+      return;
+    }
+
+    if (formData.password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Password and confirm password do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await api.post('/admin/auth/admins', {
+        email: formData.email,
+        password: formData.password,
+      });
+
+      toast.success('Admin created successfully!');
+      setFormData({
+        email: '',
+        password: '',
+        confirmPassword: '',
+      });
+      setShowAddForm(false);
+      fetchAdmins();
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        'Failed to create admin. Please try again.';
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async (adminId) => {
+    if (adminId === currentAdminId) {
+      toast.error('You cannot delete your own account');
+      return;
+    }
+
+    if (!window.confirm('Are you sure you want to delete this admin?')) {
+      return;
+    }
+
+    try {
+      await api.delete(`/admin/auth/admins/${adminId}`);
+      toast.success('Admin deleted successfully!');
+      fetchAdmins();
+    } catch (err) {
+      const message =
+        err?.response?.data?.message ||
+        'Failed to delete admin. Please try again.';
+      toast.error(message);
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-2xl font-display font-bold text-coffee-amber">
+          Admin Management
+        </h3>
+        <button
+          onClick={() => {
+            setShowAddForm(!showAddForm);
+            setError('');
+            setFormData({ email: '', password: '', confirmPassword: '' });
+          }}
+          className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors"
+        >
+          {showAddForm ? 'Cancel' : 'Add New Admin'}
+        </button>
+      </div>
+
+      {/* Add Admin Form */}
+      {showAddForm && (
+        <div className="bg-coffee-brown/20 rounded-lg p-6 mb-6 max-w-2xl">
+          {error && (
+            <div className="mb-4 rounded-md bg-red-500/10 border border-red-500/40 px-4 py-3 text-sm text-red-300">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">
+                Email *
+              </label>
+              <input
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                placeholder="admin@example.com"
+              />
+            </div>
+
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">
+                Password *
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                placeholder="Enter password (min. 8 characters)"
+              />
+              <p className="text-xs text-coffee-light/70 mt-1">
+                Password must be at least 8 characters long
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-coffee-amber font-semibold mb-2">
+                Confirm Password *
+              </label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={formData.confirmPassword}
+                onChange={(e) =>
+                  setFormData({ ...formData, confirmPassword: e.target.value })
+                }
+                className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2"
+                placeholder="Confirm password"
+              />
+            </div>
+
+            <div className="flex gap-4 pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="bg-coffee-amber text-coffee-darker px-6 py-2 rounded-lg font-semibold hover:bg-coffee-gold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Creating...' : 'Create Admin'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Admins List */}
+      <div className="bg-coffee-brown/20 rounded-lg p-6">
+        <h4 className="text-xl font-display font-bold text-coffee-amber mb-4">
+          All Admins
+        </h4>
+
+        {loading && !showAddForm ? (
+          <div className="text-coffee-light">Loading admins...</div>
+        ) : admins.length === 0 ? (
+          <div className="text-coffee-light">No admins found</div>
+        ) : (
+          <div className="space-y-3">
+            {admins.map((admin) => (
+              <div
+                key={admin._id}
+                className="bg-coffee-brown/40 rounded-lg p-4 flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-coffee-cream font-semibold">{admin.email}</p>
+                  <p className="text-coffee-light text-sm">
+                    Created: {new Date(admin.createdAt).toLocaleDateString()}
+                  </p>
+                  {admin._id === currentAdminId && (
+                    <span className="text-xs text-coffee-amber font-semibold">
+                      (Current User)
+                    </span>
+                  )}
+                </div>
+                {admin._id !== currentAdminId && (
+                  <button
+                    onClick={() => handleDelete(admin._id)}
+                    className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors text-sm"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
