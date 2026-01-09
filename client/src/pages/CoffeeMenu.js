@@ -20,6 +20,7 @@ const CoffeeMenu = () => {
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false);
   const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true);
   const [offers, setOffers] = useState([]);
+  const [activeCardId, setActiveCardId] = useState(null);
   const categoryRefs = {
     coffee: useRef(null),
     shakes: useRef(null),
@@ -504,15 +505,29 @@ const CoffeeMenu = () => {
                       y: -8, 
                       transition: { duration: 0.3, ease: "easeOut" }
                     }}
-                    className="relative group"
+                    className={`relative group ${activeCardId === offer._id ? 'group-active' : ''}`}
+                    onTouchStart={() => {
+                      // Set active card on touch for mobile/tablet
+                      if (window.innerWidth < 1024 || 'ontouchstart' in window) {
+                        setActiveCardId(offer._id);
+                      }
+                    }}
+                    onTouchEnd={() => {
+                      // Remove active state after touch
+                      if (window.innerWidth < 1024 || 'ontouchstart' in window) {
+                        setTimeout(() => {
+                          setActiveCardId(null);
+                        }, 300);
+                      }
+                    }}
                   >
                     {/* Card Container */}
-                    <div className="relative rounded-2xl bg-gradient-to-br from-coffee-darker/95 via-coffee-brown/80 to-coffee-dark/95 border-2 border-coffee-amber/40 shadow-xl hover:shadow-[0_15px_40px_rgba(255,111,0,0.12)] hover:border-coffee-amber/60 px-5 py-5 md:px-6 md:py-6 flex flex-col h-full transition-all duration-500 overflow-hidden backdrop-blur-sm">
+                    <div className={`relative rounded-2xl bg-gradient-to-br from-coffee-darker/95 via-coffee-brown/80 to-coffee-dark/95 border-2 border-coffee-amber/40 shadow-xl hover:shadow-[0_15px_40px_rgba(255,111,0,0.12)] hover:border-coffee-amber/60 px-5 py-5 md:px-6 md:py-6 flex flex-col h-full transition-all duration-500 overflow-hidden backdrop-blur-sm ${activeCardId === offer._id ? 'shadow-[0_15px_40px_rgba(255,111,0,0.12)] border-coffee-amber/60' : ''}`}>
                       {/* Gradient Overlay Inside Card */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/8 via-transparent to-coffee-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      <div className={`absolute inset-0 bg-gradient-to-br from-coffee-amber/8 via-transparent to-coffee-gold/5 transition-opacity duration-500 ${activeCardId === offer._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></div>
                       
                       {/* Subtle Glow Pulse Animation */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/10 to-transparent rounded-3xl opacity-0 group-hover:opacity-100 animate-pulse-slow pointer-events-none"></div>
+                      <div className={`absolute inset-0 bg-gradient-to-br from-coffee-amber/10 to-transparent rounded-3xl animate-pulse-slow pointer-events-none transition-opacity duration-500 ${activeCardId === offer._id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}></div>
                       
                       {/* Badge - Limited Time */}
                       <div className="relative z-10 mb-3 flex items-start justify-between">
@@ -565,7 +580,7 @@ const CoffeeMenu = () => {
 
                       {/* Title */}
                       <div className="relative z-10 mb-2">
-                        <h3 className="text-lg md:text-xl font-heading font-bold text-coffee-amber mb-1 leading-tight group-hover:text-coffee-gold transition-colors duration-300">
+                        <h3 className={`text-lg md:text-xl font-heading font-bold mb-1 leading-tight transition-colors duration-300 ${activeCardId === offer._id ? 'text-coffee-gold' : 'text-coffee-amber group-hover:text-coffee-gold'}`}>
                           {offer.name}
                         </h3>
                       </div>

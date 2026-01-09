@@ -58,6 +58,18 @@ const EspressoIcon = ({ className = "w-16 h-16" }) => (
 
 const WhyRobusta = () => {
   const [backgroundMedia, setBackgroundMedia] = React.useState(null);
+  const [flippedCards, setFlippedCards] = React.useState(new Set());
+  const [isTouchDevice, setIsTouchDevice] = React.useState(false);
+
+  React.useEffect(() => {
+    // Check if device supports touch
+    const checkTouch = () => {
+      setIsTouchDevice(window.innerWidth < 1024 || 'ontouchstart' in window);
+    };
+    checkTouch();
+    window.addEventListener('resize', checkTouch);
+    return () => window.removeEventListener('resize', checkTouch);
+  }, []);
 
   React.useEffect(() => {
     const fetchBackground = async () => {
@@ -414,7 +426,9 @@ const WhyRobusta = () => {
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
           >
-            Hover over each card to discover detailed insights about Robusta's unique characteristics
+            {isTouchDevice 
+              ? 'Tap each card to discover detailed insights about Robusta\'s unique characteristics'
+              : 'Hover over each card to discover detailed insights about Robusta\'s unique characteristics'}
           </motion.p>
           
           <motion.div
@@ -424,50 +438,80 @@ const WhyRobusta = () => {
             viewport={{ once: true, margin: "-50px" }}
             className="grid sm:grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 md:gap-8 px-4 md:px-0"
           >
-            {features.map((feature, idx) => (
-              <motion.div
-                key={idx}
-                variants={itemVariants}
-                className="flip-card"
-                style={{ minHeight: '350px', height: '350px' }}
-              >
-                <div className="flip-card-inner">
-                  <div className="flip-card-front">
-                    <div className="mb-5 flex justify-center">{feature.icon}</div>
-                    <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
-                      {feature.title}
-                    </h3>
-                    <p className="text-base text-coffee-light leading-relaxed mb-4">
-                      {feature.shortDescription}
-                    </p>
-                    <div className="mt-auto text-sm text-coffee-amber/70">
-                      Hover to learn more →
-                    </div>
-                  </div>
-                  <div className="flip-card-back">
-                    <div className="w-full">
-                      <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
+            {features.map((feature, idx) => {
+              const isFlipped = flippedCards.has(idx);
+              return (
+                <motion.div
+                  key={idx}
+                  variants={itemVariants}
+                  className={`flip-card ${isFlipped ? 'flipped' : ''}`}
+                  style={{ minHeight: '350px', height: '350px' }}
+                  onTouchEnd={(e) => {
+                    // Handle touch on mobile/tablet devices
+                    if (window.innerWidth < 1024 || 'ontouchstart' in window) {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setFlippedCards(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(idx)) {
+                          newSet.delete(idx);
+                        } else {
+                          newSet.add(idx);
+                        }
+                        return newSet;
+                      });
+                    }
+                  }}
+                  onClick={(e) => {
+                    // Handle click on desktop (hover doesn't work on touch devices)
+                    if (window.innerWidth >= 1024 && !('ontouchstart' in window)) {
+                      // Desktop hover handles flip, so we don't need click handler
+                      return;
+                    }
+                    // For mobile/tablet, touchEnd handles it, but keep this as fallback
+                    if (window.innerWidth < 1024 || 'ontouchstart' in window) {
+                      e.stopPropagation();
+                    }
+                  }}
+                >
+                  <div className="flip-card-inner">
+                    <div className="flip-card-front">
+                      <div className="mb-5 flex justify-center">{feature.icon}</div>
+                      <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-4">
                         {feature.title}
                       </h3>
-                      <p className="text-sm text-coffee-light leading-relaxed mb-4">
-                        {feature.detailedDescription}
+                      <p className="text-base text-coffee-light leading-relaxed mb-4">
+                        {feature.shortDescription}
                       </p>
+                      <div className="mt-auto text-sm text-coffee-amber/70">
+                        {isTouchDevice ? 'Tap to learn more →' : 'Hover to learn more →'}
+                      </div>
                     </div>
-                    <div className="w-full mt-auto">
-                      <p className="text-sm font-semibold text-coffee-amber mb-2">Key Benefits:</p>
-                      <ul className="space-y-2 text-left">
-                        {feature.benefits.map((benefit, i) => (
-                          <li key={i} className="text-sm text-coffee-light flex items-start gap-2">
-                            <span className="text-coffee-amber mt-0.5">✓</span>
-                            <span>{benefit}</span>
-                          </li>
-                        ))}
-                      </ul>
+                    <div className="flip-card-back">
+                      <div className="w-full">
+                        <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
+                          {feature.title}
+                        </h3>
+                        <p className="text-sm text-coffee-light leading-relaxed mb-4">
+                          {feature.detailedDescription}
+                        </p>
+                      </div>
+                      <div className="w-full mt-auto">
+                        <p className="text-sm font-semibold text-coffee-amber mb-2">Key Benefits:</p>
+                        <ul className="space-y-2 text-left">
+                          {feature.benefits.map((benefit, i) => (
+                            <li key={i} className="text-sm text-coffee-light flex items-start gap-2">
+                              <span className="text-coffee-amber mt-0.5">✓</span>
+                              <span>{benefit}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              );
+            })}
           </motion.div>
         </motion.div>
 
