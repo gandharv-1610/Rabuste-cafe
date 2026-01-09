@@ -3462,6 +3462,10 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showRejectModal, setShowRejectModal] = useState(false);
+  const [showNeedsInfoModal, setShowNeedsInfoModal] = useState(false);
+  const [rejectReason, setRejectReason] = useState('');
+  const [needsInfoMessage, setNeedsInfoMessage] = useState('');
   const [approveFormData, setApproveFormData] = useState({
     price: '',
     description: '',
@@ -3490,26 +3494,36 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
     }
   };
 
-  const handleReject = async (requestId) => {
-    const reason = prompt('Please provide a reason for rejection:');
-    if (!reason) return;
+  const handleReject = async () => {
+    if (!rejectReason.trim()) {
+      toast.error('Please provide a reason for rejection');
+      return;
+    }
 
     try {
-      await api.post(`/artist-requests/${requestId}/reject`, { reason });
+      await api.post(`/artist-requests/${selectedRequest._id}/reject`, { reason: rejectReason });
       toast.success('Request rejected');
+      setShowRejectModal(false);
+      setRejectReason('');
+      setSelectedRequest(null);
       onRefresh();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to reject request');
     }
   };
 
-  const handleNeedsInfo = async (requestId) => {
-    const message = prompt('What additional information is needed?');
-    if (!message) return;
+  const handleNeedsInfo = async () => {
+    if (!needsInfoMessage.trim()) {
+      toast.error('Please provide a message');
+      return;
+    }
 
     try {
-      await api.post(`/artist-requests/${requestId}/needs-info`, { message });
+      await api.post(`/artist-requests/${selectedRequest._id}/needs-info`, { message: needsInfoMessage });
       toast.success('Request marked as needs more info');
+      setShowNeedsInfoModal(false);
+      setNeedsInfoMessage('');
+      setSelectedRequest(null);
       onRefresh();
     } catch (error) {
       toast.error(error.response?.data?.message || 'Failed to update request');
@@ -3620,13 +3634,19 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
                     Approve
                   </button>
                   <button
-                    onClick={() => handleReject(request._id)}
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowRejectModal(true);
+                    }}
                     className="bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
                   >
                     Reject
                   </button>
                   <button
-                    onClick={() => handleNeedsInfo(request._id)}
+                    onClick={() => {
+                      setSelectedRequest(request);
+                      setShowNeedsInfoModal(true);
+                    }}
                     className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700"
                   >
                     Needs More Info
@@ -3700,6 +3720,80 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
                   Cancel
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {showRejectModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-coffee-amber mb-4">Reject Artist Request</h3>
+            <p className="text-coffee-light mb-4">
+              Please provide a reason for rejecting the request for "{selectedRequest.artworkTitle}"
+            </p>
+            <textarea
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-4"
+              rows="4"
+              placeholder="Rejection reason..."
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleReject}
+                className="flex-1 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700"
+              >
+                Reject Request
+              </button>
+              <button
+                onClick={() => {
+                  setShowRejectModal(false);
+                  setRejectReason('');
+                  setSelectedRequest(null);
+                }}
+                className="flex-1 bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Needs Info Modal */}
+      {showNeedsInfoModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="bg-coffee-darker border-2 border-coffee-brown rounded-lg p-6 max-w-md w-full">
+            <h3 className="text-xl font-bold text-coffee-amber mb-4">Request More Information</h3>
+            <p className="text-coffee-light mb-4">
+              What additional information is needed for "{selectedRequest.artworkTitle}"?
+            </p>
+            <textarea
+              value={needsInfoMessage}
+              onChange={(e) => setNeedsInfoMessage(e.target.value)}
+              className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-4 py-2 mb-4"
+              rows="4"
+              placeholder="Please specify what information is needed..."
+            />
+            <div className="flex gap-2">
+              <button
+                onClick={handleNeedsInfo}
+                className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700"
+              >
+                Send Request
+              </button>
+              <button
+                onClick={() => {
+                  setShowNeedsInfoModal(false);
+                  setNeedsInfoMessage('');
+                  setSelectedRequest(null);
+                }}
+                className="flex-1 bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold hover:bg-coffee-brown/60"
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>

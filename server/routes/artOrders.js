@@ -264,10 +264,11 @@ router.post('/:id/accept', auth, async (req, res) => {
     order.shippingStatus = 'processing';
     await order.save();
 
-    // Update artwork status to sold
+    // Update artwork status and availability to sold
     const artwork = await Art.findById(order.artworkId);
     if (artwork) {
       artwork.status = 'sold';
+      artwork.availability = 'Sold'; // Also update availability field for admin panel
       await artwork.save();
     }
 

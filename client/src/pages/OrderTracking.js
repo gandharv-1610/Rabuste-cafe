@@ -16,10 +16,45 @@ const OrderTracking = () => {
 
   useEffect(() => {
     if (orderNumber && email) {
+      // Check if email is already verified from MyArtOrders
+      const verified = localStorage.getItem('art_orders_verified_email');
+      const verifiedTime = localStorage.getItem('art_orders_verified_time');
+      
+      if (verified && verifiedTime) {
+        const normalizedEmail = email.trim().toLowerCase();
+        const timeDiff = Date.now() - parseInt(verifiedTime);
+        const hours24 = 24 * 60 * 60 * 1000;
+        
+        // If same email and still valid (24 hours), skip OTP and fetch order directly
+        if (verified === normalizedEmail && timeDiff < hours24) {
+          fetchOrderDirect();
+          return;
+        }
+      }
+      
+      // Otherwise, request OTP
       requestOTP();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  const fetchOrderDirect = async () => {
+    setLoading(true);
+    try {
+      const response = await api.post('/art-orders/track', {
+        orderNumber: orderNumber.toUpperCase(),
+        email: email.trim().toLowerCase()
+      });
+      setOrder(response.data);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to fetch order. Please verify your email.');
+      console.error('Order fetch error:', error);
+      // If direct fetch fails, fall back to OTP verification
+      requestOTP();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const requestOTP = async () => {
     if (!orderNumber || !email) {
