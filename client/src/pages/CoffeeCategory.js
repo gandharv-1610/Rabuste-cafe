@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const CoffeeCategory = () => {
   const [coffees, setCoffees] = useState([]);
@@ -57,7 +58,7 @@ const CoffeeCategory = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading coffee menu...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

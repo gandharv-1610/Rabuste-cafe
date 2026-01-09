@@ -7,10 +7,13 @@ import ImageUpload from '../components/ImageUpload';
 import VideoUpload from '../components/VideoUpload';
 import OrdersManagement from '../components/OrdersManagement';
 import OrderAnalytics from '../components/OrderAnalytics';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const AdminPanel = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [artManagementSubTab, setArtManagementSubTab] = useState('artGallery');
+  const [showArtDropdown, setShowArtDropdown] = useState(false);
   const [stats, setStats] = useState(null);
   const [coffees, setCoffees] = useState([]);
   const [arts, setArts] = useState([]);
@@ -29,15 +32,15 @@ const AdminPanel = () => {
   useEffect(() => {
     fetchStats();
     if (activeTab === 'coffee') fetchCoffees();
-    if (activeTab === 'art') {
-      fetchArts();
-      fetchArtEnquiries();
-    }
-    if (activeTab === 'artOrders') {
-      fetchArtOrders();
-    }
-    if (activeTab === 'artistRequests') {
-      fetchArtistRequests();
+    if (activeTab === 'artManagement') {
+      if (artManagementSubTab === 'artGallery') {
+        fetchArts();
+        fetchArtEnquiries();
+      } else if (artManagementSubTab === 'artOrders') {
+        fetchArtOrders();
+      } else if (artManagementSubTab === 'artistRequests') {
+        fetchArtistRequests();
+      }
     }
     if (activeTab === 'workshops') {
       fetchWorkshops();
@@ -50,7 +53,7 @@ const AdminPanel = () => {
       fetchBillingOffers();
     }
     if (activeTab === 'customerEngagement') fetchCustomerEngagementStats();
-  }, [activeTab]);
+  }, [activeTab, artManagementSubTab]);
 
   const fetchStats = async () => {
     try {
@@ -207,15 +210,12 @@ const AdminPanel = () => {
     { id: 'counter', label: 'Counter Order' },
     { id: 'analytics', label: 'Analytics' },
     { id: 'coffee', label: 'Coffee Menu' },
-    { id: 'art', label: 'Art Gallery' },
-    { id: 'artOrders', label: 'Art Orders' },
-    { id: 'artistRequests', label: 'Artist Requests' },
+    { id: 'artManagement', label: 'Art Management', hasDropdown: true },
     { id: 'workshops', label: 'Workshops' },
     { id: 'franchise', label: 'Franchise Enquiries' },
     { id: 'billing', label: 'Billing' },
     { id: 'customerEngagement', label: 'Customer Engagement' },
     { id: 'siteMedia', label: 'Site Media' },
-    { id: 'settings', label: 'Settings' },
   ];
 
   const handleSoundToggle = () => {
@@ -229,34 +229,122 @@ const AdminPanel = () => {
     navigate('/admin/login');
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (showArtDropdown && !event.target.closest('.art-management-dropdown')) {
+        setShowArtDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showArtDropdown]);
+
   return (
     <div className="pt-20 min-h-screen bg-coffee-darker">
       <div className="max-w-7xl mx-auto px-4 py-8">
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <h1 className="text-4xl font-display font-bold text-coffee-amber">Admin Panel</h1>
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="rounded-lg border border-red-500/60 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-red-300 hover:bg-red-500/20 transition-colors"
-          >
-            Logout
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveTab('settings')}
+              className="p-2 rounded-lg text-coffee-amber hover:bg-coffee-brown/40 transition-colors"
+              title="Settings"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-lg border border-red-500/60 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-red-300 hover:bg-red-500/20 transition-colors"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-coffee-brown">
+        <div className="flex flex-wrap gap-2 mb-8 border-b border-coffee-brown relative">
           {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 font-semibold transition-colors ${
-                activeTab === tab.id
-                  ? 'text-coffee-amber border-b-2 border-coffee-amber'
-                  : 'text-coffee-light hover:text-coffee-amber'
-              }`}
-            >
-              {tab.label}
-            </button>
+            <div key={tab.id} className="relative art-management-dropdown">
+              <button
+                onClick={() => {
+                  if (tab.hasDropdown) {
+                    setShowArtDropdown(!showArtDropdown);
+                    if (activeTab !== 'artManagement') {
+                      setActiveTab('artManagement');
+                    }
+                  } else {
+                    setActiveTab(tab.id);
+                    setShowArtDropdown(false);
+                  }
+                }}
+                className={`px-6 py-3 font-semibold transition-colors flex items-center gap-2 ${
+                  activeTab === tab.id
+                    ? 'text-coffee-amber border-b-2 border-coffee-amber'
+                    : 'text-coffee-light hover:text-coffee-amber'
+                }`}
+              >
+                {tab.label}
+                {tab.hasDropdown && (
+                  <svg 
+                    className={`w-4 h-4 transition-transform ${showArtDropdown ? 'rotate-180' : ''}`}
+                    fill="none" 
+                    stroke="currentColor" 
+                    viewBox="0 0 24 24"
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                )}
+              </button>
+              {tab.hasDropdown && showArtDropdown && (
+                <div className="absolute top-full left-0 mt-1 bg-coffee-darker border border-coffee-brown rounded-lg shadow-lg z-50 min-w-[200px]">
+                  <button
+                    onClick={() => {
+                      setArtManagementSubTab('artGallery');
+                      setShowArtDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
+                      artManagementSubTab === 'artGallery'
+                        ? 'text-coffee-amber bg-coffee-brown/20'
+                        : 'text-coffee-light'
+                    }`}
+                  >
+                    Art Gallery
+                  </button>
+                  <button
+                    onClick={() => {
+                      setArtManagementSubTab('artOrders');
+                      setShowArtDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
+                      artManagementSubTab === 'artOrders'
+                        ? 'text-coffee-amber bg-coffee-brown/20'
+                        : 'text-coffee-light'
+                    }`}
+                  >
+                    Art Orders
+                  </button>
+                  <button
+                    onClick={() => {
+                      setArtManagementSubTab('artistRequests');
+                      setShowArtDropdown(false);
+                    }}
+                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
+                      artManagementSubTab === 'artistRequests'
+                        ? 'text-coffee-amber bg-coffee-brown/20'
+                        : 'text-coffee-light'
+                    }`}
+                  >
+                    Artist Requests
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
 
@@ -294,8 +382,7 @@ const AdminPanel = () => {
               </div>
             ) : (
               <div className="text-center py-12">
-                <div className="text-coffee-amber text-xl mb-2">Loading dashboard...</div>
-                <div className="text-coffee-light/60 text-sm">Fetching statistics...</div>
+                <CoffeeLoader size="lg" />
               </div>
             )}
           </>
@@ -336,32 +423,33 @@ const AdminPanel = () => {
         )}
 
         {/* Art Management */}
-        {activeTab === 'art' && (
-          <ArtManagement
-            arts={arts}
-            artEnquiries={artEnquiries}
-            loading={loading}
-            onRefresh={fetchArts}
-            onRefreshEnquiries={fetchArtEnquiries}
-          />
-        )}
-
-        {/* Art Orders Management */}
-        {activeTab === 'artOrders' && (
-          <ArtOrdersManagement
-            orders={artOrders}
-            loading={loading}
-            onRefresh={fetchArtOrders}
-          />
-        )}
-
-        {/* Artist Requests Management */}
-        {activeTab === 'artistRequests' && (
-          <ArtistRequestsManagement
-            requests={artistRequests}
-            loading={loading}
-            onRefresh={fetchArtistRequests}
-          />
+        {/* Art Management */}
+        {activeTab === 'artManagement' && (
+          <>
+            {artManagementSubTab === 'artGallery' && (
+              <ArtManagement
+                arts={arts}
+                artEnquiries={artEnquiries}
+                loading={loading}
+                onRefresh={fetchArts}
+                onRefreshEnquiries={fetchArtEnquiries}
+              />
+            )}
+            {artManagementSubTab === 'artOrders' && (
+              <ArtOrdersManagement
+                orders={artOrders}
+                loading={loading}
+                onRefresh={fetchArtOrders}
+              />
+            )}
+            {artManagementSubTab === 'artistRequests' && (
+              <ArtistRequestsManagement
+                requests={artistRequests}
+                loading={loading}
+                onRefresh={fetchArtistRequests}
+              />
+            )}
+          </>
         )}
 
         {/* Workshops Management */}
@@ -688,7 +776,7 @@ const CoffeeManagement = ({ coffees, loading, onRefresh }) => {
     }
   };
 
-  if (loading) return <div className="text-coffee-light">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   return (
     <div>
@@ -1062,7 +1150,7 @@ const ArtManagement = ({ arts, artEnquiries, loading, onRefresh, onRefreshEnquir
     }
   };
 
-  if (loading) return <div className="text-coffee-light">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   return (
     <div>
@@ -1282,7 +1370,7 @@ const ArtEnquiries = ({ enquiries, loading, onRefresh }) => {
     }
   };
 
-  if (loading) return <div className="text-coffee-light">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   return (
     <div>
@@ -1573,7 +1661,7 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
     }
   };
 
-  if (loading) return <div className="text-coffee-light">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   return (
     <div>
@@ -1925,7 +2013,7 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
     }
   };
 
-  if (loading) return <div className="text-coffee-light">Loading...</div>;
+  if (loading) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   return (
     <div>
@@ -2123,7 +2211,7 @@ const SiteMediaManagement = ({ media, loading, onRefresh }) => {
     }
   };
 
-  if (loading && media.length === 0) return <div className="text-coffee-light">Loading...</div>;
+  if (loading && media.length === 0) return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
 
   // Small helper list of known sections for convenience
   const knownSections = [
@@ -2469,7 +2557,7 @@ const CustomerEngagement = ({ stats, onRefresh }) => {
         </div>
       ) : (
         <div className="text-center py-12">
-          <div className="text-coffee-amber text-xl mb-2">Loading stats...</div>
+          <CoffeeLoader size="lg" />
         </div>
       )}
 
@@ -3119,7 +3207,7 @@ const BillingManagement = ({ billingSettings, billingOffers, loading, onRefreshS
         )}
 
         {loading && billingOffers.length === 0 ? (
-          <div className="text-coffee-light">Loading offers...</div>
+          <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>
         ) : billingOffers.length === 0 ? (
           <div className="text-center py-8 text-coffee-light">No offers created yet</div>
         ) : (
@@ -3337,7 +3425,7 @@ const ArtOrdersManagement = ({ orders, loading, onRefresh }) => {
       </div>
 
       {loading ? (
-        <div className="text-coffee-light">Loading orders...</div>
+        <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>
       ) : filteredOrders.length === 0 ? (
         <div className="text-center py-8 text-coffee-light">No orders found</div>
       ) : (
@@ -3570,7 +3658,7 @@ const ArtistRequestsManagement = ({ requests, loading, onRefresh }) => {
       </div>
 
       {loading ? (
-        <div className="text-coffee-light">Loading requests...</div>
+        <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>
       ) : filteredRequests.length === 0 ? (
         <div className="text-center py-8 text-coffee-light">No requests found</div>
       ) : (

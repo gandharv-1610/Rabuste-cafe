@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const SidesCategory = () => {
   const [sides, setSides] = useState([]);
@@ -28,7 +29,7 @@ const SidesCategory = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading sides...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

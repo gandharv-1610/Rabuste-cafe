@@ -6,6 +6,7 @@ import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import VideoPlayer from '../components/VideoPlayer';
 import InfiniteSlider from '../components/InfiniteSlider';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const CoffeeMenu = () => {
   const navigate = useNavigate();
@@ -185,7 +186,7 @@ const CoffeeMenu = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading menu...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

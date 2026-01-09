@@ -150,7 +150,9 @@ router.post('/verify-payment', async (req, res) => {
     await artOrder.save();
 
     // Reserve artwork (change status to reserved until admin confirms)
+    // Sync both status and availability fields
     artwork.status = 'reserved';
+    artwork.availability = 'Reserved';
     await artwork.save();
 
     // Send confirmation email
@@ -265,10 +267,11 @@ router.post('/:id/accept', auth, async (req, res) => {
     await order.save();
 
     // Update artwork status and availability to sold
+    // Sync both status and availability fields
     const artwork = await Art.findById(order.artworkId);
     if (artwork) {
       artwork.status = 'sold';
-      artwork.availability = 'Sold'; // Also update availability field for admin panel
+      artwork.availability = 'Sold';
       await artwork.save();
     }
 
@@ -325,9 +328,11 @@ router.post('/:id/cancel', auth, async (req, res) => {
     }
 
     // Make artwork available again
+    // Sync both status and availability fields
     const artwork = await Art.findById(order.artworkId);
-    if (artwork && artwork.status === 'reserved') {
+    if (artwork && (artwork.status === 'reserved' || artwork.availability === 'Reserved')) {
       artwork.status = 'available';
+      artwork.availability = 'Available';
       await artwork.save();
     }
 

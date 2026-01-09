@@ -7,6 +7,7 @@ import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
+import CoffeeLoader from '../components/CoffeeLoader';
 import OTPModal from '../components/OTPModal';
 import { generateTimeSlots, isCafeOpen } from '../utils/timeSlots';
 import { 
@@ -667,7 +668,7 @@ const PreOrder = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading menu...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

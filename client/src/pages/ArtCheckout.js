@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import OTPModal from '../components/OTPModal';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const ArtCheckout = () => {
   const { id } = useParams();
@@ -221,7 +222,7 @@ const ArtCheckout = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }
