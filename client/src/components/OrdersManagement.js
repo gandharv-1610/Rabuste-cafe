@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ReceiptModal from './ReceiptModal';
+import CoffeeLoader from './CoffeeLoader';
 
 const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
   const [orders, setOrders] = useState([]);
@@ -203,7 +204,7 @@ const OrdersManagement = ({ soundEnabled, onSoundToggle }) => {
   };
   
   if (loading) {
-    return <div className="text-coffee-light">Loading orders...</div>;
+    return <div className="flex items-center justify-center py-12"><CoffeeLoader size="md" /></div>;
   }
 
   // Filter orders based on selected filter

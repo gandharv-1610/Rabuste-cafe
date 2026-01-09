@@ -5,6 +5,7 @@ import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import OTPModal from '../components/OTPModal';
 import VideoPlayer from '../components/VideoPlayer';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const Workshops = () => {
   const [workshops, setWorkshops] = useState([]);
@@ -305,7 +306,7 @@ const Workshops = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading workshops...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

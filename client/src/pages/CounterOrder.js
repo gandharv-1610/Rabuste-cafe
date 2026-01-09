@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ReceiptModal from '../components/ReceiptModal';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const CounterOrder = () => {
   const navigate = useNavigate();
@@ -399,7 +400,7 @@ const CounterOrder = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading menu...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }

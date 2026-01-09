@@ -91,6 +91,30 @@ router.put('/:id', async (req, res) => {
       }
     }
 
+    // Sync status and availability fields
+    if (req.body.availability) {
+      // Map availability to status
+      const availabilityToStatus = {
+        'Available': 'available',
+        'Reserved': 'reserved',
+        'Sold': 'sold'
+      };
+      if (availabilityToStatus[req.body.availability]) {
+        req.body.status = availabilityToStatus[req.body.availability];
+      }
+    } else if (req.body.status) {
+      // Map status to availability
+      const statusToAvailability = {
+        'available': 'Available',
+        'reserved': 'Reserved',
+        'sold': 'Sold',
+        'in_cafe': 'Available' // in_cafe maps to Available for availability
+      };
+      if (statusToAvailability[req.body.status]) {
+        req.body.availability = statusToAvailability[req.body.status];
+      }
+    }
+
     const art = await Art.findByIdAndUpdate(
       req.params.id,
       req.body,

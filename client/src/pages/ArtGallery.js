@@ -6,6 +6,7 @@ import api from '../api/axios';
 import Chatbot from '../components/Chatbot';
 import VideoPlayer from '../components/VideoPlayer';
 import OTPModal from '../components/OTPModal';
+import CoffeeLoader from '../components/CoffeeLoader';
 
 const ArtGallery = () => {
   const navigate = useNavigate();
@@ -128,7 +129,7 @@ const ArtGallery = () => {
   if (loading) {
     return (
       <div className="pt-20 min-h-screen flex items-center justify-center">
-        <div className="text-coffee-amber text-xl">Loading art gallery...</div>
+        <CoffeeLoader size="lg" />
       </div>
     );
   }
@@ -261,9 +262,15 @@ const ArtGallery = () => {
                   </h3>
                   <p className="text-coffee-light mb-3">by {art.artistName}</p>
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-2xl font-bold text-coffee-amber">
-                      ₹{art.price}
-                    </span>
+                    {(art.status === 'sold' || art.availability === 'Sold') ? (
+                      <span className="text-lg font-semibold text-coffee-light italic">
+                        Sold
+                      </span>
+                    ) : (
+                      <span className="text-2xl font-bold text-coffee-amber">
+                        ₹{art.price}
+                      </span>
+                    )}
                     <span
                       className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(art).class}`}
                     >
@@ -368,7 +375,11 @@ const ArtGallery = () => {
                 </div>
                 <p className="text-coffee-light text-lg mb-4">by {selectedArt.artistName}</p>
                 <div className="mb-6">
-                  <span className="text-3xl font-bold text-coffee-amber">₹{selectedArt.price}</span>
+                  {(selectedArt.status === 'sold' || selectedArt.availability === 'Sold') ? (
+                    <span className="text-2xl font-semibold text-coffee-light italic">Sold</span>
+                  ) : (
+                    <span className="text-3xl font-bold text-coffee-amber">₹{selectedArt.price}</span>
+                  )}
                   <span
                     className={`ml-4 px-3 py-1 rounded-full text-sm font-semibold ${getStatusBadge(selectedArt).class}`}
                   >
@@ -474,7 +485,11 @@ const ArtGallery = () => {
                 {selectedArt.title}
               </h3>
               <p className="text-coffee-light">by {selectedArt.artistName}</p>
-              <p className="text-coffee-amber font-semibold mt-2">₹{selectedArt.price}</p>
+              {(selectedArt.status === 'sold' || selectedArt.availability === 'Sold') ? (
+                <p className="text-coffee-light font-semibold mt-2 italic">Sold</p>
+              ) : (
+                <p className="text-coffee-amber font-semibold mt-2">₹{selectedArt.price}</p>
+              )}
             </div>
 
             <form onSubmit={async (e) => {
