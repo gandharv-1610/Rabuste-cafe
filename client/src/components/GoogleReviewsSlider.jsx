@@ -226,7 +226,7 @@ const GoogleReviewsSlider = ({ placeId }) => {
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
   };
 
-  // Render star rating
+  // Render star rating with enhanced styling
   const renderStars = (rating) => {
     const stars = [];
     const fullStars = Math.floor(rating);
@@ -234,14 +234,14 @@ const GoogleReviewsSlider = ({ placeId }) => {
 
     for (let i = 0; i < fullStars; i++) {
       stars.push(
-        <span key={i} className="text-coffee-amber">
+        <span key={i} className="text-coffee-amber drop-shadow-[0_0_4px_rgba(255,111,0,0.4)] text-lg md:text-xl">
           ⭐
         </span>
       );
     }
     if (hasHalfStar) {
       stars.push(
-        <span key="half" className="text-coffee-amber">
+        <span key="half" className="text-coffee-amber/70 drop-shadow-[0_0_4px_rgba(255,111,0,0.3)] text-lg md:text-xl">
           ⭐
         </span>
       );
@@ -249,7 +249,7 @@ const GoogleReviewsSlider = ({ placeId }) => {
     const emptyStars = 5 - Math.ceil(rating);
     for (let i = 0; i < emptyStars; i++) {
       stars.push(
-        <span key={`empty-${i}`} className="text-coffee-light/30">
+        <span key={`empty-${i}`} className="text-coffee-light/20 text-lg md:text-xl">
           ⭐
         </span>
       );
@@ -322,29 +322,29 @@ const GoogleReviewsSlider = ({ placeId }) => {
         >
           <Swiper
             modules={[Autoplay, Navigation, Pagination]}
-            spaceBetween={16}
+            spaceBetween={20}
             slidesPerView={1}
-            speed={600}
+            speed={300}
             touchRatio={1}
             threshold={10}
             resistance={true}
             resistanceRatio={0.85}
             breakpoints={{
               640: {
-                spaceBetween: 20,
+                spaceBetween: 24,
                 slidesPerView: 1,
               },
               768: {
-                spaceBetween: 24,
+                spaceBetween: 28,
                 slidesPerView: 2,
               },
               1024: {
-                spaceBetween: 24,
+                spaceBetween: 32,
                 slidesPerView: 3,
               },
             }}
             autoplay={{
-              delay: 3500,
+              delay: 2000,
               disableOnInteraction: false,
               pauseOnMouseEnter: true,
             }}
@@ -364,79 +364,113 @@ const GoogleReviewsSlider = ({ placeId }) => {
           >
             {reviews.map((review, index) => (
               <SwiperSlide key={`review-${review.author_name}-${review.time || index}`}>
-                <div className="bg-gradient-to-br from-coffee-darker/90 via-coffee-brown/60 to-coffee-darker/90 border border-coffee-brown/60 rounded-xl p-6 h-full flex flex-col shadow-lg hover:shadow-xl transition-shadow">
-                  {/* Rating */}
-                  <div className="mb-4">
-                    <div className="flex items-center gap-1 mb-2">
-                      {renderStars(review.rating)}
-                    </div>
-                    <p className="text-sm text-coffee-light/80">
-                      {formatDate(review.time)}
-                    </p>
-                  </div>
-
-                  {/* Review Text */}
-                  <p className="text-coffee-light mb-6 flex-grow line-clamp-6">
-                    {review.text}
-                  </p>
-
-                  {/* Author Info */}
-                  <div className="flex items-center gap-3 pt-4 border-t border-coffee-brown/40">
-                    {review.profile_photo_url && imageLoadStates[review.profile_photo_url] !== 'error' ? (
-                      <img
-                        key={`img-${review.profile_photo_url}`}
-                        src={review.profile_photo_url}
-                        alt={review.author_name}
-                        className="w-12 h-12 rounded-full object-cover border-2 border-coffee-amber/30"
-                        loading="lazy"
-                        referrerPolicy="no-referrer"
-                        onError={(e) => {
-                          // Only mark as error once
-                          if (imageLoadStates[review.profile_photo_url] !== 'error') {
-                            console.warn('Failed to load profile photo:', {
-                              url: review.profile_photo_url,
-                              author: review.author_name,
-                              error: 'Image failed to load - may be blocked by CORS or unavailable'
-                            });
-                            setImageLoadStates(prev => ({
-                              ...prev,
-                              [review.profile_photo_url]: 'error'
-                            }));
-                            // Hide the broken image
-                            e.target.style.display = 'none';
-                          }
-                        }}
-                        onLoad={() => {
-                          // Mark as successfully loaded - this prevents fallback
-                          console.log('Profile photo loaded successfully:', review.author_name);
-                          setImageLoadStates(prev => ({
-                            ...prev,
-                            [review.profile_photo_url]: 'loaded'
-                          }));
-                        }}
-                      />
-                    ) : null}
-                    {/* Show fallback only if no photo URL OR if image failed to load */}
-                    {(!review.profile_photo_url || imageLoadStates[review.profile_photo_url] === 'error') && (
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-coffee-brown/60 to-coffee-amber/20 flex items-center justify-center border-2 border-coffee-amber/30 shadow-sm">
-                        <span className="text-coffee-amber text-xl font-semibold">
-                          {review.author_name?.charAt(0)?.toUpperCase() || '?'}
-                        </span>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ duration: 0.5, delay: index * 0.1 }}
+                  className="relative group h-full"
+                >
+                  {/* Enhanced Card with gradient background and glow effect */}
+                  <div className="relative bg-gradient-to-br from-coffee-darker/95 via-coffee-brown/70 to-coffee-dark/95 border-2 border-coffee-amber/30 rounded-2xl p-6 md:p-7 h-full flex flex-col shadow-xl hover:shadow-[0_20px_50px_rgba(255,111,0,0.15)] hover:border-coffee-amber/50 transition-all duration-500 overflow-hidden backdrop-blur-sm">
+                    {/* Animated gradient overlay on hover */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-coffee-amber/5 via-transparent to-coffee-gold/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-2xl"></div>
+                    
+                    {/* Subtle glow effect */}
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-coffee-amber/20 via-coffee-gold/20 to-coffee-amber/20 rounded-2xl opacity-0 group-hover:opacity-100 blur-xl transition-opacity duration-500 -z-10"></div>
+                    
+                    {/* Content */}
+                    <div className="relative z-10 flex flex-col h-full">
+                      {/* Rating Section - Enhanced */}
+                      <div className="mb-5">
+                        <div className="flex items-center gap-1.5 mb-3">
+                          {renderStars(review.rating)}
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-coffee-light/70">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span>{formatDate(review.time)}</span>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <a
-                        href={review.author_url || '#'}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-coffee-amber font-semibold hover:text-coffee-gold transition-colors block"
-                      >
-                        {review.author_name}
-                      </a>
-                      <p className="text-xs text-coffee-light/60">Google Reviewer</p>
+
+                      {/* Review Text - Enhanced typography */}
+                      <div className="mb-6 flex-grow">
+                        <p className="text-coffee-light/90 leading-relaxed text-sm md:text-base line-clamp-6 font-light">
+                          "{review.text}"
+                        </p>
+                      </div>
+
+                      {/* Author Info - Enhanced */}
+                      <div className="flex items-center gap-4 pt-5 border-t border-coffee-amber/20 group-hover:border-coffee-amber/40 transition-colors duration-300">
+                        {review.profile_photo_url && imageLoadStates[review.profile_photo_url] !== 'error' ? (
+                          <div className="relative">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-coffee-amber/40 to-coffee-gold/40 rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300"></div>
+                            <img
+                              key={`img-${review.profile_photo_url}`}
+                              src={review.profile_photo_url}
+                              alt={review.author_name}
+                              className="relative w-14 h-14 rounded-full object-cover border-2 border-coffee-amber/40 shadow-lg group-hover:border-coffee-amber/60 group-hover:scale-105 transition-all duration-300"
+                              loading="lazy"
+                              referrerPolicy="no-referrer"
+                              onError={(e) => {
+                                // Only mark as error once
+                                if (imageLoadStates[review.profile_photo_url] !== 'error') {
+                                  console.warn('Failed to load profile photo:', {
+                                    url: review.profile_photo_url,
+                                    author: review.author_name,
+                                    error: 'Image failed to load - may be blocked by CORS or unavailable'
+                                  });
+                                  setImageLoadStates(prev => ({
+                                    ...prev,
+                                    [review.profile_photo_url]: 'error'
+                                  }));
+                                  // Hide the broken image
+                                  e.target.style.display = 'none';
+                                }
+                              }}
+                              onLoad={() => {
+                                // Mark as successfully loaded - this prevents fallback
+                                console.log('Profile photo loaded successfully:', review.author_name);
+                                setImageLoadStates(prev => ({
+                                  ...prev,
+                                  [review.profile_photo_url]: 'loaded'
+                                }));
+                              }}
+                            />
+                          </div>
+                        ) : null}
+                        {/* Show fallback only if no photo URL OR if image failed to load */}
+                        {(!review.profile_photo_url || imageLoadStates[review.profile_photo_url] === 'error') && (
+                          <div className="relative">
+                            <div className="absolute -inset-1 bg-gradient-to-r from-coffee-amber/40 to-coffee-gold/40 rounded-full opacity-0 group-hover:opacity-100 blur transition-opacity duration-300"></div>
+                            <div className="relative w-14 h-14 rounded-full bg-gradient-to-br from-coffee-amber/40 via-coffee-gold/30 to-coffee-brown/50 flex items-center justify-center border-2 border-coffee-amber/40 shadow-lg group-hover:border-coffee-amber/60 group-hover:scale-105 transition-all duration-300">
+                              <span className="text-coffee-darker text-xl font-bold">
+                                {review.author_name?.charAt(0)?.toUpperCase() || '?'}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <a
+                            href={review.author_url || '#'}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-coffee-amber font-bold text-base hover:text-coffee-gold transition-colors block truncate group-hover:translate-x-1 transition-transform duration-300"
+                          >
+                            {review.author_name}
+                          </a>
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <svg className="w-3.5 h-3.5 text-coffee-gold" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                            </svg>
+                            <p className="text-xs text-coffee-light/60 font-medium">Verified Google Reviewer</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               </SwiperSlide>
             ))}
           </Swiper>
@@ -462,7 +496,24 @@ const GoogleReviewsSlider = ({ placeId }) => {
         .google-reviews-swiper .swiper-button-next,
         .google-reviews-swiper .swiper-button-prev {
           color: #FF6F00 !important;
-          transition: opacity 0.2s ease;
+          background: rgba(255, 111, 0, 0.1);
+          backdrop-filter: blur(10px);
+          width: 44px !important;
+          height: 44px !important;
+          border-radius: 50%;
+          transition: all 0.3s ease;
+          box-shadow: 0 4px 12px rgba(255, 111, 0, 0.2);
+        }
+        .google-reviews-swiper .swiper-button-next:hover,
+        .google-reviews-swiper .swiper-button-prev:hover {
+          background: rgba(255, 111, 0, 0.2);
+          transform: scale(1.1);
+          box-shadow: 0 6px 16px rgba(255, 111, 0, 0.3);
+        }
+        .google-reviews-swiper .swiper-button-next::after,
+        .google-reviews-swiper .swiper-button-prev::after {
+          font-size: 18px !important;
+          font-weight: bold;
         }
         /* Hide navigation arrows on mobile/small screens */
         @media (max-width: 768px) {
@@ -471,14 +522,26 @@ const GoogleReviewsSlider = ({ placeId }) => {
             display: none !important;
           }
         }
-        .google-reviews-swiper .swiper-pagination-bullet-active {
-          background-color: #FF6F00 !important;
+        .google-reviews-swiper .swiper-pagination {
+          bottom: -10px !important;
         }
         .google-reviews-swiper .swiper-pagination-bullet {
-          background-color: #BCAAA4 !important;
+          width: 10px !important;
+          height: 10px !important;
+          background-color: rgba(188, 170, 164, 0.5) !important;
+          opacity: 1 !important;
+          transition: all 0.3s ease !important;
+          margin: 0 4px !important;
+        }
+        .google-reviews-swiper .swiper-pagination-bullet-active {
+          background-color: #FF6F00 !important;
+          width: 24px !important;
+          border-radius: 5px !important;
+          box-shadow: 0 2px 8px rgba(255, 111, 0, 0.4);
         }
         .google-reviews-swiper .swiper-slide {
-          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+          height: auto;
         }
         /* Enable touch/swipe on mobile */
         .google-reviews-swiper {
@@ -486,6 +549,11 @@ const GoogleReviewsSlider = ({ placeId }) => {
           -webkit-touch-callout: none;
           -webkit-user-select: none;
           user-select: none;
+          padding-bottom: 40px;
+        }
+        /* Smooth slide transitions */
+        .google-reviews-swiper .swiper-wrapper {
+          transition-timing-function: cubic-bezier(0.25, 0.46, 0.45, 0.94);
         }
       `}</style>
     </section>
