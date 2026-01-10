@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ImageUpload from '../components/ImageUpload';
@@ -39,6 +40,8 @@ const AdminPanel = () => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notificationsViewed, setNotificationsViewed] = useState(false);
+  const notificationButtonRef = useRef(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 });
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,15 +50,11 @@ const AdminPanel = () => {
       await fetchNotifications();
     };
     loadData();
-    if (activeTab === 'coffee') fetchCoffees();
     
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(() => {
-      fetchNotifications();
-    }, 30000);
-    
-    return () => clearInterval(interval);
-    if (activeTab === 'artManagement') {
+    // Load tab-specific data based on activeTab
+    if (activeTab === 'coffee') {
+      fetchCoffees();
+    } else if (activeTab === 'artManagement') {
       if (artManagementSubTab === 'artGallery') {
         fetchArts();
         fetchArtEnquiries();
@@ -64,18 +63,26 @@ const AdminPanel = () => {
       } else if (artManagementSubTab === 'artistRequests') {
         fetchArtistRequests();
       }
-    }
-    if (activeTab === 'workshops') {
+    } else if (activeTab === 'workshops') {
       fetchWorkshops();
       fetchRegistrations();
-    }
-    if (activeTab === 'franchise') fetchEnquiries();
-    if (activeTab === 'siteMedia') fetchSiteMedia();
-    if (activeTab === 'billing') {
+    } else if (activeTab === 'franchise') {
+      fetchEnquiries();
+    } else if (activeTab === 'siteMedia') {
+      fetchSiteMedia();
+    } else if (activeTab === 'billing') {
       fetchBillingSettings();
       fetchBillingOffers();
+    } else if (activeTab === 'customerEngagement') {
+      fetchCustomerEngagementStats();
     }
-    if (activeTab === 'customerEngagement') fetchCustomerEngagementStats();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [activeTab, artManagementSubTab]);
 
   // Update pending items when stats change
@@ -151,6 +158,27 @@ const AdminPanel = () => {
 
   // Mark notifications as viewed
   const handleViewNotifications = () => {
+    // Toggle notifications
+    if (showNotifications) {
+      setShowNotifications(false);
+      return;
+    }
+    
+    // Calculate centered position for viewport (entire page)
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const dropdownWidth = viewportWidth >= 768 ? 384 : 320; // w-96 or w-80
+    const dropdownHeight = 500; // max-h-[500px]
+    
+    // Center horizontally and vertically on the entire viewport
+    const top = (viewportHeight - dropdownHeight) / 2;
+    const left = (viewportWidth - dropdownWidth) / 2;
+    
+    setDropdownPosition({
+      top: Math.max(20, top), // At least 20px from top
+      left: Math.max(20, left) // At least 20px from left
+    });
+    
     setShowNotifications(true);
     setNotificationsViewed(true);
   };
@@ -388,8 +416,14 @@ const AdminPanel = () => {
       if (showArtDropdown && !event.target.closest('.art-management-dropdown')) {
         setShowArtDropdown(false);
       }
-      if (showNotifications && !event.target.closest('.notifications-container')) {
-        setShowNotifications(false);
+      if (showNotifications) {
+        // Don't close if clicking on the notification button, container, or dropdown
+        if (
+          !event.target.closest('.notifications-container') &&
+          !event.target.closest('[data-notification-dropdown]')
+        ) {
+          setShowNotifications(false);
+        }
       }
     };
     document.addEventListener('mousedown', handleClickOutside);
@@ -432,10 +466,14 @@ const AdminPanel = () => {
                 {/* Notifications Bell */}
                 <div className="relative notifications-container">
                   <motion.button
+                    ref={notificationButtonRef}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     type="button"
-                    onClick={handleViewNotifications}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleViewNotifications();
+                    }}
                     className="relative p-3 rounded-xl bg-coffee-brown/30 hover:bg-coffee-brown/50 text-coffee-amber border border-coffee-amber/30 hover:border-coffee-amber/50 transition-all duration-300 group"
                     title="Notifications"
                     animate={notifications.length > 0 && !notificationsViewed ? {
@@ -461,106 +499,6 @@ const AdminPanel = () => {
                     )}
                   </motion.button>
 
-                  {/* Notifications Dropdown */}
-                  {showNotifications && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                        className="absolute right-0 mt-2 w-80 md:w-96 bg-coffee-darker border-2 border-coffee-amber/30 rounded-xl shadow-2xl z-50 max-h-[500px] overflow-hidden backdrop-blur-sm"
-                      >
-                        {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-coffee-brown/40 bg-gradient-to-r from-coffee-brown/20 to-coffee-darker/50">
-                          <h3 className="text-lg font-bold text-coffee-amber">Notifications</h3>
-                          {notifications.length > 0 && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={handleClearAllNotifications}
-                              className="text-xs text-coffee-light/70 hover:text-coffee-amber transition-colors px-2 py-1 rounded hover:bg-coffee-brown/20"
-                            >
-                              Clear All
-                            </motion.button>
-                          )}
-                        </div>
-
-                        {/* Notifications List */}
-                        <div className="overflow-y-auto max-h-[400px]">
-                          {notifications.length === 0 ? (
-                            <div className="p-8 text-center">
-                              <svg className="w-12 h-12 mx-auto text-coffee-light/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                              </svg>
-                              <p className="text-coffee-light/60 text-sm">No new notifications</p>
-                            </div>
-                          ) : (
-                            <div className="divide-y divide-coffee-brown/20">
-                              {notifications.map((notification) => (
-                                <motion.div
-                                  key={notification.id}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  onClick={() => {
-                                    // Navigate to relevant section based on notification type
-                                    if (notification.type === 'franchise') {
-                                      setActiveTab('franchise');
-                                    } else if (notification.type === 'art-enquiry') {
-                                      setActiveTab('artManagement');
-                                      setArtManagementSubTab('artGallery');
-                                    } else if (notification.type === 'art-order') {
-                                      setActiveTab('artManagement');
-                                      setArtManagementSubTab('artOrders');
-                                    } else if (notification.type === 'artist-request') {
-                                      setActiveTab('artManagement');
-                                      setArtManagementSubTab('artistRequests');
-                                    }
-                                    setShowNotifications(false);
-                                  }}
-                                  className="p-4 hover:bg-coffee-brown/20 cursor-pointer transition-colors group"
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className={`p-2 rounded-lg ${
-                                      notification.type === 'franchise' ? 'bg-green-500/20' :
-                                      notification.type === 'art-enquiry' ? 'bg-orange-500/20' :
-                                      notification.type === 'art-order' ? 'bg-purple-500/20' :
-                                      'bg-blue-500/20'
-                                    }`}>
-                                      <svg className={`w-4 h-4 ${
-                                        notification.type === 'franchise' ? 'text-green-400' :
-                                        notification.type === 'art-enquiry' ? 'text-orange-400' :
-                                        notification.type === 'art-order' ? 'text-purple-400' :
-                                        'text-blue-400'
-                                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        {notification.type === 'franchise' ? (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        ) : notification.type === 'art-enquiry' ? (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                        ) : notification.type === 'art-order' ? (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-                                        ) : (
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                        )}
-                                      </svg>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-semibold text-coffee-amber group-hover:text-coffee-gold transition-colors">
-                                        {notification.title}
-                                      </p>
-                                      <p className="text-xs text-coffee-light/70 mt-1 line-clamp-2">
-                                        {notification.message}
-                                      </p>
-                                      <p className="text-xs text-coffee-light/50 mt-2">
-                                        {notification.timestamp.toLocaleString()}
-                                      </p>
-                                    </div>
-                                  </div>
-                                </motion.div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </motion.div>
-                  )}
                 </div>
 
                 {/* Settings Button */}
@@ -1010,6 +948,138 @@ const AdminPanel = () => {
           </motion.div>
         )}
       </div>
+
+      {/* Notifications Dropdown - Render using Portal to center on entire page/viewport */}
+      {showNotifications && createPortal(
+        <AnimatePresence>
+          <>
+            {/* Backdrop to close on outside click */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[9998]"
+              onClick={(e) => {
+                // Don't close if clicking on the button or dropdown
+                if (
+                  !e.target.closest('.notifications-container') &&
+                  !e.target.closest('[data-notification-dropdown]')
+                ) {
+                  setShowNotifications(false);
+                }
+              }}
+            />
+            <motion.div
+              data-notification-dropdown
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ type: "spring", duration: 0.3, bounce: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                position: 'fixed',
+                top: `${dropdownPosition.top}px`,
+                left: `${dropdownPosition.left}px`,
+                zIndex: 9999
+              }}
+              className="w-80 md:w-96 bg-coffee-darker border-2 border-coffee-amber/30 rounded-xl shadow-2xl max-h-[500px] overflow-y-auto backdrop-blur-sm"
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-4 border-b border-coffee-brown/40 bg-gradient-to-r from-coffee-brown/20 to-coffee-darker/50">
+                <h3 className="text-lg font-bold text-coffee-amber">Notifications</h3>
+                {notifications.length > 0 && (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={handleClearAllNotifications}
+                    className="text-xs text-coffee-light/70 hover:text-coffee-amber transition-colors px-2 py-1 rounded hover:bg-coffee-brown/20"
+                  >
+                    Clear All
+                  </motion.button>
+                )}
+              </div>
+
+              {/* Notifications List */}
+              <div className="overflow-y-auto max-h-[400px]">
+                {notifications.length === 0 ? (
+                  <div className="p-8 text-center">
+                    <svg className="w-12 h-12 mx-auto text-coffee-light/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <p className="text-coffee-light/60 text-sm">No new notifications</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-coffee-brown/20">
+                    {notifications.map((notification) => (
+                      <motion.div
+                        key={notification.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        onClick={() => {
+                          // Navigate to relevant section based on notification type
+                          if (notification.type === 'franchise') {
+                            setActiveTab('franchise');
+                          } else if (notification.type === 'art-enquiry') {
+                            setActiveTab('artManagement');
+                            setArtManagementSubTab('artGallery');
+                          } else if (notification.type === 'art-order') {
+                            setActiveTab('artManagement');
+                            setArtManagementSubTab('artOrders');
+                          } else if (notification.type === 'artist-request') {
+                            setActiveTab('artManagement');
+                            setArtManagementSubTab('artistRequests');
+                          }
+                          setShowNotifications(false);
+                        }}
+                        className="p-4 hover:bg-coffee-brown/20 cursor-pointer transition-colors group"
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`p-2 rounded-lg ${
+                            notification.type === 'franchise' ? 'bg-green-500/20' :
+                            notification.type === 'art-enquiry' ? 'bg-orange-500/20' :
+                            notification.type === 'art-order' ? 'bg-purple-500/20' :
+                            'bg-blue-500/20'
+                          }`}>
+                            <svg className={`w-4 h-4 ${
+                              notification.type === 'franchise' ? 'text-green-400' :
+                              notification.type === 'art-enquiry' ? 'text-orange-400' :
+                              notification.type === 'art-order' ? 'text-purple-400' :
+                              'text-blue-400'
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {notification.type === 'franchise' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              ) : notification.type === 'art-enquiry' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                              ) : notification.type === 'art-order' ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                              )}
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-coffee-amber group-hover:text-coffee-gold transition-colors">
+                              {notification.title}
+                            </p>
+                            <p className="text-xs text-coffee-light/70 mt-1 line-clamp-2">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-coffee-light/50 mt-2">
+                              {notification.timestamp.toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </>
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 };
