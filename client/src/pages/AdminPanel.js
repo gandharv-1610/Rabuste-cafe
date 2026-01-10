@@ -28,10 +28,33 @@ const AdminPanel = () => {
   const [billingOffers, setBillingOffers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [customerEngagementStats, setCustomerEngagementStats] = useState(null);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [pendingItems, setPendingItems] = useState({
+    pendingOrders: 0,
+    pendingArtOrders: 0,
+    pendingArtistRequests: 0,
+    newEnquiries: 0,
+    newArtEnquiries: 0,
+  });
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [notificationsViewed, setNotificationsViewed] = useState(false);
 
   useEffect(() => {
-    fetchStats();
+    const loadData = async () => {
+      await fetchStats();
+      await fetchDashboardData();
+      await fetchNotifications();
+    };
+    loadData();
     if (activeTab === 'coffee') fetchCoffees();
+    
+    // Poll for new notifications every 30 seconds
+    const interval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
+    
+    return () => clearInterval(interval);
     if (activeTab === 'artManagement') {
       if (artManagementSubTab === 'artGallery') {
         fetchArts();
@@ -55,12 +78,142 @@ const AdminPanel = () => {
     if (activeTab === 'customerEngagement') fetchCustomerEngagementStats();
   }, [activeTab, artManagementSubTab]);
 
+  // Update pending items when stats change
+  useEffect(() => {
+    if (stats) {
+      setPendingItems(prev => ({
+        ...prev,
+        newEnquiries: stats.newEnquiries || 0,
+        newArtEnquiries: stats.newArtEnquiries || 0,
+      }));
+    }
+  }, [stats]);
+
+  // Fetch notifications
+  const fetchNotifications = async () => {
+    try {
+      const [franchiseRes, artEnquiriesRes, artOrdersRes, artistRequestsRes] = await Promise.all([
+        api.get('/franchise/enquiries').catch(() => ({ data: [] })),
+        api.get('/admin/art-enquiries').catch(() => ({ data: [] })),
+        api.get('/art-orders').catch(() => ({ data: [] })),
+        api.get('/artist-requests').catch(() => ({ data: [] })),
+      ]);
+
+      const franchiseEnquiries = (franchiseRes.data || []).filter(e => e.status === 'New').map(e => ({
+        id: `franchise-${e._id}`,
+        type: 'franchise',
+        title: 'New Franchise Enquiry',
+        message: `${e.name} submitted a franchise enquiry`,
+        timestamp: new Date(e.createdAt),
+        data: e,
+      }));
+
+      const artEnquiries = (artEnquiriesRes.data || []).filter(e => e.status === 'New').map(e => ({
+        id: `art-enquiry-${e._id}`,
+        type: 'art-enquiry',
+        title: 'New Art Enquiry',
+        message: `${e.name || 'Someone'} enquired about an art piece`,
+        timestamp: new Date(e.createdAt),
+        data: e,
+      }));
+
+      const newArtOrders = (artOrdersRes.data || []).filter(o => o.orderStatus === 'pending').map(o => ({
+        id: `art-order-${o._id}`,
+        type: 'art-order',
+        title: 'New Art Order',
+        message: `New order received for artwork`,
+        timestamp: new Date(o.createdAt),
+        data: o,
+      }));
+
+      const artistRequests = (artistRequestsRes.data || []).filter(r => r.status === 'pending').map(r => ({
+        id: `artist-request-${r._id}`,
+        type: 'artist-request',
+        title: 'New Artist Request',
+        message: `${r.name || 'An artist'} wants to partner with us`,
+        timestamp: new Date(r.createdAt),
+        data: r,
+      }));
+
+      const allNotifications = [...franchiseEnquiries, ...artEnquiries, ...newArtOrders, ...artistRequests]
+        .sort((a, b) => b.timestamp - a.timestamp);
+
+      setNotifications(allNotifications);
+      
+      // Check if there are unread notifications
+      if (allNotifications.length > 0 && !notificationsViewed) {
+        setNotificationsViewed(false);
+      }
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  };
+
+  // Mark notifications as viewed
+  const handleViewNotifications = () => {
+    setShowNotifications(true);
+    setNotificationsViewed(true);
+  };
+
+  // Clear all notifications
+  const handleClearAllNotifications = () => {
+    setNotifications([]);
+    setNotificationsViewed(true);
+    toast.success('All notifications cleared');
+  };
+
   const fetchStats = async () => {
     try {
       const response = await api.get('/admin/stats');
       setStats(response.data);
     } catch (error) {
       console.error('Error fetching stats:', error);
+    }
+  };
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch recent orders and pending items
+      const [ordersRes, artOrdersRes, artistRequestsRes] = await Promise.all([
+        api.get('/orders', { params: { status: 'Pending', limit: 5 } }).catch(() => ({ data: [] })),
+        api.get('/art-orders', { params: { status: 'pending' } }).catch(() => ({ data: [] })),
+        api.get('/artist-requests', { params: { status: 'pending' } }).catch(() => ({ data: [] })),
+      ]);
+
+      // Count pending items
+      const pendingOrders = ordersRes.data.filter(o => ['Pending', 'Preparing'].includes(o.status)).length || 0;
+      const pendingArtOrders = artOrdersRes.data.filter(o => o.orderStatus === 'pending').length || 0;
+      const pendingArtistRequests = artistRequestsRes.data.filter(r => r.status === 'pending').length || 0;
+
+      // Fetch stats if not available
+      let newEnquiries = 0;
+      let newArtEnquiries = 0;
+      if (!stats) {
+        try {
+          const statsRes = await api.get('/admin/stats');
+          newEnquiries = statsRes.data.newEnquiries || 0;
+          newArtEnquiries = statsRes.data.newArtEnquiries || 0;
+        } catch (err) {
+          console.error('Error fetching stats for pending items:', err);
+        }
+      } else {
+        newEnquiries = stats.newEnquiries || 0;
+        newArtEnquiries = stats.newArtEnquiries || 0;
+      }
+
+      setPendingItems({
+        pendingOrders,
+        pendingArtOrders,
+        pendingArtistRequests,
+        newEnquiries,
+        newArtEnquiries,
+      });
+
+      // Set recent orders (latest 5)
+      const allOrdersRes = await api.get('/orders', { params: { limit: 5 } }).catch(() => ({ data: [] }));
+      setRecentOrders(allOrdersRes.data.slice(0, 5) || []);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
     }
   };
 
@@ -205,17 +358,17 @@ const AdminPanel = () => {
   });
 
   const tabs = [
-    { id: 'dashboard', label: 'Dashboard' },
-    { id: 'orders', label: 'Orders' },
-    { id: 'counter', label: 'Counter Order' },
-    { id: 'analytics', label: 'Analytics' },
-    { id: 'coffee', label: 'Coffee Menu' },
-    { id: 'artManagement', label: 'Art Management', hasDropdown: true },
-    { id: 'workshops', label: 'Workshops' },
-    { id: 'franchise', label: 'Franchise Enquiries' },
-    { id: 'billing', label: 'Billing' },
-    { id: 'customerEngagement', label: 'Customer Engagement' },
-    { id: 'siteMedia', label: 'Site Media' },
+    { id: 'dashboard', label: 'Dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
+    { id: 'orders', label: 'Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01' },
+    { id: 'counter', label: 'Counter Order', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+    { id: 'analytics', label: 'Analytics', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
+    { id: 'coffee', label: 'Coffee Menu', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9' },
+    { id: 'artManagement', label: 'Art Management', hasDropdown: true, icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+    { id: 'workshops', label: 'Workshops', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
+    { id: 'franchise', label: 'Franchise Enquiries', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' },
+    { id: 'billing', label: 'Billing', icon: 'M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'customerEngagement', label: 'Customer Engagement', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+    { id: 'siteMedia', label: 'Site Media', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
   ];
 
   const handleSoundToggle = () => {
@@ -235,197 +388,506 @@ const AdminPanel = () => {
       if (showArtDropdown && !event.target.closest('.art-management-dropdown')) {
         setShowArtDropdown(false);
       }
+      if (showNotifications && !event.target.closest('.notifications-container')) {
+        setShowNotifications(false);
+      }
     };
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [showArtDropdown]);
+  }, [showArtDropdown, showNotifications]);
 
   return (
-    <div className="pt-20 min-h-screen bg-coffee-darker">
+    <div className="pt-20 min-h-screen bg-gradient-to-br from-coffee-darker via-coffee-brown/10 to-coffee-darker">
       <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
-          <h1 className="text-4xl font-display font-bold text-coffee-amber">Admin Panel</h1>
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setActiveTab('settings')}
-              className="p-2 rounded-lg text-coffee-amber hover:bg-coffee-brown/40 transition-colors"
-              title="Settings"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
-            </button>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="rounded-lg border border-red-500/60 px-4 py-2 text-sm font-semibold uppercase tracking-wide text-red-300 hover:bg-red-500/20 transition-colors"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-
-        {/* Tabs */}
-        <div className="flex flex-wrap gap-2 mb-8 border-b border-coffee-brown relative">
-          {tabs.map((tab) => (
-            <div key={tab.id} className="relative art-management-dropdown">
-              <button
-                onClick={() => {
-                  if (tab.hasDropdown) {
-                    setShowArtDropdown(!showArtDropdown);
-                    if (activeTab !== 'artManagement') {
-                      setActiveTab('artManagement');
-                    }
-                  } else {
-                    setActiveTab(tab.id);
-                    setShowArtDropdown(false);
-                  }
-                }}
-                className={`px-6 py-3 font-semibold transition-colors flex items-center gap-2 ${
-                  activeTab === tab.id
-                    ? 'text-coffee-amber border-b-2 border-coffee-amber'
-                    : 'text-coffee-light hover:text-coffee-amber'
-                }`}
-              >
-                {tab.label}
-                {tab.hasDropdown && (
-                  <svg 
-                    className={`w-4 h-4 transition-transform ${showArtDropdown ? 'rotate-180' : ''}`}
-                    fill="none" 
-                    stroke="currentColor" 
-                    viewBox="0 0 24 24"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                )}
-              </button>
-              {tab.hasDropdown && showArtDropdown && (
-                <div className="absolute top-full left-0 mt-1 bg-coffee-darker border border-coffee-brown rounded-lg shadow-lg z-50 min-w-[200px]">
-                  <button
-                    onClick={() => {
-                      setArtManagementSubTab('artGallery');
-                      setShowArtDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
-                      artManagementSubTab === 'artGallery'
-                        ? 'text-coffee-amber bg-coffee-brown/20'
-                        : 'text-coffee-light'
-                    }`}
-                  >
-                    Art Gallery
-                  </button>
-                  <button
-                    onClick={() => {
-                      setArtManagementSubTab('artOrders');
-                      setShowArtDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
-                      artManagementSubTab === 'artOrders'
-                        ? 'text-coffee-amber bg-coffee-brown/20'
-                        : 'text-coffee-light'
-                    }`}
-                  >
-                    Art Orders
-                  </button>
-                  <button
-                    onClick={() => {
-                      setArtManagementSubTab('artistRequests');
-                      setShowArtDropdown(false);
-                    }}
-                    className={`w-full text-left px-4 py-2 hover:bg-coffee-brown/40 transition-colors ${
-                      artManagementSubTab === 'artistRequests'
-                        ? 'text-coffee-amber bg-coffee-brown/20'
-                        : 'text-coffee-light'
-                    }`}
-                  >
-                    Artist Requests
-                  </button>
-                </div>
-              )}
+        {/* Enhanced Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8"
+        >
+          <div className="relative bg-gradient-to-r from-coffee-brown/30 via-coffee-amber/10 to-coffee-brown/30 rounded-2xl p-6 md:p-8 border border-coffee-amber/20 shadow-xl backdrop-blur-sm overflow-hidden">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute inset-0" style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+              }}></div>
             </div>
-          ))}
-        </div>
+            
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-gradient-to-br from-coffee-amber/20 to-coffee-gold/20 rounded-xl border border-coffee-amber/30">
+                  <svg className="w-8 h-8 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <div>
+                  <h1 className="text-3xl md:text-4xl font-display font-bold bg-gradient-to-r from-coffee-amber to-coffee-gold bg-clip-text text-transparent">
+                    Admin Panel
+                  </h1>
+                  <p className="text-sm text-coffee-light/70 mt-1">Manage your coffee business</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                {/* Notifications Bell */}
+                <div className="relative notifications-container">
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    type="button"
+                    onClick={handleViewNotifications}
+                    className="relative p-3 rounded-xl bg-coffee-brown/30 hover:bg-coffee-brown/50 text-coffee-amber border border-coffee-amber/30 hover:border-coffee-amber/50 transition-all duration-300 group"
+                    title="Notifications"
+                    animate={notifications.length > 0 && !notificationsViewed ? {
+                      rotate: [0, -10, 10, -10, 10, 0],
+                      transition: {
+                        duration: 0.5,
+                        repeat: Infinity,
+                        repeatDelay: 3,
+                      }
+                    } : { rotate: 0 }}
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    {notifications.length > 0 && !notificationsViewed && (
+                      <motion.span
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full border-2 border-coffee-darker flex items-center justify-center"
+                      >
+                        <span className="w-2 h-2 bg-white rounded-full"></span>
+                      </motion.span>
+                    )}
+                  </motion.button>
+
+                  {/* Notifications Dropdown */}
+                  {showNotifications && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                        className="absolute right-0 mt-2 w-80 md:w-96 bg-coffee-darker border-2 border-coffee-amber/30 rounded-xl shadow-2xl z-50 max-h-[500px] overflow-hidden backdrop-blur-sm"
+                      >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-coffee-brown/40 bg-gradient-to-r from-coffee-brown/20 to-coffee-darker/50">
+                          <h3 className="text-lg font-bold text-coffee-amber">Notifications</h3>
+                          {notifications.length > 0 && (
+                            <motion.button
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              onClick={handleClearAllNotifications}
+                              className="text-xs text-coffee-light/70 hover:text-coffee-amber transition-colors px-2 py-1 rounded hover:bg-coffee-brown/20"
+                            >
+                              Clear All
+                            </motion.button>
+                          )}
+                        </div>
+
+                        {/* Notifications List */}
+                        <div className="overflow-y-auto max-h-[400px]">
+                          {notifications.length === 0 ? (
+                            <div className="p-8 text-center">
+                              <svg className="w-12 h-12 mx-auto text-coffee-light/30 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                              </svg>
+                              <p className="text-coffee-light/60 text-sm">No new notifications</p>
+                            </div>
+                          ) : (
+                            <div className="divide-y divide-coffee-brown/20">
+                              {notifications.map((notification) => (
+                                <motion.div
+                                  key={notification.id}
+                                  initial={{ opacity: 0, x: -20 }}
+                                  animate={{ opacity: 1, x: 0 }}
+                                  onClick={() => {
+                                    // Navigate to relevant section based on notification type
+                                    if (notification.type === 'franchise') {
+                                      setActiveTab('franchise');
+                                    } else if (notification.type === 'art-enquiry') {
+                                      setActiveTab('artManagement');
+                                      setArtManagementSubTab('artGallery');
+                                    } else if (notification.type === 'art-order') {
+                                      setActiveTab('artManagement');
+                                      setArtManagementSubTab('artOrders');
+                                    } else if (notification.type === 'artist-request') {
+                                      setActiveTab('artManagement');
+                                      setArtManagementSubTab('artistRequests');
+                                    }
+                                    setShowNotifications(false);
+                                  }}
+                                  className="p-4 hover:bg-coffee-brown/20 cursor-pointer transition-colors group"
+                                >
+                                  <div className="flex items-start gap-3">
+                                    <div className={`p-2 rounded-lg ${
+                                      notification.type === 'franchise' ? 'bg-green-500/20' :
+                                      notification.type === 'art-enquiry' ? 'bg-orange-500/20' :
+                                      notification.type === 'art-order' ? 'bg-purple-500/20' :
+                                      'bg-blue-500/20'
+                                    }`}>
+                                      <svg className={`w-4 h-4 ${
+                                        notification.type === 'franchise' ? 'text-green-400' :
+                                        notification.type === 'art-enquiry' ? 'text-orange-400' :
+                                        notification.type === 'art-order' ? 'text-purple-400' :
+                                        'text-blue-400'
+                                      }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        {notification.type === 'franchise' ? (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        ) : notification.type === 'art-enquiry' ? (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        ) : notification.type === 'art-order' ? (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                                        ) : (
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                                        )}
+                                      </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-sm font-semibold text-coffee-amber group-hover:text-coffee-gold transition-colors">
+                                        {notification.title}
+                                      </p>
+                                      <p className="text-xs text-coffee-light/70 mt-1 line-clamp-2">
+                                        {notification.message}
+                                      </p>
+                                      <p className="text-xs text-coffee-light/50 mt-2">
+                                        {notification.timestamp.toLocaleString()}
+                                      </p>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </motion.div>
+                  )}
+                </div>
+
+                {/* Settings Button */}
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={() => setActiveTab('settings')}
+                  className="relative p-3 rounded-xl bg-coffee-brown/30 hover:bg-coffee-brown/50 text-coffee-amber border border-coffee-amber/30 hover:border-coffee-amber/50 transition-all duration-300 group"
+                  title="Settings"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="absolute -top-1 -right-1 w-3 h-3 bg-coffee-amber rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></span>
+                </motion.button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  type="button"
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-red-500/20 to-red-600/20 border border-red-500/40 px-5 py-2.5 text-sm font-semibold text-red-300 hover:from-red-500/30 hover:to-red-600/30 hover:border-red-500/60 transition-all duration-300 shadow-lg shadow-red-500/10"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                  </svg>
+                  Logout
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Enhanced Tabs */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, delay: 0.1 }}
+          className="mb-8"
+        >
+          <div className="bg-coffee-brown/10 backdrop-blur-sm rounded-xl p-2 border border-coffee-brown/30 shadow-lg">
+            <div className="flex flex-wrap gap-2 relative">
+              {tabs.map((tab) => (
+                <div key={tab.id} className="relative art-management-dropdown">
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      if (tab.hasDropdown) {
+                        setShowArtDropdown(!showArtDropdown);
+                        if (activeTab !== 'artManagement') {
+                          setActiveTab('artManagement');
+                        }
+                      } else {
+                        setActiveTab(tab.id);
+                        setShowArtDropdown(false);
+                      }
+                    }}
+                    className={`relative px-5 py-3 font-semibold transition-all duration-300 flex items-center gap-2 rounded-lg ${
+                      activeTab === tab.id
+                        ? 'text-coffee-darker bg-gradient-to-r from-coffee-amber to-coffee-gold shadow-lg shadow-coffee-amber/30'
+                        : 'text-coffee-light hover:text-coffee-amber hover:bg-coffee-brown/20'
+                    }`}
+                  >
+                    {tab.icon && (
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={tab.icon} />
+                      </svg>
+                    )}
+                    <span className="hidden sm:inline">{tab.label}</span>
+                    <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
+                    {tab.hasDropdown && (
+                      <svg 
+                        className={`w-4 h-4 transition-transform duration-300 ${showArtDropdown ? 'rotate-180' : ''}`}
+                        fill="none" 
+                        stroke="currentColor" 
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    )}
+                    {activeTab === tab.id && (
+                      <motion.div
+                        layoutId="activeTab"
+                        className="absolute inset-0 bg-gradient-to-r from-coffee-amber to-coffee-gold rounded-lg -z-10"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                  </motion.button>
+                  {tab.hasDropdown && showArtDropdown && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      className="absolute top-full left-0 mt-2 bg-coffee-darker border-2 border-coffee-amber/30 rounded-xl shadow-2xl z-50 min-w-[220px] overflow-hidden backdrop-blur-sm"
+                    >
+                      <div className="p-1">
+                        {[
+                          { id: 'artGallery', label: 'Art Gallery', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z' },
+                          { id: 'artOrders', label: 'Art Orders', icon: 'M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4' },
+                          { id: 'artistRequests', label: 'Artist Requests', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
+                        ].map((subTab) => (
+                          <motion.button
+                            key={subTab.id}
+                            whileHover={{ x: 4 }}
+                            onClick={() => {
+                              setArtManagementSubTab(subTab.id);
+                              setShowArtDropdown(false);
+                            }}
+                            className={`w-full text-left px-4 py-3 rounded-lg transition-all duration-300 flex items-center gap-3 ${
+                              artManagementSubTab === subTab.id
+                                ? 'text-coffee-amber bg-coffee-amber/20 border-l-4 border-coffee-amber'
+                                : 'text-coffee-light hover:text-coffee-amber hover:bg-coffee-brown/20'
+                            }`}
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={subTab.icon} />
+                            </svg>
+                            {subTab.label}
+                          </motion.button>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </motion.div>
 
         {/* Dashboard Tab */}
         {activeTab === 'dashboard' && (
-          <>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="space-y-8"
+          >
             {stats ? (
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                <div className="bg-coffee-brown/20 rounded-lg p-6">
-                  <h3 className="text-coffee-light text-sm mb-2">Coffee Items</h3>
-                  <p className="text-3xl font-bold text-coffee-amber">{stats.coffee}</p>
+              <>
+                {/* First Row - 4 Cards */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {[
+                    { key: 'coffee', label: 'Coffee Items', icon: 'M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9', value: stats.coffee, color: 'from-coffee-amber to-coffee-gold', action: () => setActiveTab('coffee') },
+                    { key: 'art', label: 'Art Pieces', icon: 'M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z', value: stats.art, color: 'from-purple-500 to-pink-500', action: () => { setActiveTab('artManagement'); setArtManagementSubTab('artGallery'); } },
+                    { key: 'workshops', label: 'Workshops', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253', value: stats.workshops, color: 'from-blue-500 to-cyan-500', action: () => setActiveTab('workshops') },
+                    { key: 'franchiseEnquiries', label: 'Franchise Enquiries', icon: 'M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', value: stats.franchiseEnquiries, badge: stats.newEnquiries, color: 'from-green-500 to-emerald-500', action: () => setActiveTab('franchise') },
+                  ].map((stat, index) => (
+                    <motion.button
+                      key={stat.key}
+                      onClick={stat.action}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                      whileHover={{ scale: 1.05, y: -5 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="relative group text-left"
+                    >
+                      <div className="relative bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-darker/50 rounded-2xl p-6 border border-coffee-amber/20 shadow-lg hover:shadow-xl hover:border-coffee-amber/40 transition-all duration-300 overflow-hidden backdrop-blur-sm w-full">
+                        {/* Gradient overlay */}
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`}></div>
+                        
+                        {/* Icon */}
+                        <div className="relative mb-4">
+                          <div className={`p-3 bg-gradient-to-br ${stat.color} rounded-xl w-fit shadow-lg`}>
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
+                            </svg>
+                          </div>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="relative">
+                          <h3 className="text-coffee-light/80 text-sm mb-2 font-medium">{stat.label}</h3>
+                          <p className="text-3xl font-bold bg-gradient-to-r from-coffee-amber to-coffee-gold bg-clip-text text-transparent">
+                            {stat.value}
+                          </p>
+                          {stat.badge > 0 && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 rounded-full text-xs font-semibold text-green-300"
+                            >
+                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                              {stat.badge} new
+                            </motion.span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
-                <div className="bg-coffee-brown/20 rounded-lg p-6">
-                  <h3 className="text-coffee-light text-sm mb-2">Art Pieces</h3>
-                  <p className="text-3xl font-bold text-coffee-amber">{stats.art}</p>
+
+                {/* Second Row - 3 Cards */}
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {[
+                    { key: 'artEnquiries', label: 'Art Enquiries', icon: 'M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z', value: stats.artEnquiries || 0, badge: stats.newArtEnquiries, color: 'from-orange-500 to-red-500', action: () => { setActiveTab('artManagement'); setArtManagementSubTab('artGallery'); } },
+                    { key: 'activeWorkshops', label: 'Active Workshops', icon: 'M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z', value: stats.activeWorkshops || 0, color: 'from-green-500 to-emerald-500', action: () => setActiveTab('workshops') },
+                    { key: 'registrations', label: 'Total Registrations', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z', value: stats.registrations || 0, color: 'from-blue-500 to-cyan-500', action: () => setActiveTab('workshops') },
+                  ].map((stat, index) => (
+                    <motion.button
+                      key={stat.key}
+                      onClick={stat.action}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.4 + index * 0.1 }}
+                      whileHover={{ scale: 1.05, y: -5 }}
+                      whileTap={{ scale: 0.98 }}
+                      className="relative group text-left"
+                    >
+                      <div className="relative bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-darker/50 rounded-2xl p-6 border border-coffee-amber/20 shadow-lg hover:shadow-xl hover:border-coffee-amber/40 transition-all duration-300 overflow-hidden backdrop-blur-sm w-full">
+                        {/* Gradient overlay */}
+                        <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${stat.color} opacity-10 rounded-full blur-2xl group-hover:opacity-20 transition-opacity`}></div>
+                        
+                        {/* Icon */}
+                        <div className="relative mb-4">
+                          <div className={`p-3 bg-gradient-to-br ${stat.color} rounded-xl w-fit shadow-lg`}>
+                            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={stat.icon} />
+                            </svg>
+                          </div>
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="relative">
+                          <h3 className="text-coffee-light/80 text-sm mb-2 font-medium">{stat.label}</h3>
+                          <p className="text-3xl font-bold bg-gradient-to-r from-coffee-amber to-coffee-gold bg-clip-text text-transparent">
+                            {stat.value}
+                          </p>
+                          {stat.badge > 0 && (
+                            <motion.span
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="inline-flex items-center gap-1 mt-2 px-2.5 py-1 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/40 rounded-full text-xs font-semibold text-green-300"
+                            >
+                              <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
+                              {stat.badge} new
+                            </motion.span>
+                          )}
+                        </div>
+                      </div>
+                    </motion.button>
+                  ))}
                 </div>
-                <div className="bg-coffee-brown/20 rounded-lg p-6">
-                  <h3 className="text-coffee-light text-sm mb-2">Workshops</h3>
-                  <p className="text-3xl font-bold text-coffee-amber">{stats.workshops}</p>
-                </div>
-                <div className="bg-coffee-brown/20 rounded-lg p-6">
-                  <h3 className="text-coffee-light text-sm mb-2">Franchise Enquiries</h3>
-                  <p className="text-3xl font-bold text-coffee-amber">{stats.franchiseEnquiries}</p>
-                  {stats.newEnquiries > 0 && (
-                    <p className="text-sm text-coffee-amber mt-2">{stats.newEnquiries} new</p>
-                  )}
-                </div>
-                <div className="bg-coffee-brown/20 rounded-lg p-6">
-                  <h3 className="text-coffee-light text-sm mb-2">Art Enquiries</h3>
-                  <p className="text-3xl font-bold text-coffee-amber">{stats.artEnquiries || 0}</p>
-                  {stats.newArtEnquiries > 0 && (
-                    <p className="text-sm text-coffee-amber mt-2">{stats.newArtEnquiries} new</p>
-                  )}
-                </div>
-              </div>
+              </>
             ) : (
               <div className="text-center py-12">
                 <CoffeeLoader size="lg" />
               </div>
             )}
-          </>
+          </motion.div>
         )}
 
         {/* Orders Management */}
         {activeTab === 'orders' && (
-          <OrdersManagement
-            soundEnabled={soundEnabled}
-            onSoundToggle={handleSoundToggle}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <OrdersManagement
+              soundEnabled={soundEnabled}
+              onSoundToggle={handleSoundToggle}
+            />
+          </motion.div>
         )}
 
         {/* Counter Order */}
         {activeTab === 'counter' && (
-          <div className="text-center py-8">
-            <button
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+            className="text-center py-8"
+          >
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               onClick={() => navigate('/counter')}
-              className="px-6 py-3 bg-coffee-amber text-coffee-darker rounded-lg font-bold hover:bg-coffee-gold text-lg"
+              className="px-8 py-4 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-xl font-bold hover:shadow-lg hover:shadow-coffee-amber/30 text-lg transition-all duration-300"
             >
               Open Counter Order Page
-            </button>
-          </div>
+            </motion.button>
+          </motion.div>
         )}
 
         {/* Order Analytics */}
         {activeTab === 'analytics' && (
-          <OrderAnalytics />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <OrderAnalytics />
+          </motion.div>
         )}
 
         {/* Coffee Management */}
         {activeTab === 'coffee' && (
-          <CoffeeManagement
-            coffees={coffees}
-            loading={loading}
-            onRefresh={fetchCoffees}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CoffeeManagement
+              coffees={coffees}
+              loading={loading}
+              onRefresh={fetchCoffees}
+            />
+          </motion.div>
         )}
 
         {/* Art Management */}
-        {/* Art Management */}
         {activeTab === 'artManagement' && (
-          <>
+          <motion.div
+            key={artManagementSubTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
             {artManagementSubTab === 'artGallery' && (
               <ArtManagement
                 arts={arts}
@@ -449,60 +911,104 @@ const AdminPanel = () => {
                 onRefresh={fetchArtistRequests}
               />
             )}
-          </>
+          </motion.div>
         )}
 
         {/* Workshops Management */}
         {activeTab === 'workshops' && (
-          <WorkshopsManagement
-            workshops={workshops}
-            registrations={registrations}
-            loading={loading}
-            onRefresh={fetchWorkshops}
-            onRefreshRegistrations={fetchRegistrations}
-            setRegistrations={setRegistrations}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <WorkshopsManagement
+              workshops={workshops}
+              registrations={registrations}
+              loading={loading}
+              onRefresh={fetchWorkshops}
+              onRefreshRegistrations={fetchRegistrations}
+              setRegistrations={setRegistrations}
+            />
+          </motion.div>
         )}
 
         {/* Franchise Enquiries */}
         {activeTab === 'franchise' && (
-          <FranchiseEnquiries
-            enquiries={enquiries}
-            loading={loading}
-            onRefresh={fetchEnquiries}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <FranchiseEnquiries
+              enquiries={enquiries}
+              loading={loading}
+              onRefresh={fetchEnquiries}
+            />
+          </motion.div>
         )}
 
         {/* Customer Engagement */}
         {activeTab === 'customerEngagement' && (
-          <CustomerEngagement
-            stats={customerEngagementStats}
-            onRefresh={fetchCustomerEngagementStats}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <CustomerEngagement
+              stats={customerEngagementStats}
+              onRefresh={fetchCustomerEngagementStats}
+            />
+          </motion.div>
         )}
 
         {/* Site Media Management */}
         {activeTab === 'siteMedia' && (
-          <SiteMediaManagement
-            media={siteMedia}
-            loading={loading}
-            onRefresh={fetchSiteMedia}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <SiteMediaManagement
+              media={siteMedia}
+              loading={loading}
+              onRefresh={fetchSiteMedia}
+            />
+          </motion.div>
         )}
 
         {/* Billing Tab */}
         {activeTab === 'billing' && (
-          <BillingManagement
-            billingSettings={billingSettings}
-            billingOffers={billingOffers}
-            loading={loading}
-            onRefreshSettings={fetchBillingSettings}
-            onRefreshOffers={fetchBillingOffers}
-          />
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <BillingManagement
+              billingSettings={billingSettings}
+              billingOffers={billingOffers}
+              loading={loading}
+              onRefreshSettings={fetchBillingSettings}
+              onRefreshOffers={fetchBillingOffers}
+            />
+          </motion.div>
         )}
 
         {/* Settings Tab */}
-        {activeTab === 'settings' && <Settings />}
+        {activeTab === 'settings' && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
+          >
+            <Settings />
+          </motion.div>
+        )}
       </div>
     </div>
   );
