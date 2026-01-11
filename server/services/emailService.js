@@ -1,23 +1,62 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// const transporter = nodemailer.createTransport({
-//   service: process.env.EMAIL_SERVICE || 'gmail',
-//   auth: {
-//     user: process.env.EMAIL_USER,
-//     pass: process.env.EMAIL_PASS
-//   }
-// });
-const transporter = nodemailer.createTransport({
-  service: "gmail",                 // force gmail
-  secure: true,                    // use secure connection
-  auth: {
-    user: process.env.EMAIL_USER,  // your gmail
-    pass: process.env.EMAIL_PASS   // GMAIL APP PASSWORD
-  },
-  tls: {
-    rejectUnauthorized: false
+// Initialize Resend client with API key
+if (!process.env.RESEND_API_KEY) {
+  console.error('⚠️ WARNING: RESEND_API_KEY environment variable is not set. Email sending will fail.');
+}
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+// Get the from email address (should be a verified domain/email in Resend)
+// Format: "Name <email@domain.com>" or just "email@domain.com"
+const getFromEmail = () => {
+  const email = process.env.RESEND_FROM_EMAIL || process.env.EMAIL_USER;
+  if (!email) {
+    console.error('⚠️ ERROR: RESEND_FROM_EMAIL or EMAIL_USER environment variable must be set');
+    return null;
   }
-});
+  // If email doesn't already include a name, add "Rabuste Coffee"
+  if (!email.includes('<')) {
+    return `Rabuste Coffee <${email}>`;
+  }
+  return email;
+};
+
+// Helper function to send email with Resend
+const sendEmailWithResend = async (to, subject, html, logContext = 'Email') => {
+  try {
+    const fromEmail = getFromEmail();
+    if (!fromEmail) {
+      console.error(`❌ ${logContext}: Cannot send email - FROM_EMAIL is not configured`);
+      return false;
+    }
+
+    if (!process.env.RESEND_API_KEY) {
+      console.error(`❌ ${logContext}: RESEND_API_KEY is not set`);
+      return false;
+    }
+
+    const { data, error } = await resend.emails.send({
+      from: fromEmail,
+      to: to,
+      subject,
+      html
+    });
+    
+    if (error) {
+      console.error(`❌ ${logContext} error:`, JSON.stringify(error, null, 2));
+      return false;
+    }
+    
+    console.log(`✅ ${logContext} sent successfully to:`, to);
+    return true;
+  } catch (error) {
+    console.error(`❌ ${logContext} exception:`, error.message);
+    if (error.stack) {
+      console.error('Stack trace:', error.stack);
+    }
+    return false;
+  }
+};
 
 
 // Generate 6-digit OTP
@@ -69,18 +108,7 @@ const sendOTPEmail = async (email, otp, type) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: email,
-      subject,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Email sending error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(email, subject, html, 'OTP Email');
 };
 
 // Send Workshop Confirmation Email
@@ -207,18 +235,12 @@ const sendWorkshopConfirmationEmail = async (registration, workshop, calendarUrl
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: registration.email,
-      subject: `Workshop ${subjectSuffix}: ${workshop.title}`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Confirmation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    registration.email,
+    `Workshop ${subjectSuffix}: ${workshop.title}`,
+    html,
+    'Workshop Confirmation Email'
+  );
 };
 
 // Send Franchise Enquiry Confirmation
@@ -251,18 +273,12 @@ const sendFranchiseConfirmationEmail = async (enquiry) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: enquiry.email,
-      subject: 'Franchise Enquiry Received - Rabuste Coffee',
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Franchise confirmation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    enquiry.email,
+    'Franchise Enquiry Received - Rabuste Coffee',
+    html,
+    'Franchise Confirmation Email'
+  );
 };
 
 // Send Art Enquiry Confirmation
@@ -303,18 +319,12 @@ const sendArtEnquiryConfirmationEmail = async (enquiry, art) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: enquiry.email,
-      subject: 'Art Enquiry Received - Rabuste Coffee',
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Art enquiry confirmation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    enquiry.email,
+    'Art Enquiry Received - Rabuste Coffee',
+    html,
+    'Art Enquiry Confirmation Email'
+  );
 };
 
 // ============================================
@@ -390,18 +400,12 @@ const sendCoffeeAnnouncementEmail = async (customer, coffee) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: customer.email,
-      subject: `New Coffee Alert: ${coffee.name} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Coffee announcement email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    customer.email,
+    `New Coffee Alert: ${coffee.name} - Rabuste Coffee`,
+    html,
+    'Coffee Announcement Email'
+  );
 };
 
 /**
@@ -495,18 +499,12 @@ const sendOfferAnnouncementEmail = async (customer, offer) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: customer.email,
-      subject: `Special Offer: ${offer.title} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Offer announcement email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    customer.email,
+    `Special Offer: ${offer.title} - Rabuste Coffee`,
+    html,
+    'Offer Announcement Email'
+  );
 };
 
 /**
@@ -588,18 +586,12 @@ const sendWorkshopAnnouncementEmail = async (customer, workshop) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: customer.email,
-      subject: `New Workshop: ${workshop.title} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Workshop announcement email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    customer.email,
+    `New Workshop: ${workshop.title} - Rabuste Coffee`,
+    html,
+    'Workshop Announcement Email'
+  );
 };
 
 /**
@@ -700,18 +692,12 @@ const sendPreOrderAcceptanceEmail = async (order) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: order.customerEmail,
-      subject: `Pre-Order Accepted: Order #${order.orderNumber} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Pre-order acceptance email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    order.customerEmail,
+    `Pre-Order Accepted: Order #${order.orderNumber} - Rabuste Coffee`,
+    html,
+    'Pre-Order Acceptance Email'
+  );
 };
 
 // Send Pre-Order Cancellation Email
@@ -767,18 +753,12 @@ const sendPreOrderCancellationEmail = async (order) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: order.customerEmail,
-      subject: `Pre-Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Pre-order cancellation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    order.customerEmail,
+    `Pre-Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
+    html,
+    'Pre-Order Cancellation Email'
+  );
 };
 
 // Send Art Order Confirmation Email (after payment)
@@ -843,18 +823,12 @@ const sendArtOrderConfirmationEmail = async (order, artwork) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: order.email,
-      subject: `Order Received: ${artwork.title} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Art order confirmation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    order.email,
+    `Order Received: ${artwork.title} - Rabuste Coffee`,
+    html,
+    'Art Order Confirmation Email'
+  );
 };
 
 // Send Art Order Confirmed Email (after admin approval)
@@ -923,18 +897,12 @@ const sendArtOrderConfirmedEmail = async (order, artwork) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: order.email,
-      subject: `Order Confirmed: ${artwork.title} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Art order confirmed email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    order.email,
+    `Order Confirmed: ${artwork.title} - Rabuste Coffee`,
+    html,
+    'Art Order Confirmed Email'
+  );
 };
 
 // Send Art Order Cancelled Email (with refund info)
@@ -978,18 +946,12 @@ const sendArtOrderCancelledEmail = async (order, artwork, reason) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: order.email,
-      subject: `Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Art order cancelled email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    order.email,
+    `Order Cancelled: Order #${order.orderNumber} - Rabuste Coffee`,
+    html,
+    'Art Order Cancelled Email'
+  );
 };
 
 // Send Artist Request Confirmation Email
@@ -1023,18 +985,12 @@ const sendArtistRequestConfirmationEmail = async (request) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: request.email,
-      subject: `Artist Request Received: ${request.artworkTitle} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Artist request confirmation email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    request.email,
+    `Artist Request Received: ${request.artworkTitle} - Rabuste Coffee`,
+    html,
+    'Artist Request Confirmation Email'
+  );
 };
 
 // Send Artist Approval Email
@@ -1096,18 +1052,12 @@ const sendArtistApprovalEmail = async (request, artwork) => {
     </div>
   `;
 
-  try {
-    await transporter.sendMail({
-      from: `"Rabuste Coffee" <${process.env.EMAIL_USER}>`,
-      to: request.email,
-      subject: `Artwork Approved: ${artwork.title} - Rabuste Coffee`,
-      html
-    });
-    return true;
-  } catch (error) {
-    console.error('Artist approval email error:', error);
-    return false;
-  }
+  return await sendEmailWithResend(
+    request.email,
+    `Artwork Approved: ${artwork.title} - Rabuste Coffee`,
+    html,
+    'Artist Approval Email'
+  );
 };
 
 module.exports = {
