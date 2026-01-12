@@ -56,5 +56,18 @@ router.put('/enquiries/:id', async (req, res) => {
   }
 });
 
+// Delete franchise enquiry (Admin)
+router.delete('/enquiries/:id', async (req, res) => {
+  try {
+    const enquiry = await FranchiseEnquiry.findByIdAndDelete(req.params.id);
+    if (!enquiry) {
+      return res.status(404).json({ message: 'Enquiry not found' });
+    }
+    res.json({ message: 'Franchise enquiry deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 module.exports = router;
 

@@ -195,17 +195,28 @@ async function getEnhancedAnalytics(startDate, endDate) {
     return acc;
   }, {});
   
-  // Revenue breakdown by order source (Dine-in vs Takeaway)
-  // tableNumber presence indicates dine-in, empty/null = takeaway
+  // Revenue breakdown by order source (QR scan, Counter order, Pre order)
   const revenueBySource = await Order.aggregate([
     { $match: dateFilter },
     {
       $group: {
         _id: {
           $cond: [
-            { $and: [{ $ne: ['$tableNumber', null] }, { $ne: ['$tableNumber', ''] }] },
-            'Dine-in',
-            'Takeaway'
+            { $eq: ['$orderSource', 'QR'] },
+            'QR Scan',
+            {
+              $cond: [
+                { $eq: ['$orderSource', 'Counter'] },
+                'Counter Order',
+                {
+                  $cond: [
+                    { $eq: ['$orderSource', 'PreOrder'] },
+                    'Pre Order',
+                    'Other'
+                  ]
+                }
+              ]
+            }
           ]
         },
         revenue: { $sum: '$total' },
@@ -216,21 +227,43 @@ async function getEnhancedAnalytics(startDate, endDate) {
   ]);
   
   // Revenue breakdown by category
+  // Handles itemId stored as string by matching on string form of _id
   const revenueByCategory = await Order.aggregate([
     { $match: dateFilter },
     { $unwind: '$items' },
     {
       $lookup: {
         from: 'coffees',
-        localField: 'items.itemId',
-        foreignField: '_id',
+        let: { itemIdStr: { $toString: '$items.itemId' } },
+        pipeline: [
+          {
+            $addFields: { idStr: { $toString: '$_id' } }
+          },
+          {
+            $match: {
+              $expr: { $eq: ['$idStr', '$$itemIdStr'] }
+            }
+          },
+          {
+            $project: { category: 1 }
+          }
+        ],
         as: 'itemDetails'
       }
     },
-    { $unwind: '$itemDetails' },
+    {
+      $addFields: {
+        itemCategory: {
+          $ifNull: [
+            { $arrayElemAt: ['$itemDetails.category', 0] },
+            'Unknown'
+          ]
+        }
+      }
+    },
     {
       $group: {
-        _id: '$itemDetails.category',
+        _id: '$itemCategory',
         revenue: { $sum: { $multiply: ['$items.price', '$items.quantity'] } },
         quantity: { $sum: '$items.quantity' }
       }
