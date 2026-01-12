@@ -1256,8 +1256,10 @@ const PreOrder = () => {
       <CustomerLoginModal
         isOpen={showLoginModal}
         onClose={() => {
-          if (isCustomerLoggedIn()) {
-            setShowLoginModal(false);
+          setShowLoginModal(false);
+          // Navigate back to coffee menu page if user closes without logging in
+          if (!isCustomerLoggedIn()) {
+            navigate('/coffee');
           }
         }}
         onSuccess={handleLoginSuccess}
@@ -1538,23 +1540,36 @@ const PreOrder = () => {
                         )}
                       </div>
                       <div>
-                        <input
-                          type="email"
-                          placeholder="Email * (for OTP verification)"
-                          value={customerEmail}
-                          onChange={(e) => {
-                            setCustomerEmail(e.target.value);
-                            setEmailError('');
-                          }}
-                          className={`w-full bg-coffee-brown/40 border ${
-                            emailError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
-                        />
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="Email * (for verification)"
+                            value={customerEmail}
+                            onChange={(e) => {
+                              setCustomerEmail(e.target.value);
+                              setEmailError('');
+                            }}
+                            className={`flex-1 bg-coffee-brown/40 border ${
+                              emailError ? 'border-red-500' : emailVerified ? 'border-green-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                          />
+                          {!emailVerified && customerEmail && (
+                            <button
+                              onClick={sendOTP}
+                              className="px-4 py-2.5 bg-coffee-amber text-coffee-darker rounded-lg text-xs font-semibold hover:bg-coffee-gold whitespace-nowrap"
+                            >
+                              Verify
+                            </button>
+                          )}
+                        </div>
                         {emailError && (
                           <p className="text-red-400 text-xs mt-1">{emailError}</p>
                         )}
                         {emailVerified && (
                           <p className="text-green-400 text-xs mt-1">✓ Email verified</p>
+                        )}
+                        {checkingEmailStatus && (
+                          <p className="text-coffee-light text-xs mt-1">Checking email status...</p>
                         )}
                       </div>
                       <textarea

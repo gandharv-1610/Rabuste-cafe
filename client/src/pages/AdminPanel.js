@@ -99,6 +99,10 @@ const AdminPanel = () => {
   // Fetch notifications
   const fetchNotifications = async () => {
     try {
+      // Fetch cleared notification IDs first
+      const clearedRes = await api.get('/admin/notifications/cleared').catch(() => ({ data: { clearedIds: [] } }));
+      const clearedIds = new Set(clearedRes.data.clearedIds || []);
+
       const [franchiseRes, artEnquiriesRes, artOrdersRes, artistRequestsRes] = await Promise.all([
         api.get('/franchise/enquiries').catch(() => ({ data: [] })),
         api.get('/admin/art-enquiries').catch(() => ({ data: [] })),
@@ -143,6 +147,7 @@ const AdminPanel = () => {
       }));
 
       const allNotifications = [...franchiseEnquiries, ...artEnquiries, ...newArtOrders, ...artistRequests]
+        .filter(notif => !clearedIds.has(notif.id)) // Filter out cleared notifications
         .sort((a, b) => b.timestamp - a.timestamp);
 
       setNotifications(allNotifications);
@@ -184,10 +189,19 @@ const AdminPanel = () => {
   };
 
   // Clear all notifications
-  const handleClearAllNotifications = () => {
-    setNotifications([]);
-    setNotificationsViewed(true);
-    toast.success('All notifications cleared');
+  const handleClearAllNotifications = async () => {
+    try {
+      const notificationIds = notifications.map(n => n.id);
+      if (notificationIds.length > 0) {
+        await api.post('/admin/notifications/clear', { notificationIds });
+      }
+      setNotifications([]);
+      setNotificationsViewed(true);
+      toast.success('All notifications cleared');
+    } catch (error) {
+      console.error('Error clearing notifications:', error);
+      toast.error('Failed to clear notifications');
+    }
   };
 
   const fetchStats = async () => {
@@ -2853,11 +2867,13 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
         {enquiries.map((enquiry) => (
           <div
             key={enquiry._id}
-            className="bg-coffee-brown/20 rounded-lg p-6 cursor-pointer hover:bg-coffee-brown/30"
-            onClick={() => setSelectedEnquiry(enquiry)}
+            className="bg-coffee-brown/20 rounded-lg p-6 hover:bg-coffee-brown/30"
           >
             <div className="flex justify-between items-start">
-              <div>
+              <div 
+                className="flex-1 cursor-pointer"
+                onClick={() => setSelectedEnquiry(enquiry)}
+              >
                 <h3 className="text-xl font-display font-bold text-coffee-amber">{enquiry.name}</h3>
                 <p className="text-coffee-light">{enquiry.email} | {enquiry.phone}</p>
                 <p className="text-coffee-light">Location: {enquiry.location}</p>
@@ -2865,14 +2881,35 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                   Submitted: {new Date(enquiry.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                enquiry.status === 'New' ? 'bg-green-500/20 text-green-400' :
-                enquiry.status === 'Contacted' ? 'bg-blue-500/20 text-blue-400' :
-                enquiry.status === 'Qualified' ? 'bg-coffee-amber/30 text-coffee-amber' :
-                'bg-red-500/20 text-red-400'
-              }`}>
-                {enquiry.status}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                  enquiry.status === 'New' ? 'bg-green-500/20 text-green-400' :
+                  enquiry.status === 'Contacted' ? 'bg-blue-500/20 text-blue-400' :
+                  enquiry.status === 'Qualified' ? 'bg-coffee-amber/30 text-coffee-amber' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {enquiry.status}
+                </span>
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (window.confirm(`Are you sure you want to delete the franchise enquiry from ${enquiry.name}?`)) {
+                      try {
+                        await api.delete(`/franchise/enquiries/${enquiry._id}`);
+                        onRefresh();
+                        toast.success('Franchise enquiry deleted successfully');
+                      } catch (error) {
+                        toast.error('Error deleting franchise enquiry');
+                        console.error(error);
+                      }
+                    }
+                  }}
+                  className="bg-red-500/20 text-red-400 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-red-500/30 transition-colors"
+                  title="Delete Enquiry"
+                >
+                  🗑️
+                </button>
+              </div>
             </div>
           </div>
         ))}
@@ -2930,6 +2967,24 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                 className="flex-1 bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold"
               >
                 Mark Qualified
+              </button>
+              <button
+                onClick={async () => {
+                  if (window.confirm(`Are you sure you want to delete the franchise enquiry from ${selectedEnquiry.name}?`)) {
+                    try {
+                      await api.delete(`/franchise/enquiries/${selectedEnquiry._id}`);
+                      onRefresh();
+                      setSelectedEnquiry(null);
+                      toast.success('Franchise enquiry deleted successfully');
+                    } catch (error) {
+                      toast.error('Error deleting franchise enquiry');
+                      console.error(error);
+                    }
+                  }
+                }}
+                className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg font-semibold hover:bg-red-500/30 transition-colors"
+              >
+                Delete
               </button>
               <button
                 onClick={() => {

@@ -8,6 +8,7 @@ const FranchiseEnquiry = require('../models/FranchiseEnquiry');
 const ArtEnquiry = require('../models/ArtEnquiry');
 const Order = require('../models/Order');
 const Customer = require('../models/Customer');
+const ClearedNotification = require('../models/ClearedNotification');
 const auth = require('../middleware/auth');
 const analyticsService = require('../services/analyticsService');
 const aiInsightsService = require('../services/aiInsightsService');
@@ -472,6 +473,57 @@ router.delete('/art-enquiries/:id', async (req, res) => {
     }
     res.json({ message: 'Art enquiry deleted successfully' });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get cleared notification IDs (Admin)
+router.get('/notifications/cleared', async (req, res) => {
+  try {
+    const clearedNotifications = await ClearedNotification.find({}, 'notificationId');
+    const clearedIds = clearedNotifications.map(n => n.notificationId);
+    res.json({ clearedIds });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Clear notifications (Admin) - marks notification IDs as cleared
+router.post('/notifications/clear', async (req, res) => {
+  try {
+    const { notificationIds } = req.body;
+    
+    if (!notificationIds || !Array.isArray(notificationIds) || notificationIds.length === 0) {
+      return res.status(400).json({ message: 'Notification IDs array is required' });
+    }
+
+    // Get notification types from IDs (format: type-id)
+    const notificationsToClear = notificationIds.map(id => {
+      const parts = id.split('-');
+      const type = parts[0] === 'franchise' ? 'franchise' :
+                   parts[0] === 'art' && parts[1] === 'enquiry' ? 'art-enquiry' :
+                   parts[0] === 'art' && parts[1] === 'order' ? 'art-order' :
+                   parts[0] === 'artist' && parts[1] === 'request' ? 'artist-request' : 'unknown';
+      return { notificationId: id, notificationType: type };
+    });
+
+    // Insert cleared notifications (using insertMany with ordered: false to handle duplicates)
+    const operations = notificationsToClear.map(notif => ({
+      updateOne: {
+        filter: { notificationId: notif.notificationId },
+        update: { $set: notif },
+        upsert: true
+      }
+    }));
+
+    await ClearedNotification.bulkWrite(operations);
+
+    res.json({ 
+      message: 'Notifications cleared successfully',
+      clearedCount: notificationsToClear.length
+    });
+  } catch (error) {
+    console.error('Error clearing notifications:', error);
     res.status(500).json({ message: error.message });
   }
 });
