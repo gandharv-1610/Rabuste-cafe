@@ -40,9 +40,9 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="pt-20">
+    <div className="pt-20 min-h-[100svh] bg-coffee-darkest overflow-hidden">
       {/* Hero Section with Video Background */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      <section className="relative min-h-[100svh] flex items-center justify-center overflow-hidden w-full">
         {/* Hero Background - from configurable Site Media */}
         {heroMedia && heroMedia.mediaType === 'video' ? (
           <VideoPlayer
