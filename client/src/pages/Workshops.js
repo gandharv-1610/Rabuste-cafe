@@ -8,7 +8,8 @@ import VideoPlayer from '../components/VideoPlayer';
 import CoffeeLoader from '../components/CoffeeLoader';
 
 const Workshops = () => {
-  const [workshops, setWorkshops] = useState([]);
+  const [upcomingWorkshops, setUpcomingWorkshops] = useState([]);
+  const [pastWorkshops, setPastWorkshops] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedWorkshop, setSelectedWorkshop] = useState(null);
   const [showRegistration, setShowRegistration] = useState(false);
@@ -90,8 +91,17 @@ const Workshops = () => {
 
   const fetchWorkshops = async () => {
     try {
-      const response = await api.get('/workshops', { params: { active: true } });
-      setWorkshops(response.data);
+      // Fetch upcoming workshops (active and date >= today)
+      const upcomingResponse = await api.get('/workshops', { 
+        params: { active: true, past: 'false' } 
+      });
+      setUpcomingWorkshops(upcomingResponse.data);
+      
+      // Fetch past workshops (active and date < today)
+      const pastResponse = await api.get('/workshops', { 
+        params: { active: true, past: 'true' } 
+      });
+      setPastWorkshops(pastResponse.data);
     } catch (error) {
       console.error('Error fetching workshops:', error);
     } finally {
@@ -352,183 +362,340 @@ const Workshops = () => {
         </motion.div>
       </section>
 
-      {/* Workshops Grid */}
+      {/* Upcoming Workshops Section */}
       <section className="py-20 px-4 max-w-6xl mx-auto">
-        {workshops.length === 0 ? (
+        {upcomingWorkshops.length === 0 && pastWorkshops.length === 0 ? (
           <div className="text-center py-20">
             <p className="text-coffee-light text-lg mb-4">No workshops scheduled at the moment.</p>
             <p className="text-coffee-light">Check back soon for upcoming events!</p>
           </div>
         ) : (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
-            {workshops.map((workshop, idx) => {
-              const isFull = workshop.bookedSeats >= workshop.maxSeats;
-              const availableSeats = workshop.maxSeats - workshop.bookedSeats;
-              const seatPercentage = (workshop.bookedSeats / workshop.maxSeats) * 100;
-
-              return (
-                <motion.div
-                  key={workshop._id}
-                  initial={{ opacity: 0, y: 30 }}
+          <>
+            {/* Upcoming Workshops */}
+            {upcomingWorkshops.length > 0 && (
+              <div className="mb-16">
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
-                  transition={{ delay: idx * 0.1 }}
-                  className="group bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-dark/20 rounded-2xl p-6 border-2 border-coffee-brown/30 hover:border-coffee-amber/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-coffee-amber/10 hover:-translate-y-1"
+                  className="text-3xl md:text-4xl font-heading font-bold text-coffee-amber mb-8 text-center"
                 >
-                  {/* Workshop Image or Video */}
-                  {(workshop.cloudinary_url || workshop.image || workshop.video_url) && (
-                    <div className="mb-4 rounded-xl overflow-hidden bg-coffee-brown/40 aspect-video">
-                      {workshop.video_url ? (
-                        <VideoPlayer
-                          videoUrl={workshop.video_url}
-                          autoplay={false}
-                          controls={true}
-                          className="w-full h-full"
-                        />
-                      ) : (
-                        <img
-                          src={`${workshop.cloudinary_url || workshop.image}?v=${workshop.updatedAt || Date.now()}`}
-                          alt={workshop.title}
-                          className="w-full h-full object-cover"
-                        />
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* Header with Type Badge */}
-                  <div className="flex items-start justify-between mb-4">
-                    <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-coffee-amber/30 to-coffee-gold/30 text-coffee-amber px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border border-coffee-amber/30">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      {workshop.type}
-                    </span>
-                    {isFull && (
-                      <span className="inline-flex items-center gap-1 bg-red-500/20 text-red-400 px-2.5 py-1 rounded-full text-xs font-semibold border border-red-500/30">
-                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                        </svg>
-                        Full
-                      </span>
-                    )}
-                  </div>
+                  Upcoming Workshops
+                </motion.h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-stretch">
+                  {upcomingWorkshops.map((workshop, idx) => {
+                    const isFull = workshop.bookedSeats >= workshop.maxSeats;
+                    const availableSeats = workshop.maxSeats - workshop.bookedSeats;
+                    const seatPercentage = (workshop.bookedSeats / workshop.maxSeats) * 100;
 
-                  {/* Title */}
-                  <h3 className="text-2xl md:text-3xl font-heading font-bold text-coffee-amber mb-3 leading-tight group-hover:text-coffee-gold transition-colors">
-                    {workshop.title}
-                  </h3>
-
-                  {/* Description */}
-                  <p className="text-coffee-light/90 mb-5 line-clamp-3 text-sm leading-relaxed">
-                    {workshop.description}
-                  </p>
-
-                  {/* Details Grid */}
-                  <div className="space-y-3 mb-5">
-                    <div className="flex items-center gap-2.5 text-sm">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <span className="text-coffee-light font-medium">{formatDate(workshop.date)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 text-sm">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-coffee-light font-medium">{workshop.time} <span className="text-coffee-light/70">({workshop.duration})</span></span>
-                    </div>
-
-                    <div className="flex items-center gap-2.5 text-sm">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                      <span className="text-coffee-light font-medium">{workshop.instructor || 'TBA'}</span>
-                    </div>
-
-                    {/* Seat Availability with Progress Bar */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2.5">
-                          <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                            <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
+                    return (
+                      <motion.div
+                        key={workshop._id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="group bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-dark/20 rounded-2xl p-6 border-2 border-coffee-brown/30 hover:border-coffee-amber/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-coffee-amber/10 hover:-translate-y-1 flex flex-col h-full"
+                      >
+                        {/* Workshop Image or Video */}
+                        {(workshop.cloudinary_url || workshop.image || workshop.video_url) && (
+                          <div className="mb-4 rounded-xl overflow-hidden bg-coffee-brown/40 aspect-video">
+                            {workshop.video_url ? (
+                              <VideoPlayer
+                                videoUrl={workshop.video_url}
+                                autoplay={false}
+                                controls={true}
+                                className="w-full h-full"
+                              />
+                            ) : (
+                              <img
+                                src={`${workshop.cloudinary_url || workshop.image}?v=${workshop.updatedAt || Date.now()}`}
+                                alt={workshop.title}
+                                className="w-full h-full object-cover"
+                              />
+                            )}
                           </div>
-                          <span className="text-coffee-light font-medium">
-                            <span className={isFull ? 'text-red-400' : 'text-coffee-amber'}>{availableSeats}</span> of {workshop.maxSeats} seats {isFull ? 'booked' : 'available'}
+                        )}
+                        
+                        {/* Header with Type Badge */}
+                        <div className="flex items-start justify-between mb-4">
+                          <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-coffee-amber/30 to-coffee-gold/30 text-coffee-amber px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border border-coffee-amber/30">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            {workshop.type}
+                          </span>
+                          {isFull && (
+                            <span className="inline-flex items-center gap-1 bg-red-500/20 text-red-400 px-2.5 py-1 rounded-full text-xs font-semibold border border-red-500/30">
+                              <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                              </svg>
+                              Full
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Title */}
+                        <h3 className="text-2xl md:text-3xl font-heading font-bold text-coffee-amber mb-3 leading-tight group-hover:text-coffee-gold transition-colors">
+                          {workshop.title}
+                        </h3>
+
+                        {/* Description */}
+                        <p className="text-coffee-light/90 mb-5 line-clamp-3 text-sm leading-relaxed flex-grow">
+                          {workshop.description}
+                        </p>
+
+                        {/* Details Grid */}
+                        <div className="space-y-3 mb-5">
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light font-medium">{formatDate(workshop.date)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light font-medium">{workshop.time} <span className="text-coffee-light/70">({workshop.duration})</span></span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light font-medium">{workshop.instructor || 'TBA'}</span>
+                          </div>
+
+                          {/* Seat Availability with Progress Bar */}
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2.5">
+                                <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                                  <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                  </svg>
+                                </div>
+                                <span className="text-coffee-light font-medium">
+                                  <span className={isFull ? 'text-red-400' : 'text-coffee-amber'}>{availableSeats}</span> of {workshop.maxSeats} seats {isFull ? 'booked' : 'available'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="w-full bg-coffee-brown/40 rounded-full h-2 overflow-hidden">
+                              <motion.div
+                                initial={{ width: 0 }}
+                                whileInView={{ width: `${seatPercentage}%` }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8, delay: idx * 0.1 + 0.3 }}
+                                className={`h-full rounded-full ${
+                                  isFull 
+                                    ? 'bg-gradient-to-r from-red-500 to-red-600' 
+                                    : seatPercentage > 75 
+                                    ? 'bg-gradient-to-r from-orange-500 to-orange-600'
+                                    : 'bg-gradient-to-r from-coffee-amber to-coffee-gold'
+                                }`}
+                              />
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-amber font-bold text-lg">
+                              {(workshop.price || 0) > 0 ? `₹${workshop.price}` : 'Free'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Register Button */}
+                        <button
+                          onClick={() => {
+                            setSelectedWorkshop(workshop);
+                            setShowRegistration(true);
+                            setRegistrationSuccess(false);
+                          }}
+                          disabled={isFull}
+                          className={`w-full py-3.5 rounded-xl font-bold text-sm md:text-base transition-all duration-300 flex items-center justify-center gap-2 mt-auto ${
+                            isFull
+                              ? 'bg-coffee-brown/40 text-coffee-light/60 cursor-not-allowed border-2 border-coffee-brown/40'
+                              : 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker hover:from-coffee-gold hover:to-coffee-amber shadow-lg hover:shadow-xl hover:shadow-coffee-amber/30 hover:scale-[1.02] active:scale-[0.98] border-2 border-coffee-amber/30'
+                          }`}
+                        >
+                          {isFull ? (
+                            <>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Fully Booked
+                            </>
+                          ) : (
+                            <>
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              Register Now
+                            </>
+                          )}
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Past Workshops Section */}
+            {pastWorkshops.length > 0 && (
+              <div className="mt-20">
+                <motion.h2
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  className="text-3xl md:text-4xl font-heading font-bold text-coffee-amber/70 mb-8 text-center"
+                >
+                  Past Workshops
+                </motion.h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8 items-stretch">
+                  {pastWorkshops.map((workshop, idx) => {
+                    const isFull = workshop.bookedSeats >= workshop.maxSeats;
+                    const availableSeats = workshop.maxSeats - workshop.bookedSeats;
+                    const seatPercentage = (workshop.bookedSeats / workshop.maxSeats) * 100;
+
+                    return (
+                      <motion.div
+                        key={workshop._id}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: idx * 0.1 }}
+                        className="group bg-gradient-to-br from-coffee-brown/20 via-coffee-brown/10 to-coffee-dark/10 rounded-2xl p-6 border-2 border-coffee-brown/20 hover:border-coffee-brown/30 transition-all duration-300 shadow-lg opacity-75 flex flex-col h-full"
+                      >
+                        {/* Workshop Image or Video */}
+                        {(workshop.cloudinary_url || workshop.image || workshop.video_url) && (
+                          <div className="mb-4 rounded-xl overflow-hidden bg-coffee-brown/40 aspect-video">
+                            {workshop.video_url ? (
+                              <VideoPlayer
+                                videoUrl={workshop.video_url}
+                                autoplay={false}
+                                controls={true}
+                                className="w-full h-full"
+                              />
+                            ) : (
+                              <img
+                                src={`${workshop.cloudinary_url || workshop.image}?v=${workshop.updatedAt || Date.now()}`}
+                                alt={workshop.title}
+                                className="w-full h-full object-cover grayscale"
+                              />
+                            )}
+                          </div>
+                        )}
+                        
+                        {/* Header with Type Badge */}
+                        <div className="flex items-start justify-between mb-4">
+                          <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-coffee-amber/20 to-coffee-gold/20 text-coffee-amber/70 px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border border-coffee-amber/20">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                            {workshop.type}
+                          </span>
+                          <span className="inline-flex items-center gap-1 bg-gray-500/20 text-gray-400 px-2.5 py-1 rounded-full text-xs font-semibold border border-gray-500/30">
+                            <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                            </svg>
+                            Past
                           </span>
                         </div>
-                      </div>
-                      <div className="w-full bg-coffee-brown/40 rounded-full h-2 overflow-hidden">
-                        <motion.div
-                          initial={{ width: 0 }}
-                          whileInView={{ width: `${seatPercentage}%` }}
-                          viewport={{ once: true }}
-                          transition={{ duration: 0.8, delay: idx * 0.1 + 0.3 }}
-                          className={`h-full rounded-full ${
-                            isFull 
-                              ? 'bg-gradient-to-r from-red-500 to-red-600' 
-                              : seatPercentage > 75 
-                              ? 'bg-gradient-to-r from-orange-500 to-orange-600'
-                              : 'bg-gradient-to-r from-coffee-amber to-coffee-gold'
-                          }`}
-                        />
-                      </div>
-                    </div>
 
-                    <div className="flex items-center gap-2.5 text-sm">
-                      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/20 flex items-center justify-center">
-                        <svg className="w-4 h-4 text-coffee-amber" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                      </div>
-                      <span className="text-coffee-amber font-bold text-lg">
-                        {(workshop.price || 0) > 0 ? `₹${workshop.price}` : 'Free'}
-                      </span>
-                    </div>
-                  </div>
+                        {/* Title */}
+                        <h3 className="text-2xl md:text-3xl font-heading font-bold text-coffee-amber/70 mb-3 leading-tight">
+                          {workshop.title}
+                        </h3>
 
-                  {/* Register Button */}
-                  <button
-                    onClick={() => {
-                      setSelectedWorkshop(workshop);
-                      setShowRegistration(true);
-                      setRegistrationSuccess(false);
-                    }}
-                    disabled={isFull}
-                    className={`w-full py-3.5 rounded-xl font-bold text-sm md:text-base transition-all duration-300 flex items-center justify-center gap-2 ${
-                      isFull
-                        ? 'bg-coffee-brown/40 text-coffee-light/60 cursor-not-allowed border-2 border-coffee-brown/40'
-                        : 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker hover:from-coffee-gold hover:to-coffee-amber shadow-lg hover:shadow-xl hover:shadow-coffee-amber/30 hover:scale-[1.02] active:scale-[0.98] border-2 border-coffee-amber/30'
-                    }`}
-                  >
-                    {isFull ? (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        Fully Booked
-                      </>
-                    ) : (
-                      <>
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Register Now
-                      </>
-                    )}
-                  </button>
-                </motion.div>
-              );
-            })}
-          </div>
+                        {/* Description */}
+                        <p className="text-coffee-light/70 mb-5 line-clamp-3 text-sm leading-relaxed flex-grow">
+                          {workshop.description}
+                        </p>
+
+                        {/* Details Grid */}
+                        <div className="space-y-3 mb-5">
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light/70 font-medium">{formatDate(workshop.date)}</span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light/70 font-medium">{workshop.time} <span className="text-coffee-light/50">({workshop.duration})</span></span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light/70 font-medium">{workshop.instructor || 'TBA'}</span>
+                          </div>
+
+                          {/* Seat Availability */}
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-light/70 font-medium">
+                              {workshop.bookedSeats} of {workshop.maxSeats} seats attended
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-2.5 text-sm">
+                            <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-coffee-amber/10 flex items-center justify-center">
+                              <svg className="w-4 h-4 text-coffee-amber/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </div>
+                            <span className="text-coffee-amber/70 font-bold text-lg">
+                              {(workshop.price || 0) > 0 ? `₹${workshop.price}` : 'Free'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Disabled Button for Past Workshops */}
+                        <button
+                          disabled={true}
+                          className="w-full py-3.5 rounded-xl font-bold text-sm md:text-base bg-coffee-brown/20 text-coffee-light/40 cursor-not-allowed border-2 border-coffee-brown/20 mt-auto"
+                        >
+                          <svg className="w-5 h-5 inline mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          Workshop Completed
+                        </button>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </section>
 
