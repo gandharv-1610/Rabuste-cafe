@@ -4,16 +4,19 @@
 
 @layer base {
   body {
-    @apply text-coffee-cream font-sans antialiased;
-    background-color: transparent !important;
+    @apply text-coffee-cream font-sans antialiased bg-coffee-darkest;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
   
   html {
-    background-color: transparent !important;
+    background-color: #0f0805 !important;
+    min-height: 100%;
   }
   
   #root {
     background-color: transparent !important;
+    min-height: 100%;
   }
   
   .app-container {
