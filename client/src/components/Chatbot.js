@@ -9,7 +9,7 @@ const Chatbot = () => {
   const [messages, setMessages] = useState([
     {
       role: 'bot',
-      content: "Hello! I'm here to help you learn about Rabuste Coffee, our Robusta brews, art gallery, workshops, daily offers, ordering, and franchise opportunities. How can I help?",
+      content: "Hello! 👋 Welcome to Rabuste Coffee! I'm your virtual assistant here to help you discover everything we offer:\n\n☕ **Coffee Menu** - Exclusive Robusta coffee, Shakes, Sides, and Tea\n🎨 **Art Gallery** - Browse and purchase fine art pieces\n🎭 **Artist Submission** - Submit your artwork for consideration\n📚 **Workshops** - Coffee workshops, art sessions, and community events\n🚀 **Franchise** - Explore franchise opportunities\n📱 **Ordering** - QR code ordering or counter service\n📦 **Pre-Orders** - Schedule your pickup time\n📊 **Order Tracking** - Track your orders\n🎁 **Daily Offers** - Check out current specials\n\nI can help you with menu recommendations, answer questions about our coffee, guide you to different pages, or assist with ordering. What would you like to know?",
     },
   ]);
   const [input, setInput] = useState('');
@@ -168,7 +168,7 @@ const Chatbot = () => {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-                  placeholder="Ask about coffee, offers, workshops, ordering..."
+                  placeholder="Ask about menu, art, workshops, ordering, offers, franchise..."
                   className="flex-1 bg-coffee-brown text-coffee-cream px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-coffee-amber"
                   disabled={isLoading}
                 />
