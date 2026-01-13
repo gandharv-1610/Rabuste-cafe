@@ -375,6 +375,26 @@ const Workshops = () => {
                   transition={{ delay: idx * 0.1 }}
                   className="group bg-gradient-to-br from-coffee-brown/30 via-coffee-brown/20 to-coffee-dark/20 rounded-2xl p-6 border-2 border-coffee-brown/30 hover:border-coffee-amber/50 transition-all duration-300 shadow-lg hover:shadow-xl hover:shadow-coffee-amber/10 hover:-translate-y-1"
                 >
+                  {/* Workshop Image or Video */}
+                  {(workshop.cloudinary_url || workshop.image || workshop.video_url) && (
+                    <div className="mb-4 rounded-xl overflow-hidden bg-coffee-brown/40 aspect-video">
+                      {workshop.video_url ? (
+                        <VideoPlayer
+                          videoUrl={workshop.video_url}
+                          autoplay={false}
+                          controls={true}
+                          className="w-full h-full"
+                        />
+                      ) : (
+                        <img
+                          src={`${workshop.cloudinary_url || workshop.image}?v=${workshop.updatedAt || Date.now()}`}
+                          alt={workshop.title}
+                          className="w-full h-full object-cover"
+                        />
+                      )}
+                    </div>
+                  )}
+                  
                   {/* Header with Type Badge */}
                   <div className="flex items-start justify-between mb-4">
                     <span className="inline-flex items-center gap-1.5 bg-gradient-to-r from-coffee-amber/30 to-coffee-gold/30 text-coffee-amber px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border border-coffee-amber/30">

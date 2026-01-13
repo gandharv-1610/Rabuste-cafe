@@ -2867,22 +2867,23 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
         {enquiries.map((enquiry) => (
           <div
             key={enquiry._id}
-            className="bg-coffee-brown/20 rounded-lg p-6 hover:bg-coffee-brown/30"
+            className="bg-coffee-brown/20 rounded-lg p-4 sm:p-6 hover:bg-coffee-brown/30"
           >
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3">
               <div 
-                className="flex-1 cursor-pointer"
+                className="flex-1 cursor-pointer min-w-0"
                 onClick={() => setSelectedEnquiry(enquiry)}
               >
-                <h3 className="text-xl font-display font-bold text-coffee-amber">{enquiry.name}</h3>
-                <p className="text-coffee-light">{enquiry.email} | {enquiry.phone}</p>
-                <p className="text-coffee-light">Location: {enquiry.location}</p>
-                <p className="text-coffee-light text-sm">
+                <h3 className="text-lg sm:text-xl font-display font-bold text-coffee-amber break-words">{enquiry.name}</h3>
+                <p className="text-sm sm:text-base text-coffee-light break-words">{enquiry.email}</p>
+                <p className="text-sm sm:text-base text-coffee-light break-words">{enquiry.phone}</p>
+                <p className="text-sm sm:text-base text-coffee-light">Location: {enquiry.location}</p>
+                <p className="text-xs sm:text-sm text-coffee-light/80 mt-1">
                   Submitted: {new Date(enquiry.createdAt).toLocaleDateString()}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+              <div className="flex items-center gap-2 sm:flex-shrink-0">
+                <span className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${
                   enquiry.status === 'New' ? 'bg-green-500/20 text-green-400' :
                   enquiry.status === 'Contacted' ? 'bg-blue-500/20 text-blue-400' :
                   enquiry.status === 'Qualified' ? 'bg-coffee-amber/30 text-coffee-amber' :
@@ -2904,7 +2905,7 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                       }
                     }
                   }}
-                  className="bg-red-500/20 text-red-400 px-3 py-1 rounded-lg text-sm font-semibold hover:bg-red-500/30 transition-colors"
+                  className="bg-red-500/20 text-red-400 px-2 sm:px-3 py-1 rounded-lg text-sm font-semibold hover:bg-red-500/30 transition-colors flex-shrink-0"
                   title="Delete Enquiry"
                 >
                   🗑️
@@ -2955,16 +2956,16 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                 </div>
               )}
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <button
                 onClick={() => handleStatusUpdate(selectedEnquiry._id, 'Contacted')}
-                className="flex-1 bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg font-semibold"
+                className="flex-1 bg-blue-500/20 text-blue-400 px-4 py-2 rounded-lg font-semibold text-sm sm:text-base"
               >
                 Mark Contacted
               </button>
               <button
                 onClick={() => handleStatusUpdate(selectedEnquiry._id, 'Qualified')}
-                className="flex-1 bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold"
+                className="flex-1 bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg font-semibold text-sm sm:text-base"
               >
                 Mark Qualified
               </button>
@@ -2982,7 +2983,7 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                     }
                   }
                 }}
-                className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg font-semibold hover:bg-red-500/30 transition-colors"
+                className="bg-red-500/20 text-red-400 px-4 py-2 rounded-lg font-semibold hover:bg-red-500/30 transition-colors text-sm sm:text-base"
               >
                 Delete
               </button>
@@ -2990,7 +2991,7 @@ const FranchiseEnquiries = ({ enquiries, loading, onRefresh }) => {
                 onClick={() => {
                   setSelectedEnquiry(null);
                 }}
-                className="bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold"
+                className="bg-coffee-brown/40 text-coffee-cream px-4 py-2 rounded-lg font-semibold text-sm sm:text-base"
               >
                 Close
               </button>
