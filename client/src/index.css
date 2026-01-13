@@ -5,18 +5,18 @@
 @layer base {
   body {
     @apply text-coffee-cream font-sans antialiased bg-coffee-darkest;
-    min-height: 100vh;
+    min-height: 100dvh;
     overflow-x: hidden;
   }
   
   html {
     background-color: #0f0805 !important;
-    min-height: 100%;
+    min-height: 100dvh;
   }
   
   #root {
     background-color: transparent !important;
-    min-height: 100%;
+    min-height: 100dvh;
   }
   
   .app-container {
@@ -98,7 +98,7 @@ html {
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
+  height: 100dvh;
   z-index: -1; /* Critical: Puts bg behind text */
   background-color: #0f0805; /* Your base dark coffee color */
   overflow: hidden;

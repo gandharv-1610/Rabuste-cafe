@@ -37,7 +37,7 @@ function App() {
         <div className="mesh-gradient"></div>
       </div>
       
-      <div className="App min-h-screen flex flex-col">
+      <div className="App min-h-screen flex flex-col w-full overflow-x-hidden">
         <Toaster
           position="top-center"
           toastOptions={{
