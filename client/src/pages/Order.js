@@ -973,7 +973,7 @@ const Order = () => {
                               className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
                                 recentlyAdded.has(`${item._id}-Blend`)
                                   ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber/20 text-coffee-amber hover:bg-coffee-amber/30'
+                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
                               }`}
                             >
                               {recentlyAdded.has(`${item._id}-Blend`) ? '✓ Added' : 'Add Blend'}
@@ -985,7 +985,7 @@ const Order = () => {
                               className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
                                 recentlyAdded.has(`${item._id}-Robusta Special`)
                                   ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber/20 text-coffee-amber hover:bg-coffee-amber/30'
+                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
                               }`}
                             >
                               {recentlyAdded.has(`${item._id}-Robusta Special`) ? '✓ Added' : 'Add Robusta'}

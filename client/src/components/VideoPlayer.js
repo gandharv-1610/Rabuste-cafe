@@ -1,6 +1,6 @@
 import React from 'react';
 
-const VideoPlayer = ({ videoUrl, autoplay = true, className = '' }) => {
+const VideoPlayer = ({ videoUrl, autoplay = true, className = '', controls = false }) => {
 
   if (!videoUrl) return null;
 
@@ -10,8 +10,9 @@ const VideoPlayer = ({ videoUrl, autoplay = true, className = '' }) => {
         src={videoUrl}
         autoPlay={autoplay}
         muted
-        loop
+        loop={autoplay}
         playsInline
+        controls={controls}
         className="w-full h-full object-cover"
       />
     </div>
