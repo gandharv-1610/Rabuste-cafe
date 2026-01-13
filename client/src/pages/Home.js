@@ -87,7 +87,8 @@ const Home = () => {
           >
             <div className="relative">
               <div className="absolute inset-0 bg-coffee-amber/20 blur-2xl rounded-full"></div>
-              <img
+              <motion.img
+                layoutId="rabuste-hero-logo"
                 src={heroLogo}
                 alt="Rabuste Coffee logo"
                 className="relative h-24 md:h-32 object-contain drop-shadow-2xl"
