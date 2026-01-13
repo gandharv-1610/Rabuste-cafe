@@ -1,10 +1,18 @@
 const { Resend } = require('resend');
 
-// Initialize Resend client with API key
+// Initialize Resend client with API key, but don't crash app if missing
+let resend = null;
+
 if (!process.env.RESEND_API_KEY) {
-  console.error('⚠️ WARNING: RESEND_API_KEY environment variable is not set. Email sending will fail.');
+  console.error('⚠️ WARNING: RESEND_API_KEY environment variable is not set. Email sending will be disabled.');
+} else {
+  try {
+    resend = new Resend(process.env.RESEND_API_KEY);
+  } catch (err) {
+    console.error('❌ Failed to initialize Resend client:', err.message);
+    resend = null;
+  }
 }
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Get the from email address (should be a verified domain/email in Resend)
 // Format: "Name <email@domain.com>" or just "email@domain.com"
@@ -30,8 +38,8 @@ const sendEmailWithResend = async (to, subject, html, logContext = 'Email') => {
       return false;
     }
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error(`❌ ${logContext}: RESEND_API_KEY is not set`);
+    if (!process.env.RESEND_API_KEY || !resend) {
+      console.error(`❌ ${logContext}: Email service is not configured (missing or invalid RESEND_API_KEY)`);
       return false;
     }
 
