@@ -13,6 +13,20 @@ router.get('/', async (req, res) => {
     if (req.query.active !== undefined) {
       filter.isActive = req.query.active === 'true';
     }
+    
+    // Filter by date if requested
+    const now = new Date();
+    now.setHours(0, 0, 0, 0); // Start of today
+    
+    if (req.query.past === 'true') {
+      // Only past workshops (date is before today)
+      filter.date = { $lt: now };
+    } else if (req.query.past === 'false') {
+      // Only upcoming workshops (date is today or later)
+      filter.date = { $gte: now };
+    }
+    // If past is not specified, return all workshops
+    
     const workshops = await Workshop.find(filter).sort({ date: 1 });
     res.json(workshops);
   } catch (error) {
@@ -43,6 +57,16 @@ router.post('/:id/register', async (req, res) => {
 
     if (!workshop.isActive) {
       return res.status(400).json({ message: 'Workshop is not active' });
+    }
+
+    // Check if workshop date has passed
+    const now = new Date();
+    const workshopDate = new Date(workshop.date);
+    workshopDate.setHours(0, 0, 0, 0);
+    now.setHours(0, 0, 0, 0);
+    
+    if (workshopDate < now) {
+      return res.status(400).json({ message: 'Cannot register for past workshops. This workshop has already occurred.' });
     }
 
     if (workshop.bookedSeats >= workshop.maxSeats) {
