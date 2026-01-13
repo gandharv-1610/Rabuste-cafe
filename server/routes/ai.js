@@ -423,7 +423,11 @@ const getFallbackResponse = async (message) => {
   }
   
   if (lowerMessage.includes('art') || lowerMessage.includes('gallery')) {
-    return "We have a micro art gallery featuring works from talented artists. Each piece tells a story and creates an immersive cultural experience. Visit our Art Gallery page to explore the collection!";
+    return "We have a micro art gallery featuring works from talented artists. Each piece tells a story and creates an immersive cultural experience. You can:\n- Browse and purchase art pieces on our Art Gallery page\n- Submit your own artwork for consideration via Artist Submission page\n- View your art purchase history on My Art Orders page\n\nVisit our Art Gallery page to explore the collection!";
+  }
+  
+  if (lowerMessage.includes('artist') && (lowerMessage.includes('submit') || lowerMessage.includes('sell') || lowerMessage.includes('request'))) {
+    return "Artists can submit their work for consideration! Visit our Artist Submission page to:\n- Submit your artwork details\n- Upload images of your work\n- Share your artistic story\n- Set price expectations\n\nWe review all submissions and may feature selected works in our gallery!";
   }
   
   if (lowerMessage.includes('franchise') || lowerMessage.includes('business opportunity')) {
@@ -485,7 +489,19 @@ const getFallbackResponse = async (message) => {
   }
   
   if (lowerMessage.includes('order') || lowerMessage.includes('place order') || lowerMessage.includes('buy') || lowerMessage.includes('purchase')) {
-    return "You can place orders in two ways:\n1. 📱 QR Code Ordering: Scan the QR code at your table to order and pay online via Razorpay\n2. 🏪 Counter Ordering: Order at the counter and pay with cash\n\nBoth methods allow you to:\n- Browse our full menu\n- Add items to cart\n- Subscribe to email updates (optional)\n- Receive digital receipts\n\nVisit our Order page to get started!";
+    return "You can place orders in multiple ways:\n1. 📱 QR Code Ordering: Scan the QR code at your table to order and pay online via Razorpay\n2. 🏪 Counter Ordering: Order at the counter and pay with cash\n3. ⏰ Pre-Order: Schedule advance orders with pickup time slots - perfect for planning ahead\n\nAll methods allow you to:\n- Browse our full menu\n- Add items to cart\n- Subscribe to email updates (optional)\n- Receive digital receipts\n- Track your orders\n\nVisit our Order page to get started, or use Pre-Order for scheduled pickups!";
+  }
+  
+  if (lowerMessage.includes('pre order') || lowerMessage.includes('preorder') || lowerMessage.includes('schedule') || lowerMessage.includes('pickup time') || lowerMessage.includes('advance order')) {
+    return "Our Pre-Order system lets you schedule your order in advance with a pickup time slot! Perfect for planning ahead. You can:\n- Browse the full menu\n- Select a convenient pickup time slot\n- Pay online via Razorpay\n- Pick up your order at the scheduled time\n\nVisit our Pre-Order page to schedule your order!";
+  }
+  
+  if (lowerMessage.includes('track') || lowerMessage.includes('order status') || lowerMessage.includes('where is my order')) {
+    return "You can track your orders in two ways:\n1. 📱 Visit the Track Order page and enter your order number or mobile number\n2. 📋 Check Your Orders page to see all your order history and status\n\nTrack Order page shows real-time status updates for your current orders!";
+  }
+  
+  if (lowerMessage.includes('order history') || lowerMessage.includes('my orders') || lowerMessage.includes('past orders') || lowerMessage.includes('previous orders')) {
+    return "View all your past and current orders on the Your Orders page! You can see:\n- Order details and items\n- Order status (Pending, Preparing, Ready, Completed)\n- Payment information\n- Receipts\n- Order dates and times\n\nVisit Your Orders page to see your complete order history!";
   }
 
   // Activity suggestions
@@ -540,6 +556,12 @@ router.post('/chatbot', async (req, res) => {
       'franchise': { path: '/franchise', name: 'Franchise', keywords: ['franchise', 'business opportunity', 'partner', 'open store'] },
       'about': { path: '/about', name: 'About Us', keywords: ['about', 'story', 'who we are', 'our story'] },
       'why-robusta': { path: '/why-robusta', name: 'Why Robusta', keywords: ['why robusta', 'robusta', 'why we use', 'what is robusta'] },
+      'order': { path: '/order', name: 'Order', keywords: ['order', 'place order', 'buy', 'purchase', 'qr code', 'scan'] },
+      'pre-order': { path: '/pre-order', name: 'Pre-Order', keywords: ['pre order', 'preorder', 'schedule', 'pickup time', 'advance order'] },
+      'your-orders': { path: '/your-orders', name: 'Your Orders', keywords: ['my orders', 'order history', 'past orders', 'previous orders'] },
+      'track-order': { path: '/track-order', name: 'Track Order', keywords: ['track order', 'order status', 'where is my order', 'order tracking'] },
+      'artist-submission': { path: '/artist-submission', name: 'Artist Submission', keywords: ['artist submission', 'submit art', 'sell art', 'artist request'] },
+      'my-art-orders': { path: '/my-art-orders', name: 'My Art Orders', keywords: ['my art orders', 'art order history', 'art purchases'] },
       'home': { path: '/', name: 'Home', keywords: ['home', 'main page', 'start'] },
     };
 
@@ -757,11 +779,13 @@ router.post('/chatbot', async (req, res) => {
     if (artPieces.length > 0) {
       availableActivities.push(`Explore our art gallery with ${artPieces.length} featured artworks`);
     }
+    availableActivities.push('Submit your artwork for consideration in our gallery');
     if (workshops.length > 0) {
       availableActivities.push(`Join one of our ${workshops.length} upcoming workshops`);
     }
     availableActivities.push('Learn about why we exclusively serve Robusta coffee');
-    availableActivities.push('Place an order via QR code or at the counter');
+    availableActivities.push('Place an order via QR code, counter, or pre-order with scheduled pickup');
+    availableActivities.push('Track your orders and view order history');
     availableActivities.push('Subscribe to email updates for new coffees, offers, and workshops');
     availableActivities.push('Explore franchise opportunities');
 
@@ -850,11 +874,18 @@ AVAILABLE PAGES TO VISIT:
 - Workshops (/workshops) - View and register for workshops
 - Franchise (/franchise) - Franchise opportunities and enquiry form
 - Order (/order) - Place orders via QR code or counter
+- Pre-Order (/pre-order) - Schedule advance orders with pickup time slots
 - Your Orders (/your-orders) - View your order history
+- Track Order (/track-order) - Track the status of your orders
+- Artist Submission (/artist-submission) - Submit your artwork for consideration
+- My Art Orders (/my-art-orders) - View your art purchase history
 
 ORDERING SYSTEM:
 - QR Code Ordering: Customers scan QR code at table, browse menu, add to cart, and pay online via Razorpay
 - Counter Ordering: Salesperson-assisted ordering for walk-in customers, payment via cash
+- Pre-Order System: Schedule advance orders with pickup time slots - perfect for planning ahead
+- Order Tracking: Track your order status in real-time using order number or mobile number
+- Order History: View all your past orders in "Your Orders" page
 - Both methods allow customers to subscribe to email updates during checkout (optional checkbox)
 - Digital receipts are generated for all orders
 
@@ -944,7 +975,7 @@ Provide a helpful response using ONLY the information provided above. If the use
       responseText = text.replace(/NAVIGATE:.*?(\n|$)/g, '').trim();
       
       // Validate navigation path
-      const validPaths = ['/', '/about', '/why-robusta', '/coffee', '/art', '/workshops', '/franchise'];
+      const validPaths = ['/', '/about', '/why-robusta', '/coffee', '/art', '/workshops', '/franchise', '/order', '/pre-order', '/your-orders', '/track-order', '/artist-submission', '/my-art-orders'];
       if (!validPaths.includes(navigateTo)) {
         navigateTo = null; // Invalid path, don't navigate
       }

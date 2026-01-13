@@ -2435,6 +2435,23 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
     });
   };
 
+  const handleDeleteImage = () => {
+    setFormData({
+      ...formData,
+      image: '',
+      cloudinary_url: '',
+      cloudinary_public_id: '',
+    });
+  };
+
+  const handleDeleteVideo = () => {
+    setFormData({
+      ...formData,
+      video_url: '',
+      cloudinary_video_public_id: '',
+    });
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     const workshopData = {
@@ -2636,7 +2653,22 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Cover Image</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-coffee-amber font-semibold">Cover Image</label>
+                {(formData.image || formData.cloudinary_url) && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteImage}
+                    className="text-red-400 hover:text-red-500 transition-colors flex items-center gap-1 text-sm"
+                    title="Delete image"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                )}
+              </div>
               <ImageUpload
                 onUploadComplete={handleImageUpload}
                 folder="rabuste-coffee/workshops"
@@ -2644,7 +2676,22 @@ const WorkshopsManagement = ({ workshops, registrations, loading, onRefresh, onR
               />
             </div>
             <div>
-              <label className="block text-coffee-amber font-semibold mb-2">Promo Video (optional)</label>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-coffee-amber font-semibold">Promo Video (optional)</label>
+                {formData.video_url && (
+                  <button
+                    type="button"
+                    onClick={handleDeleteVideo}
+                    className="text-red-400 hover:text-red-500 transition-colors flex items-center gap-1 text-sm"
+                    title="Delete video"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </button>
+                )}
+              </div>
               <VideoUpload
                 onUploadComplete={handleVideoUpload}
                 folder="rabuste-coffee/workshops/videos"
