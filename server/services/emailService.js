@@ -1,4 +1,6 @@
 const { Resend } = require('resend');
+const dotenv = require('dotenv');
+dotenv.config();
 
 // Initialize Resend client with API key, but don't crash app if missing
 let resend = null;

@@ -28,71 +28,73 @@ const Navbar = () => {
 
   return (
     <motion.nav
-      initial={{ y: -100, opacity: 0 }}
+      initial={{ y: -60, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
+      transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      className={`fixed top-0 left-0 right-0 z-50 transition-colors duration-300 ${
         isScrolled
-          ? 'bg-coffee-darker/98 backdrop-blur-xl shadow-2xl shadow-coffee-amber/10 border-b border-coffee-amber/10'
-          : 'bg-transparent'
+          ? 'bg-coffee-darker/95 shadow-[0_8px_24px_rgba(0,0,0,0.55)]'
+          : 'bg-gradient-to-b from-coffee-darker/95 via-coffee-darker/90 to-coffee-darker/80'
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20">
-          <Link to="/" className="flex items-center group">
-            <motion.div
-              whileHover={{ scale: 1.1, rotate: 5 }}
-              whileTap={{ scale: 0.95 }}
-              className="relative"
-            >
-              <motion.img
-                src={logoSquare}
-                alt="Rabuste Coffee logo"
-                className="h-12 w-12 rounded-lg shadow-lg ring-2 ring-coffee-amber/20 group-hover:ring-coffee-amber/40 transition-all duration-300"
-              />
-              <motion.div
-                className="absolute inset-0 rounded-lg bg-gradient-to-br from-coffee-amber/20 to-coffee-gold/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                style={{ mixBlendMode: 'overlay' }}
-              />
-            </motion.div>
+        <div className="flex items-center justify-between h-16 sm:h-18 gap-4">
+          <Link to="/" className="flex items-center gap-3 group">
+            <motion.img
+              src={logoSquare}
+              alt="Rabuste Coffee logo"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.96 }}
+              className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg shadow-md shadow-black/40 ring-1 ring-coffee-amber/50"
+            />
+            <div className="hidden sm:flex flex-col leading-tight">
+              <span className="text-coffee-cream font-semibold tracking-[0.22em] text-[9px] uppercase">
+                Rabuste Coffee
+              </span>
+              <span className="text-[10px] text-coffee-light/85">
+                Bold Robusta • Art & Community
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-1">
-            {navLinks.map((link, index) => {
-              const isActive = location.pathname === link.path;
-              return (
-                <Link
-                  key={link.path}
-                  to={link.path}
-                  className="relative group"
-                >
-                  <motion.div
-                    className="relative px-4 py-2 rounded-lg transition-all duration-300"
-                    whileHover={{ y: -2 }}
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.05 }}
+          <div className="hidden md:flex items-center justify-end flex-1">
+            <div className="flex items-center gap-2">
+              {navLinks.map((link, index) => {
+                const isActive = location.pathname === link.path;
+                return (
+                  <Link
+                    key={link.path}
+                    to={link.path}
+                    className="relative"
                   >
-                    <span
-                      className={`relative z-10 text-sm font-semibold tracking-wide transition-colors duration-300 ${
-                        isActive
-                          ? 'text-coffee-amber'
-                          : 'text-coffee-cream group-hover:text-coffee-amber'
-                      }`}
+                    <motion.div
+                      className="relative px-3 py-1 rounded-md transition-all duration-200"
+                      whileHover={{ y: -1 }}
+                      initial={{ opacity: 0, y: -8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: index * 0.04 }}
                     >
-                      {link.label}
-                    </span>
-                  </motion.div>
-                </Link>
-              );
-            })}
+                      <span
+                        className={`relative z-10 text-[13px] font-medium tracking-wide border-b-2 ${
+                          isActive
+                            ? 'text-coffee-amber border-coffee-amber'
+                            : 'text-coffee-cream/80 border-transparent hover:text-coffee-gold hover:border-coffee-gold/80'
+                        }`}
+                      >
+                        {link.label}
+                      </span>
+                    </motion.div>
+                  </Link>
+                );
+              })}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
           <motion.button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="md:hidden relative p-2 text-coffee-cream focus:outline-none rounded-lg hover:bg-coffee-brown/30 transition-colors duration-300"
+            className="md:hidden relative p-2 text-coffee-cream focus:outline-none rounded-lg hover:bg-coffee-brown/60 transition-colors duration-200"
             whileTap={{ scale: 0.9 }}
           >
             <motion.svg
@@ -129,33 +131,35 @@ const Navbar = () => {
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
               exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+              transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
               className="md:hidden overflow-hidden"
             >
-              <div className="pb-4 pt-2 space-y-1">
-                {navLinks.map((link, index) => {
-                  const isActive = location.pathname === link.path;
-                  return (
-                    <motion.div
-                      key={link.path}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                    >
-                      <Link
-                        to={link.path}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={`block px-4 py-3 rounded-lg text-base font-semibold transition-all duration-300 ${
-                          isActive
-                            ? 'text-coffee-amber'
-                            : 'text-coffee-cream hover:text-coffee-amber'
-                        }`}
+              <div className="mt-1 mb-3 rounded-xl bg-coffee-darker/98 shadow-xl shadow-black/70 overflow-hidden border border-white/5">
+                <div className="py-1 divide-y divide-white/5">
+                  {navLinks.map((link, index) => {
+                    const isActive = location.pathname === link.path;
+                    return (
+                      <motion.div
+                        key={link.path}
+                        initial={{ opacity: 0, x: -18 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
                       >
-                        {link.label}
-                      </Link>
-                    </motion.div>
-                  );
-                })}
+                        <Link
+                          to={link.path}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`block px-5 py-3 text-sm font-medium tracking-wide transition-all duration-200 ${
+                            isActive
+                              ? 'bg-coffee-amber/10 text-coffee-amber'
+                              : 'text-coffee-cream/90 hover:bg-white/5 hover:text-coffee-gold'
+                          }`}
+                        >
+                          {link.label}
+                        </Link>
+                      </motion.div>
+                    );
+                  })}
+                </div>
               </div>
             </motion.div>
           )}
