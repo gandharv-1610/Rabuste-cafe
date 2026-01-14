@@ -24,6 +24,7 @@ const Order = () => {
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [temperatureFilter, setTemperatureFilter] = useState('All'); // All, Hot, Cold
   const [milkFilter, setMilkFilter] = useState('All'); // All, Milk, Non-Milk
+  const [priceSort, setPriceSort] = useState('None'); // None, lowToHigh, highToLow
   const [loading, setLoading] = useState(true);
   const [orderPlaced, setOrderPlaced] = useState(null);
   const [showReceipt, setShowReceipt] = useState(false);
@@ -658,28 +659,60 @@ const Order = () => {
     }
   };
 
-  // Filter menu items
-  const filteredItems = menuItems.filter(item => {
-    // Category filter
-    if (selectedCategory === 'All') {
+  // Helper to determine base price for sorting (handles coffee with multiple price types)
+  const getItemBasePrice = (item) => {
+    if (item.category === 'Coffee') {
+      const prices = [];
+      if (item.priceBlend && item.priceBlend > 0) {
+        prices.push(item.priceBlend);
+      }
+      if (item.priceRobustaSpecial && item.priceRobustaSpecial > 0) {
+        prices.push(item.priceRobustaSpecial);
+      }
+      if (prices.length === 0) return Number.MAX_VALUE;
+      return Math.min(...prices);
+    }
+    if (item.price && item.price > 0) {
+      return item.price;
+    }
+    return Number.MAX_VALUE;
+  };
+
+  // Filter and sort menu items
+  const filteredItems = (() => {
+    const items = menuItems.filter(item => {
+      // Category filter
+      if (selectedCategory === 'All') {
+        return true;
+      }
+      if (selectedCategory === 'Favorites') {
+        return favorites.includes(item._id);
+      }
+      if (item.category !== selectedCategory) return false;
+      
+      // Apply temperature and milk filters only when Coffee category is selected
+      if (selectedCategory === 'Coffee' && item.category === 'Coffee') {
+        if (temperatureFilter !== 'All' && item.subcategory !== temperatureFilter) {
+          return false;
+        }
+        if (milkFilter !== 'All' && item.milkType !== milkFilter) {
+          return false;
+        }
+      }
       return true;
+    });
+
+    if (priceSort === 'lowToHigh' || priceSort === 'highToLow') {
+      return [...items].sort((a, b) => {
+        const priceA = getItemBasePrice(a);
+        const priceB = getItemBasePrice(b);
+        if (priceA === priceB) return 0;
+        return priceSort === 'lowToHigh' ? priceA - priceB : priceB - priceA;
+      });
     }
-    if (selectedCategory === 'Favorites') {
-      return favorites.includes(item._id);
-    }
-    if (item.category !== selectedCategory) return false;
-    
-    // Apply temperature and milk filters only when Coffee category is selected
-    if (selectedCategory === 'Coffee' && item.category === 'Coffee') {
-      if (temperatureFilter !== 'All' && item.subcategory !== temperatureFilter) {
-        return false;
-      }
-      if (milkFilter !== 'All' && item.milkType !== milkFilter) {
-        return false;
-      }
-    }
-    return true;
-  });
+
+    return items;
+  })();
 
   const categories = ['All', 'Coffee', 'Shakes', 'Sides', 'Tea', 'Favorites'];
   const { subtotal, offerDiscountAmount, discountedSubtotal, cgstRate, sgstRate, cgstAmount, sgstAmount, tax, total, estimatedPrepTime } = calculateTotals();
@@ -815,48 +848,75 @@ const Order = () => {
               ))}
             </div>
 
-            {/* Temperature and Milk Filters (only for Coffee category) */}
-            {selectedCategory === 'Coffee' && (
-              <div className="mb-6 flex flex-wrap gap-4 bg-coffee-brown/20 rounded-lg p-4 border border-coffee-brown/50">
-                <div className="flex items-center gap-2">
-                  <label className="text-coffee-amber font-semibold text-sm">Temperature:</label>
-                  <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
-                    {['All', 'Hot', 'Cold'].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => setTemperatureFilter(option)}
-                        className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                          temperatureFilter === option
-                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                            : 'text-coffee-cream hover:bg-coffee-brown/40'
-                        }`}
-                      >
-                        {option}
-                      </button>
-                    ))}
+            {/* Temperature, Milk and Price Filters */}
+            <div className="mb-6 flex flex-wrap gap-4 bg-coffee-brown/20 rounded-lg p-4 border border-coffee-brown/50">
+              {/* Temperature & Milk only affect Coffee items */}
+              {selectedCategory === 'Coffee' && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <label className="text-coffee-amber font-semibold text-sm">Temperature:</label>
+                    <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
+                      {['All', 'Hot', 'Cold'].map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => setTemperatureFilter(option)}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
+                            temperatureFilter === option
+                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                              : 'text-coffee-cream hover:bg-coffee-brown/40'
+                          }`}
+                        >
+                          {option}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <label className="text-coffee-amber font-semibold text-sm">Milk Type:</label>
-                  <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
-                    {['All', 'Milk', 'Non-Milk'].map((option) => (
-                      <button
-                        key={option}
-                        onClick={() => setMilkFilter(option)}
-                        className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                          milkFilter === option
-                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                            : 'text-coffee-cream hover:bg-coffee-brown/40'
-                        }`}
-                      >
-                        {option === 'Milk' ? 'With Milk' : option}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    <label className="text-coffee-amber font-semibold text-sm">Milk Type:</label>
+                    <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
+                      {['All', 'Milk', 'Non-Milk'].map((option) => (
+                        <button
+                          key={option}
+                          onClick={() => setMilkFilter(option)}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
+                            milkFilter === option
+                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                              : 'text-coffee-cream hover:bg-coffee-brown/40'
+                          }`}
+                        >
+                          {option === 'Milk' ? 'With Milk' : option}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                </>
+              )}
+
+              {/* Price Sort - applies to all categories */}
+              <div className="flex items-center gap-2">
+                <label className="text-coffee-amber font-semibold text-sm">Price:</label>
+                <div className="flex gap-2 bg-coffee-darker/50 p-1 rounded-full border border-coffee-brown/30">
+                  {[
+                    { label: 'Default', value: 'None' },
+                    { label: 'Low → High', value: 'lowToHigh' },
+                    { label: 'High → Low', value: 'highToLow' },
+                  ].map((option) => (
+                    <button
+                      key={option.value}
+                      onClick={() => setPriceSort(option.value)}
+                      className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
+                        priceSort === option.value
+                          ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                          : 'text-coffee-cream hover:bg-coffee-brown/40'
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
                 </div>
               </div>
-            )}
+            </div>
 
             {/* Favorites Section */}
             {selectedCategory === 'Favorites' && favorites.length === 0 && (
