@@ -7,10 +7,11 @@ import Chatbot from '../components/Chatbot';
 import CoffeeDiscovery from '../components/CoffeeDiscovery';
 import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
+import DailyOffersPopup from '../components/DailyOffersPopup';
 import CoffeeLoader from '../components/CoffeeLoader';
-import { 
-  getCustomerSession, 
-  setCustomerSession, 
+import {
+  getCustomerSession,
+  setCustomerSession,
   isCustomerLoggedIn,
   getCustomerMobile
 } from '../utils/customerAuth';
@@ -57,7 +58,7 @@ const Order = () => {
       setCustomerMobile(session.mobile || '');
       setCustomerName(session.name || '');
       setCustomerEmail(session.email || '');
-      
+
       // Load favorites from server
       loadFavoritesFromServer(session.mobile);
     } else {
@@ -69,7 +70,7 @@ const Order = () => {
   // Load favorites from server
   const loadFavoritesFromServer = async (mobile) => {
     if (!mobile) return;
-    
+
     try {
       const response = await api.get(`/customers/${mobile}/favorites`);
       if (response.data.favorites) {
@@ -119,13 +120,13 @@ const Order = () => {
     const newFavorites = isFavorite
       ? favorites.filter(id => id !== itemId)
       : [...favorites, itemId];
-    
+
     const customerMobile = getCustomerMobile();
-    
+
     // Update local state immediately
     setFavorites(newFavorites);
     localStorage.setItem('rabuste_favorites', JSON.stringify(newFavorites));
-    
+
     // Update server
     if (customerMobile) {
       try {
@@ -146,17 +147,17 @@ const Order = () => {
   const handleLoginSuccess = async (customer) => {
     // Update session
     setCustomerSession(customer);
-    
+
     // Pre-fill customer info
     setCustomerMobile(customer.mobile || '');
     setCustomerName(customer.name || '');
     setCustomerEmail(customer.email || '');
-    
+
     // Load favorites from server
     if (customer.mobile) {
       await loadFavoritesFromServer(customer.mobile);
     }
-    
+
     // If login was triggered by favorite action, complete it
     if (loginForFavorite) {
       const itemId = loginForFavorite;
@@ -166,14 +167,14 @@ const Order = () => {
         toggleFavorite(itemId, true);
       }, 100);
     }
-    
+
     setShowLoginModal(false);
   };
 
   // Add to cart
   const addToCart = (item, priceType = 'Standard') => {
     let price = 0;
-    
+
     if (item.category === 'Coffee') {
       if (priceType === 'Robusta Special' && item.priceRobustaSpecial > 0) {
         price = item.priceRobustaSpecial;
@@ -214,7 +215,7 @@ const Order = () => {
 
     // Show "Added" state on button
     setRecentlyAdded(prev => new Set([...prev, itemKey]));
-    
+
     // Show toast notification
     toast.success(`${item.name} added`);
 
@@ -262,7 +263,7 @@ const Order = () => {
         setBillingSettings({ cgstRate: 2.5, sgstRate: 2.5 });
       }
     };
-    
+
     const fetchOffers = async () => {
       try {
         const response = await api.get('/billing/offers/active');
@@ -271,49 +272,49 @@ const Order = () => {
         console.error('Error fetching offers:', error);
       }
     };
-    
+
     fetchBillingSettings();
     fetchOffers();
   }, []);
-  
+
   // Check if an offer is applicable to current cart
   const isOfferApplicable = useCallback((offer) => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Check minimum order amount
     if (offer.minOrderAmount && subtotal < offer.minOrderAmount) {
       return false;
     }
-    
+
     // Check category restrictions
     if (offer.applicableCategories && offer.applicableCategories.length > 0) {
       const itemCategories = cart.map(item => item.category || 'Coffee');
       const hasMatchingCategory = itemCategories.some(cat => offer.applicableCategories.includes(cat));
       if (!hasMatchingCategory) return false;
     }
-    
+
     // Check item restrictions
     if (offer.applicableItems && offer.applicableItems.length > 0) {
       const itemIds = cart.map(item => item.itemId?.toString());
-      const hasMatchingItem = offer.applicableItems.some(offerItemId => 
+      const hasMatchingItem = offer.applicableItems.some(offerItemId =>
         itemIds.includes(offerItemId.toString())
       );
       if (!hasMatchingItem) return false;
     }
-    
+
     return true;
   }, [cart]);
-  
+
   // Get applicable offers
   const applicableOffers = offers.filter(offer => isOfferApplicable(offer));
-  
+
   // Reset selected offer if it's no longer applicable
   useEffect(() => {
     if (selectedOffer && !isOfferApplicable(selectedOffer)) {
       setSelectedOffer(null);
     }
   }, [selectedOffer, isOfferApplicable]);
-  
+
   // Auto-apply best applicable offer when cart changes
   useEffect(() => {
     if (cart.length === 0) {
@@ -324,20 +325,20 @@ const Order = () => {
     // Find the best applicable offer (highest priority, then highest discount)
     const bestOffer = applicableOffers.reduce((best, current) => {
       if (!best) return current;
-      
+
       // Compare by priority first
       if (current.priority !== best.priority) {
         return current.priority > best.priority ? current : best;
       }
-      
+
       // If same priority, compare discount value
-      const currentDiscount = current.offerType === 'percentage' 
+      const currentDiscount = current.offerType === 'percentage'
         ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * current.discountValue / 100)
         : current.discountValue;
       const bestDiscount = best.offerType === 'percentage'
         ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * best.discountValue / 100)
         : best.discountValue;
-      
+
       return currentDiscount > bestDiscount ? current : best;
     }, null);
 
@@ -348,7 +349,7 @@ const Order = () => {
   // Calculate totals
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Calculate offer discount (auto-applied) - only on matching items
     let offerDiscountAmount = 0;
     if (selectedOffer) {
@@ -356,7 +357,7 @@ const Order = () => {
       const matchingItems = cart.filter(item => {
         // If offer has specific items, check if this item is in the list
         if (selectedOffer.applicableItems && selectedOffer.applicableItems.length > 0) {
-          return selectedOffer.applicableItems.some(offerItemId => 
+          return selectedOffer.applicableItems.some(offerItemId =>
             item.itemId?.toString() === offerItemId.toString()
           );
         }
@@ -367,10 +368,10 @@ const Order = () => {
         // If no restrictions, apply to all items
         return true;
       });
-      
+
       // Calculate subtotal for matching items only
       const matchingSubtotal = matchingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      
+
       if (selectedOffer.offerType === 'percentage') {
         offerDiscountAmount = (matchingSubtotal * selectedOffer.discountValue) / 100;
         if (selectedOffer.maxDiscountAmount && offerDiscountAmount > selectedOffer.maxDiscountAmount) {
@@ -380,37 +381,37 @@ const Order = () => {
         offerDiscountAmount = Math.min(selectedOffer.discountValue, matchingSubtotal);
       }
     }
-    
+
     // Calculate discounted subtotal
     const discountedSubtotal = Math.max(0, subtotal - offerDiscountAmount);
-    
+
     // Use billing settings if available, otherwise default to 2.5% each
     const cgstRate = billingSettings?.cgstRate || 2.5;
     const sgstRate = billingSettings?.sgstRate || 2.5;
-    
+
     // Tax calculation method
     const taxBase = billingSettings?.taxCalculationMethod === 'onSubtotal' ? subtotal : discountedSubtotal;
-    
+
     const cgstAmount = (taxBase * cgstRate) / 100;
     const sgstAmount = (taxBase * sgstRate) / 100;
     const tax = cgstAmount + sgstAmount;
     const total = discountedSubtotal + tax;
-    
+
     const estimatedPrepTime = cart.length > 0
       ? Math.max(...cart.map(item => item.prepTime)) + Math.ceil(cart.reduce((sum, item) => sum + item.quantity, 0) / 3)
       : 0;
-    
-    return { 
-      subtotal, 
-      offerDiscountAmount, 
+
+    return {
+      subtotal,
+      offerDiscountAmount,
       discountedSubtotal,
-      cgstRate, 
-      sgstRate, 
-      cgstAmount, 
-      sgstAmount, 
-      tax, 
-      total, 
-      estimatedPrepTime 
+      cgstRate,
+      sgstRate,
+      cgstAmount,
+      sgstAmount,
+      tax,
+      total,
+      estimatedPrepTime
     };
   };
 
@@ -495,7 +496,7 @@ const Order = () => {
       finalMobile = session.mobile || finalMobile;
       finalName = session.name || finalName;
       finalEmail = session.email || finalEmail;
-      
+
       // Update form fields to match session
       setCustomerMobile(finalMobile);
       setCustomerName(finalName);
@@ -524,7 +525,7 @@ const Order = () => {
           finalEmail = customer.email || finalEmail;
           setCustomerName(finalName);
           setCustomerEmail(finalEmail);
-          
+
           // Auto-login the user
           setCustomerSession(customer);
         } else {
@@ -562,7 +563,7 @@ const Order = () => {
 
     try {
       const { total } = calculateTotals();
-      
+
       // Create order first
       const orderData = {
         items: cart.map(item => ({
@@ -642,7 +643,7 @@ const Order = () => {
             color: '#FF8C00'
           },
           modal: {
-            ondismiss: function() {
+            ondismiss: function () {
               toast.warning('Payment cancelled. Your order has been created but payment is pending.');
             }
           }
@@ -689,7 +690,7 @@ const Order = () => {
         return favorites.includes(item._id);
       }
       if (item.category !== selectedCategory) return false;
-      
+
       // Apply temperature and milk filters only when Coffee category is selected
       if (selectedCategory === 'Coffee' && item.category === 'Coffee') {
         if (temperatureFilter !== 'All' && item.subcategory !== temperatureFilter) {
@@ -837,11 +838,10 @@ const Order = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === cat
-                      ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                      : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
+                    ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                    : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                    }`}
                 >
                   {cat === 'Favorites' ? `⭐ ${cat}` : cat}
                 </button>
@@ -860,11 +860,10 @@ const Order = () => {
                         <button
                           key={option}
                           onClick={() => setTemperatureFilter(option)}
-                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                            temperatureFilter === option
-                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                              : 'text-coffee-cream hover:bg-coffee-brown/40'
-                          }`}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${temperatureFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                            }`}
                         >
                           {option}
                         </button>
@@ -879,11 +878,10 @@ const Order = () => {
                         <button
                           key={option}
                           onClick={() => setMilkFilter(option)}
-                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                            milkFilter === option
-                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                              : 'text-coffee-cream hover:bg-coffee-brown/40'
-                          }`}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${milkFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                            }`}
                         >
                           {option === 'Milk' ? 'With Milk' : option}
                         </button>
@@ -905,11 +903,10 @@ const Order = () => {
                     <button
                       key={option.value}
                       onClick={() => setPriceSort(option.value)}
-                      className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                        priceSort === option.value
-                          ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                          : 'text-coffee-cream hover:bg-coffee-brown/40'
-                      }`}
+                      className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${priceSort === option.value
+                        ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                        : 'text-coffee-cream hover:bg-coffee-brown/40'
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -965,19 +962,18 @@ const Order = () => {
                         <p className="text-sm text-coffee-light mb-2 line-clamp-2">
                           {item.description}
                         </p>
-                        
+
                         {/* Strength and Flavor Notes for Coffee */}
                         {isCoffee && (
                           <div className="mb-3 space-y-1.5">
                             {item.strength && (
                               <div className="flex items-center gap-2">
                                 <span className="text-xs text-coffee-light/70">Strength:</span>
-                                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${
-                                  item.strength === 'Mild' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
+                                <span className={`text-xs px-2 py-0.5 rounded font-semibold ${item.strength === 'Mild' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                                   item.strength === 'Medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
-                                  item.strength === 'Strong' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
-                                  'bg-red-500/20 text-red-400 border border-red-500/30'
-                                }`}>
+                                    item.strength === 'Strong' ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' :
+                                      'bg-red-500/20 text-red-400 border border-red-500/30'
+                                  }`}>
                                   {item.strength}
                                 </span>
                               </div>
@@ -996,7 +992,7 @@ const Order = () => {
                             )}
                           </div>
                         )}
-                        
+
                         {/* Prices */}
                         <div className="mb-3">
                           {isCoffee ? (
@@ -1015,7 +1011,7 @@ const Order = () => {
                               )}
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                               <span className="text-xs text-coffee-light">Price:</span>
                               <span className="text-coffee-amber font-bold">₹{item.price.toFixed(2)}</span>
                             </div>
@@ -1030,11 +1026,10 @@ const Order = () => {
                           {isCoffee && hasBlend && (
                             <button
                               onClick={() => addToCart(item, 'Blend')}
-                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Blend`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Blend`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Blend`) ? '✓ Added' : 'Add Blend'}
                             </button>
@@ -1042,11 +1037,10 @@ const Order = () => {
                           {isCoffee && hasRobusta && (
                             <button
                               onClick={() => addToCart(item, 'Robusta Special')}
-                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Robusta Special`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Robusta Special`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Robusta Special`) ? '✓ Added' : 'Add Robusta'}
                             </button>
@@ -1054,11 +1048,10 @@ const Order = () => {
                           {!isCoffee && (
                             <button
                               onClick={() => addToCart(item)}
-                              className={`w-full px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Standard`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`w-full px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Standard`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Standard`) ? '✓ Added' : 'Add to Cart'}
                             </button>
@@ -1193,8 +1186,8 @@ const Order = () => {
                             <div className="mt-1">{selectedOffer.description}</div>
                           )}
                           <div className="mt-1 text-coffee-amber">
-                            {selectedOffer.offerType === 'percentage' 
-                              ? `${selectedOffer.discountValue}% OFF` 
+                            {selectedOffer.offerType === 'percentage'
+                              ? `${selectedOffer.discountValue}% OFF`
                               : `₹${selectedOffer.discountValue} OFF`}
                           </div>
                         </div>
@@ -1203,65 +1196,63 @@ const Order = () => {
 
                     {/* Customer Info */}
                     <div className="space-y-3 mb-4">
-                    <div>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          placeholder="Mobile number * (10 digits)"
-                          value={customerMobile}
-                          onChange={(e) => {
-                            setCustomerMobile(e.target.value);
-                            setMobileError('');
-                          }}
-                          className={`w-full bg-coffee-brown/40 border ${
-                            mobileError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2 text-sm pr-10`}
-                          maxLength={13}
-                        />
-                        {isLoadingCustomer && (
-                          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                            <div className="w-4 h-4 border-2 border-coffee-amber border-t-transparent rounded-full animate-spin"></div>
-                          </div>
+                      <div>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            placeholder="Mobile number * (10 digits)"
+                            value={customerMobile}
+                            onChange={(e) => {
+                              setCustomerMobile(e.target.value);
+                              setMobileError('');
+                            }}
+                            className={`w-full bg-coffee-brown/40 border ${mobileError ? 'border-red-500' : 'border-coffee-brown'
+                              } text-coffee-cream rounded-lg px-3 py-2 text-sm pr-10`}
+                            maxLength={13}
+                          />
+                          {isLoadingCustomer && (
+                            <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                              <div className="w-4 h-4 border-2 border-coffee-amber border-t-transparent rounded-full animate-spin"></div>
+                            </div>
+                          )}
+                        </div>
+                        {mobileError && (
+                          <p className="text-red-400 text-xs mt-1">{mobileError}</p>
+                        )}
+                        {customerMobile.length >= 10 && customerName && !isLoadingCustomer && (
+                          <p className="text-green-400 text-xs mt-1">✓ Customer details loaded</p>
                         )}
                       </div>
-                      {mobileError && (
-                        <p className="text-red-400 text-xs mt-1">{mobileError}</p>
-                      )}
-                      {customerMobile.length >= 10 && customerName && !isLoadingCustomer && (
-                        <p className="text-green-400 text-xs mt-1">✓ Customer details loaded</p>
-                      )}
-                    </div>
-                    <div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Your name *"
+                          value={customerName}
+                          onChange={(e) => {
+                            setCustomerName(e.target.value);
+                            setNameError('');
+                          }}
+                          className={`w-full bg-coffee-brown/40 border ${nameError ? 'border-red-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                        />
+                        {nameError && (
+                          <p className="text-red-400 text-xs mt-1">{nameError}</p>
+                        )}
+                      </div>
                       <input
-                        type="text"
-                        placeholder="Your name *"
-                        value={customerName}
-                        onChange={(e) => {
-                          setCustomerName(e.target.value);
-                          setNameError('');
-                        }}
-                        className={`w-full bg-coffee-brown/40 border ${
-                          nameError ? 'border-red-500' : 'border-coffee-brown'
-                        } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                        type="email"
+                        placeholder="Email for receipt (optional)"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
                       />
-                      {nameError && (
-                        <p className="text-red-400 text-xs mt-1">{nameError}</p>
-                      )}
-                    </div>
-                    <input
-                      type="email"
-                      placeholder="Email for receipt (optional)"
-                      value={customerEmail}
-                      onChange={(e) => setCustomerEmail(e.target.value)}
-                      className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                    />
-                    <textarea
-                      placeholder="Special instructions (optional)"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows="2"
-                      className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                    />
+                      <textarea
+                        placeholder="Special instructions (optional)"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows="2"
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
+                      />
                     </div>
 
                     {/* Payment Method Selection */}
@@ -1273,28 +1264,26 @@ const Order = () => {
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('online')}
-                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
-                            paymentMethod === 'online'
-                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
-                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                          }`}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${paymentMethod === 'online'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                            }`}
                         >
                           💳 Pay Online
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('counter')}
-                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
-                            paymentMethod === 'counter'
-                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
-                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                          }`}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${paymentMethod === 'counter'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                            }`}
                         >
                           🏪 Pay at Counter
                         </button>
                       </div>
                       <p className="text-xs text-coffee-light/70 mt-2">
-                        {paymentMethod === 'counter' 
+                        {paymentMethod === 'counter'
                           ? 'Order will be confirmed after payment at counter'
                           : 'Secure online payment via Razorpay'}
                       </p>
@@ -1340,12 +1329,10 @@ const Order = () => {
       <CustomerLoginModal
         isOpen={showLoginModal}
         onClose={() => {
-          // Only allow closing if user is logged in or if it was triggered by favorite action
-          if (isCustomerLoggedIn() || loginForFavorite) {
-            setShowLoginModal(false);
+          setShowLoginModal(false);
+          if (loginForFavorite) {
             setLoginForFavorite(null);
           }
-          // If user closes without logging in, they can still browse but will need to login to order
         }}
         onSuccess={handleLoginSuccess}
         requireName={false}
@@ -1365,7 +1352,7 @@ const Order = () => {
               onClick={() => setIsDiscoveryOpen(false)}
               className="fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
             />
-            
+
             {/* Sidebar Panel */}
             <motion.div
               initial={{ x: '100%' }}
@@ -1439,7 +1426,7 @@ const Order = () => {
               onClick={() => setShowMobileCart(false)}
               className="lg:hidden fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
             />
-            
+
             {/* Cart Drawer */}
             <motion.div
               initial={{ y: '100%' }}
@@ -1563,9 +1550,8 @@ const Order = () => {
                           setCustomerMobile(e.target.value);
                           setMobileError('');
                         }}
-                        className={`w-full bg-coffee-brown/40 border ${
-                          mobileError ? 'border-red-500' : 'border-coffee-brown'
-                        } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                        className={`w-full bg-coffee-brown/40 border ${mobileError ? 'border-red-500' : 'border-coffee-brown'
+                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
                         maxLength={13}
                       />
                       {mobileError && (
@@ -1579,9 +1565,8 @@ const Order = () => {
                           setCustomerName(e.target.value);
                           setNameError('');
                         }}
-                        className={`w-full bg-coffee-brown/40 border ${
-                          nameError ? 'border-red-500' : 'border-coffee-brown'
-                        } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                        className={`w-full bg-coffee-brown/40 border ${nameError ? 'border-red-500' : 'border-coffee-brown'
+                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
                       />
                       {nameError && (
                         <p className="text-red-400 text-xs">{nameError}</p>
@@ -1611,22 +1596,20 @@ const Order = () => {
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('online')}
-                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
-                            paymentMethod === 'online'
-                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
-                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                          }`}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${paymentMethod === 'online'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                            }`}
                         >
                           💳 Pay Online
                         </button>
                         <button
                           type="button"
                           onClick={() => setPaymentMethod('counter')}
-                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${
-                            paymentMethod === 'counter'
-                              ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
-                              : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                          }`}
+                          className={`flex-1 px-4 py-3 rounded-lg font-semibold transition-all ${paymentMethod === 'counter'
+                            ? 'bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker shadow-lg'
+                            : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                            }`}
                         >
                           🏪 Pay at Counter
                         </button>
@@ -1668,6 +1651,7 @@ const Order = () => {
       </AnimatePresence>
 
       <Chatbot />
+      <DailyOffersPopup />
     </div>
   );
 };

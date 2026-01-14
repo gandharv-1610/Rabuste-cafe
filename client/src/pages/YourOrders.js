@@ -4,9 +4,9 @@ import api from '../api/axios';
 import ReceiptModal from '../components/ReceiptModal';
 import Chatbot from '../components/Chatbot';
 import CustomerLoginModal from '../components/CustomerLoginModal';
-import { 
-  getCustomerSession, 
-  setCustomerSession, 
+import {
+  getCustomerSession,
+  setCustomerSession,
   isCustomerLoggedIn,
   getCustomerMobile
 } from '../utils/customerAuth';
@@ -54,7 +54,7 @@ const YourOrders = () => {
   // Fetch orders by mobile
   const fetchOrdersByMobile = async (mobileNumber) => {
     if (!mobileNumber) return;
-    
+
     setMobileError('');
     setLoading(true);
     try {
@@ -100,9 +100,9 @@ const YourOrders = () => {
         return;
       }
     }
-    
+
     setMobileError('');
-    
+
     if (!mobile || !mobile.trim()) {
       setMobileError('Please enter your mobile number');
       return;
@@ -155,7 +155,7 @@ const YourOrders = () => {
             Your Orders
           </h1>
           <p className="text-coffee-light">
-            {isCustomerLoggedIn() 
+            {isCustomerLoggedIn()
               ? `Viewing orders for ${getCustomerMobile()}`
               : 'Enter your mobile number to view your order history'}
           </p>
@@ -180,9 +180,8 @@ const YourOrders = () => {
                     handleFetchOrders();
                   }
                 }}
-                className={`w-full bg-coffee-brown/40 border ${
-                  mobileError ? 'border-red-500' : 'border-coffee-brown'
-                } text-coffee-cream rounded-lg px-4 py-3 text-lg`}
+                className={`w-full bg-coffee-brown/40 border ${mobileError ? 'border-red-500' : 'border-coffee-brown'
+                  } text-coffee-cream rounded-lg px-4 py-3 text-lg`}
                 maxLength={13}
               />
               {mobileError && (
@@ -243,15 +242,15 @@ const YourOrders = () => {
                     >
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-2">
-                            <h3 className="text-xl font-heading font-bold text-coffee-amber">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="text-xl font-heading font-bold text-coffee-amber whitespace-nowrap">
                               Order #{order.orderNumber}
                             </h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(order.status)}`}>
                               {order.status}
                             </span>
                             {order.tokenNumber > 0 && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-coffee-amber/20 text-coffee-amber border border-coffee-amber/50">
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-coffee-amber/20 text-coffee-amber border border-coffee-amber/50 whitespace-nowrap">
                                 Token: {order.tokenNumber}
                               </span>
                             )}
@@ -321,15 +320,15 @@ const YourOrders = () => {
                     >
                       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                         <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-2">
-                            <h3 className="text-xl font-heading font-bold text-coffee-amber">
+                          <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <h3 className="text-xl font-heading font-bold text-coffee-amber whitespace-nowrap">
                               Order #{order.orderNumber}
                             </h3>
-                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusColor(order.status)}`}>
+                            <span className={`px-3 py-1 rounded-full text-xs font-semibold border whitespace-nowrap ${getStatusColor(order.status)}`}>
                               {order.status}
                             </span>
                             {order.tokenNumber > 0 && (
-                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-coffee-amber/20 text-coffee-amber border border-coffee-amber/50">
+                              <span className="px-3 py-1 rounded-full text-xs font-semibold bg-coffee-amber/20 text-coffee-amber border border-coffee-amber/50 whitespace-nowrap">
                                 Token: {order.tokenNumber}
                               </span>
                             )}

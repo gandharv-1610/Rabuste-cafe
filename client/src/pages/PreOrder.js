@@ -9,10 +9,11 @@ import ReceiptModal from '../components/ReceiptModal';
 import CustomerLoginModal from '../components/CustomerLoginModal';
 import CoffeeLoader from '../components/CoffeeLoader';
 import OTPModal from '../components/OTPModal';
+import DailyOffersPopup from '../components/DailyOffersPopup';
 import { generateTimeSlots, isCafeOpen } from '../utils/timeSlots';
-import { 
-  getCustomerSession, 
-  setCustomerSession, 
+import {
+  getCustomerSession,
+  setCustomerSession,
   isCustomerLoggedIn,
   getCustomerMobile
 } from '../utils/customerAuth';
@@ -68,14 +69,14 @@ const PreOrder = () => {
     } else {
       setShowLoginModal(true);
     }
-    
+
     // Check cafe hours and generate time slots
     const open = isCafeOpen();
     setCafeOpen(open);
     if (open) {
       setTimeSlots(generateTimeSlots());
     }
-    
+
     // Fetch preorder settings
     const fetchPreorderSettings = async () => {
       try {
@@ -164,7 +165,7 @@ const PreOrder = () => {
     const newFavorites = favorites.includes(itemId)
       ? favorites.filter(id => id !== itemId)
       : [...favorites, itemId];
-    
+
     setFavorites(newFavorites);
     saveFavorites(newFavorites);
   };
@@ -184,7 +185,7 @@ const PreOrder = () => {
   // Add to cart
   const addToCart = (item, priceType = 'Standard') => {
     let price = 0;
-    
+
     if (item.category === 'Coffee') {
       if (priceType === 'Robusta Special' && item.priceRobustaSpecial > 0) {
         price = item.priceRobustaSpecial;
@@ -225,7 +226,7 @@ const PreOrder = () => {
 
     // Show "Added" state on button
     setRecentlyAdded(prev => new Set([...prev, itemKey]));
-    
+
     // Show toast notification
     toast.success(`${item.name} added`);
 
@@ -273,7 +274,7 @@ const PreOrder = () => {
         setBillingSettings({ cgstRate: 2.5, sgstRate: 2.5 });
       }
     };
-    
+
     const fetchOffers = async () => {
       try {
         const response = await api.get('/billing/offers/active');
@@ -282,49 +283,49 @@ const PreOrder = () => {
         console.error('Error fetching offers:', error);
       }
     };
-    
+
     fetchBillingSettings();
     fetchOffers();
   }, []);
-  
+
   // Check if an offer is applicable to current cart
   const isOfferApplicable = useCallback((offer) => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Check minimum order amount
     if (offer.minOrderAmount && subtotal < offer.minOrderAmount) {
       return false;
     }
-    
+
     // Check category restrictions
     if (offer.applicableCategories && offer.applicableCategories.length > 0) {
       const itemCategories = cart.map(item => item.category || 'Coffee');
       const hasMatchingCategory = itemCategories.some(cat => offer.applicableCategories.includes(cat));
       if (!hasMatchingCategory) return false;
     }
-    
+
     // Check item restrictions
     if (offer.applicableItems && offer.applicableItems.length > 0) {
       const itemIds = cart.map(item => item.itemId?.toString());
-      const hasMatchingItem = offer.applicableItems.some(offerItemId => 
+      const hasMatchingItem = offer.applicableItems.some(offerItemId =>
         itemIds.includes(offerItemId.toString())
       );
       if (!hasMatchingItem) return false;
     }
-    
+
     return true;
   }, [cart]);
-  
+
   // Get applicable offers
   const applicableOffers = offers.filter(offer => isOfferApplicable(offer));
-  
+
   // Reset selected offer if it's no longer applicable
   useEffect(() => {
     if (selectedOffer && !isOfferApplicable(selectedOffer)) {
       setSelectedOffer(null);
     }
   }, [selectedOffer, isOfferApplicable]);
-  
+
   // Auto-apply best applicable offer when cart changes
   useEffect(() => {
     if (cart.length === 0) {
@@ -335,20 +336,20 @@ const PreOrder = () => {
     // Find the best applicable offer (highest priority, then highest discount)
     const bestOffer = applicableOffers.reduce((best, current) => {
       if (!best) return current;
-      
+
       // Compare by priority first
       if (current.priority !== best.priority) {
         return current.priority > best.priority ? current : best;
       }
-      
+
       // If same priority, compare discount value
-      const currentDiscount = current.offerType === 'percentage' 
+      const currentDiscount = current.offerType === 'percentage'
         ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * current.discountValue / 100)
         : current.discountValue;
       const bestDiscount = best.offerType === 'percentage'
         ? (cart.reduce((sum, item) => sum + item.price * item.quantity, 0) * best.discountValue / 100)
         : best.discountValue;
-      
+
       return currentDiscount > bestDiscount ? current : best;
     }, null);
 
@@ -359,7 +360,7 @@ const PreOrder = () => {
   // Calculate totals
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    
+
     // Calculate offer discount (auto-applied) - only on matching items
     let offerDiscountAmount = 0;
     if (selectedOffer) {
@@ -367,7 +368,7 @@ const PreOrder = () => {
       const matchingItems = cart.filter(item => {
         // If offer has specific items, check if this item is in the list
         if (selectedOffer.applicableItems && selectedOffer.applicableItems.length > 0) {
-          return selectedOffer.applicableItems.some(offerItemId => 
+          return selectedOffer.applicableItems.some(offerItemId =>
             item.itemId?.toString() === offerItemId.toString()
           );
         }
@@ -378,10 +379,10 @@ const PreOrder = () => {
         // If no restrictions, apply to all items
         return true;
       });
-      
+
       // Calculate subtotal for matching items only
       const matchingSubtotal = matchingItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-      
+
       if (selectedOffer.offerType === 'percentage') {
         offerDiscountAmount = (matchingSubtotal * selectedOffer.discountValue) / 100;
         if (selectedOffer.maxDiscountAmount && offerDiscountAmount > selectedOffer.maxDiscountAmount) {
@@ -391,32 +392,32 @@ const PreOrder = () => {
         offerDiscountAmount = Math.min(selectedOffer.discountValue, matchingSubtotal);
       }
     }
-    
+
     // Calculate discounted subtotal
     const discountedSubtotal = Math.max(0, subtotal - offerDiscountAmount);
-    
+
     // Use billing settings if available, otherwise default to 2.5% each
     const cgstRate = billingSettings?.cgstRate || 2.5;
     const sgstRate = billingSettings?.sgstRate || 2.5;
-    
+
     // Tax calculation method
     const taxBase = billingSettings?.taxCalculationMethod === 'onSubtotal' ? subtotal : discountedSubtotal;
-    
+
     const cgstAmount = (taxBase * cgstRate) / 100;
     const sgstAmount = (taxBase * sgstRate) / 100;
     const tax = cgstAmount + sgstAmount;
     const total = discountedSubtotal + tax;
-    
-    return { 
-      subtotal, 
-      offerDiscountAmount, 
+
+    return {
+      subtotal,
+      offerDiscountAmount,
       discountedSubtotal,
-      cgstRate, 
-      sgstRate, 
-      cgstAmount, 
-      sgstAmount, 
-      tax, 
-      total 
+      cgstRate,
+      sgstRate,
+      cgstAmount,
+      sgstAmount,
+      tax,
+      total
     };
   };
 
@@ -485,10 +486,10 @@ const PreOrder = () => {
         otp,
         mobile: customerMobile.trim()
       });
-      
+
       setEmailVerified(true);
       setShowOTPModal(false);
-      
+
       // Update customer session
       const session = getCustomerSession();
       if (session) {
@@ -559,7 +560,7 @@ const PreOrder = () => {
 
     try {
       const { total } = calculateTotals();
-      
+
       // Find selected time slot details
       const slot = timeSlots.find(s => s.value === selectedTimeSlot);
       if (!slot) {
@@ -635,7 +636,7 @@ const PreOrder = () => {
           color: '#FF8C00'
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             toast.warning('Payment cancelled. Your pre-order has been created but payment is pending.');
           }
         }
@@ -675,7 +676,7 @@ const PreOrder = () => {
       if (selectedCategory === 'All') return true;
       if (selectedCategory === 'Favorites') return favorites.includes(item._id);
       if (item.category !== selectedCategory) return false;
-      
+
       if (selectedCategory === 'Coffee' && item.category === 'Coffee') {
         if (temperatureFilter !== 'All' && item.subcategory !== temperatureFilter) return false;
         if (milkFilter !== 'All' && item.milkType !== milkFilter) return false;
@@ -856,11 +857,10 @@ const PreOrder = () => {
                 <button
                   key={cat}
                   onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${
-                    selectedCategory === cat
-                      ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                      : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
-                  }`}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all ${selectedCategory === cat
+                    ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                    : 'bg-coffee-brown/40 text-coffee-cream hover:bg-coffee-brown/60'
+                    }`}
                 >
                   {cat === 'Favorites' ? `⭐ ${cat}` : cat}
                 </button>
@@ -879,11 +879,10 @@ const PreOrder = () => {
                         <button
                           key={option}
                           onClick={() => setTemperatureFilter(option)}
-                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                            temperatureFilter === option
-                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                              : 'text-coffee-cream hover:bg-coffee-brown/40'
-                          }`}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${temperatureFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                            }`}
                         >
                           {option}
                         </button>
@@ -898,11 +897,10 @@ const PreOrder = () => {
                         <button
                           key={option}
                           onClick={() => setMilkFilter(option)}
-                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                            milkFilter === option
-                              ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                              : 'text-coffee-cream hover:bg-coffee-brown/40'
-                          }`}
+                          className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${milkFilter === option
+                            ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                            : 'text-coffee-cream hover:bg-coffee-brown/40'
+                            }`}
                         >
                           {option === 'Milk' ? 'With Milk' : option}
                         </button>
@@ -924,11 +922,10 @@ const PreOrder = () => {
                     <button
                       key={option.value}
                       onClick={() => setPriceSort(option.value)}
-                      className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${
-                        priceSort === option.value
-                          ? 'bg-coffee-amber text-coffee-darker shadow-lg'
-                          : 'text-coffee-cream hover:bg-coffee-brown/40'
-                      }`}
+                      className={`px-4 py-1.5 rounded-full font-medium text-sm transition-all ${priceSort === option.value
+                        ? 'bg-coffee-amber text-coffee-darker shadow-lg'
+                        : 'text-coffee-cream hover:bg-coffee-brown/40'
+                        }`}
                     >
                       {option.label}
                     </button>
@@ -984,7 +981,7 @@ const PreOrder = () => {
                         <p className="text-sm text-coffee-light mb-2 line-clamp-2">
                           {item.description}
                         </p>
-                        
+
                         {/* Prices */}
                         <div className="mb-3">
                           {isCoffee ? (
@@ -1003,7 +1000,7 @@ const PreOrder = () => {
                               )}
                             </div>
                           ) : (
-                            <div className="flex items-center justify-between">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                               <span className="text-xs text-coffee-light">Price:</span>
                               <span className="text-coffee-amber font-bold">₹{item.price.toFixed(2)}</span>
                             </div>
@@ -1015,11 +1012,10 @@ const PreOrder = () => {
                           {isCoffee && hasBlend && (
                             <button
                               onClick={() => addToCart(item, 'Blend')}
-                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Blend`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Blend`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Blend`) ? '✓ Added' : 'Add Blend'}
                             </button>
@@ -1027,11 +1023,10 @@ const PreOrder = () => {
                           {isCoffee && hasRobusta && (
                             <button
                               onClick={() => addToCart(item, 'Robusta Special')}
-                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Robusta Special`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`flex-1 px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Robusta Special`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Robusta Special`) ? '✓ Added' : 'Add Robusta'}
                             </button>
@@ -1039,11 +1034,10 @@ const PreOrder = () => {
                           {!isCoffee && (
                             <button
                               onClick={() => addToCart(item)}
-                              className={`w-full px-3 py-1.5 rounded text-xs font-semibold transition-all ${
-                                recentlyAdded.has(`${item._id}-Standard`)
-                                  ? 'bg-green-500/30 text-green-400'
-                                  : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
-                              }`}
+                              className={`w-full px-3 py-1.5 rounded text-xs font-semibold transition-all ${recentlyAdded.has(`${item._id}-Standard`)
+                                ? 'bg-green-500/30 text-green-400'
+                                : 'bg-coffee-amber text-coffee-darker hover:bg-coffee-gold'
+                                }`}
                             >
                               {recentlyAdded.has(`${item._id}-Standard`) ? '✓ Added' : 'Add to Cart'}
                             </button>
@@ -1172,8 +1166,8 @@ const PreOrder = () => {
                             <div className="mt-1">{selectedOffer.description}</div>
                           )}
                           <div className="mt-1 text-coffee-amber">
-                            {selectedOffer.offerType === 'percentage' 
-                              ? `${selectedOffer.discountValue}% OFF` 
+                            {selectedOffer.offerType === 'percentage'
+                              ? `${selectedOffer.discountValue}% OFF`
                               : `₹${selectedOffer.discountValue} OFF`}
                           </div>
                         </div>
@@ -1207,83 +1201,80 @@ const PreOrder = () => {
 
                     {/* Customer Info */}
                     <div className="space-y-3 mb-4">
-                    <div>
-                      <div className="relative">
-                        <input
-                          type="tel"
-                          placeholder="Mobile number * (10 digits)"
-                          value={customerMobile}
-                          onChange={(e) => {
-                            setCustomerMobile(e.target.value);
-                            setMobileError('');
-                          }}
-                          className={`w-full bg-coffee-brown/40 border ${
-                            mobileError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
-                          maxLength={13}
-                        />
-                      </div>
-                      {mobileError && (
-                        <p className="text-red-400 text-xs mt-1">{mobileError}</p>
-                      )}
-                    </div>
-                    <div>
-                      <input
-                        type="text"
-                        placeholder="Your name *"
-                        value={customerName}
-                        onChange={(e) => {
-                          setCustomerName(e.target.value);
-                          setNameError('');
-                        }}
-                        className={`w-full bg-coffee-brown/40 border ${
-                          nameError ? 'border-red-500' : 'border-coffee-brown'
-                        } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
-                      />
-                      {nameError && (
-                        <p className="text-red-400 text-xs mt-1">{nameError}</p>
-                      )}
-                    </div>
-                    <div>
-                      <div className="flex gap-2">
-                        <input
-                          type="email"
-                          placeholder="Email * (for verification)"
-                          value={customerEmail}
-                          onChange={(e) => {
-                            setCustomerEmail(e.target.value);
-                            setEmailError('');
-                          }}
-                          className={`flex-1 bg-coffee-brown/40 border ${
-                            emailError ? 'border-red-500' : emailVerified ? 'border-green-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
-                        />
-                        {!emailVerified && customerEmail && (
-                          <button
-                            onClick={sendOTP}
-                            className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg text-xs font-semibold hover:bg-coffee-gold whitespace-nowrap"
-                          >
-                            Verify
-                          </button>
+                      <div>
+                        <div className="relative">
+                          <input
+                            type="tel"
+                            placeholder="Mobile number * (10 digits)"
+                            value={customerMobile}
+                            onChange={(e) => {
+                              setCustomerMobile(e.target.value);
+                              setMobileError('');
+                            }}
+                            className={`w-full bg-coffee-brown/40 border ${mobileError ? 'border-red-500' : 'border-coffee-brown'
+                              } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                            maxLength={13}
+                          />
+                        </div>
+                        {mobileError && (
+                          <p className="text-red-400 text-xs mt-1">{mobileError}</p>
                         )}
                       </div>
-                      {emailError && (
-                        <p className="text-red-400 text-xs mt-1">{emailError}</p>
-                      )}
-                      {emailVerified && (
-                        <p className="text-green-400 text-xs mt-1">✓ Email verified</p>
-                      )}
-                      {checkingEmailStatus && (
-                        <p className="text-coffee-light text-xs mt-1">Checking email status...</p>
-                      )}
-                    </div>
-                    <textarea
-                      placeholder="Special instructions (optional)"
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      rows="2"
-                      className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
-                    />
+                      <div>
+                        <input
+                          type="text"
+                          placeholder="Your name *"
+                          value={customerName}
+                          onChange={(e) => {
+                            setCustomerName(e.target.value);
+                            setNameError('');
+                          }}
+                          className={`w-full bg-coffee-brown/40 border ${nameError ? 'border-red-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                        />
+                        {nameError && (
+                          <p className="text-red-400 text-xs mt-1">{nameError}</p>
+                        )}
+                      </div>
+                      <div>
+                        <div className="flex gap-2">
+                          <input
+                            type="email"
+                            placeholder="Email * (for verification)"
+                            value={customerEmail}
+                            onChange={(e) => {
+                              setCustomerEmail(e.target.value);
+                              setEmailError('');
+                            }}
+                            className={`flex-1 bg-coffee-brown/40 border ${emailError ? 'border-red-500' : emailVerified ? 'border-green-500' : 'border-coffee-brown'
+                              } text-coffee-cream rounded-lg px-3 py-2 text-sm`}
+                          />
+                          {!emailVerified && customerEmail && (
+                            <button
+                              onClick={sendOTP}
+                              className="px-4 py-2 bg-coffee-amber text-coffee-darker rounded-lg text-xs font-semibold hover:bg-coffee-gold whitespace-nowrap"
+                            >
+                              Verify
+                            </button>
+                          )}
+                        </div>
+                        {emailError && (
+                          <p className="text-red-400 text-xs mt-1">{emailError}</p>
+                        )}
+                        {emailVerified && (
+                          <p className="text-green-400 text-xs mt-1">✓ Email verified</p>
+                        )}
+                        {checkingEmailStatus && (
+                          <p className="text-coffee-light text-xs mt-1">Checking email status...</p>
+                        )}
+                      </div>
+                      <textarea
+                        placeholder="Special instructions (optional)"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows="2"
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2 text-sm"
+                      />
                     </div>
                   </div>
 
@@ -1349,7 +1340,7 @@ const PreOrder = () => {
               onClick={() => setIsDiscoveryOpen(false)}
               className="fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
             />
-            
+
             {/* Sidebar Panel */}
             <motion.div
               initial={{ x: '100%' }}
@@ -1423,7 +1414,7 @@ const PreOrder = () => {
               onClick={() => setShowMobileCart(false)}
               className="lg:hidden fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
             />
-            
+
             {/* Cart Drawer */}
             <motion.div
               initial={{ y: '100%' }}
@@ -1573,9 +1564,8 @@ const PreOrder = () => {
                             setCustomerMobile(e.target.value);
                             setMobileError('');
                           }}
-                          className={`w-full bg-coffee-brown/40 border ${
-                            mobileError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                          className={`w-full bg-coffee-brown/40 border ${mobileError ? 'border-red-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
                           maxLength={13}
                         />
                         {mobileError && (
@@ -1591,9 +1581,8 @@ const PreOrder = () => {
                             setCustomerName(e.target.value);
                             setNameError('');
                           }}
-                          className={`w-full bg-coffee-brown/40 border ${
-                            nameError ? 'border-red-500' : 'border-coffee-brown'
-                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                          className={`w-full bg-coffee-brown/40 border ${nameError ? 'border-red-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
                         />
                         {nameError && (
                           <p className="text-red-400 text-xs mt-1">{nameError}</p>
@@ -1609,9 +1598,8 @@ const PreOrder = () => {
                               setCustomerEmail(e.target.value);
                               setEmailError('');
                             }}
-                            className={`flex-1 bg-coffee-brown/40 border ${
-                              emailError ? 'border-red-500' : emailVerified ? 'border-green-500' : 'border-coffee-brown'
-                            } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                            className={`flex-1 bg-coffee-brown/40 border ${emailError ? 'border-red-500' : emailVerified ? 'border-green-500' : 'border-coffee-brown'
+                              } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
                           />
                           {!emailVerified && customerEmail && (
                             <button
@@ -1661,6 +1649,7 @@ const PreOrder = () => {
       </AnimatePresence>
 
       <Chatbot />
+      <DailyOffersPopup />
     </div>
   );
 };
