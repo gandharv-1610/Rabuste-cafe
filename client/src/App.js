@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
+import FluidBackground from './components/FluidBackground';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -32,19 +33,15 @@ import heroLogo from './assets/rabuste-logo-horizontal.png';
 
 function AppContent() {
   const location = useLocation();
-  const isAdminLogin = location.pathname === '/admin/login';
+  const isAdminRoute = location.pathname.startsWith('/admin');
 
   return (
     <>
       <ScrollToTop />
-      {/* Crema Mesh Animated Background - only show on non-admin pages */}
-      {!isAdminLogin && (
-        <div className="mesh-background">
-          <div className="mesh-gradient"></div>
-        </div>
-      )}
-      
-      <div className="App min-h-screen flex flex-col w-full overflow-x-hidden relative">
+      {/* Fluid Background - only show on non-admin pages */}
+      {!isAdminRoute && <FluidBackground />}
+
+      <div className="App min-h-screen flex flex-col w-full overflow-x-hidden relative z-10">
         <Toaster
           position="top-center"
           toastOptions={{
@@ -86,7 +83,7 @@ function AppContent() {
             },
           }}
         />
-        {!isAdminLogin && <Navbar />}
+        {!isAdminRoute && <Navbar />}
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -127,7 +124,7 @@ function AppContent() {
             />
           </Routes>
         </main>
-        {!isAdminLogin && <Footer />}
+        {!isAdminRoute && <Footer />}
       </div>
     </>
   );
