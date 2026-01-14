@@ -315,7 +315,7 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 
 ### Prerequisites
 
-- **Node.js** (v14 or higher)
+- **Node.js** (v18 LTS recommended, v16+ supported)
 - **MongoDB** (local installation or MongoDB Atlas account)
 - **Google Gemini API Key** (Get from [Google AI Studio](https://makersuite.google.com/app/apikey))
 - **Cloudinary Account** (for media storage - [Sign up](https://cloudinary.com))
@@ -327,10 +327,17 @@ See [SETUP.md](./SETUP.md) for detailed setup instructions.
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd coffee
+   cd Rabuste-Coffee-Codexa   # or the folder name of your cloned repo
    ```
 
 2. **Install dependencies**
+
+   Using the helper script (recommended):
+   ```bash
+   npm run install-all
+   ```
+
+   Or manually:
    ```bash
    npm install
    cd server && npm install
@@ -684,6 +691,10 @@ For detailed refund troubleshooting, see [REFUND_TROUBLESHOOTING.md](./REFUND_TR
 
 ### Root Scripts
 - `npm run dev` - Start both frontend and backend concurrently
+- `npm run server` - Start only the backend (development)
+- `npm run client` - Start only the frontend (development)
+- `npm run install-all` - Install root, server, and client dependencies in one command
+- `npm run build` - Build the frontend for production (`client/build`)
 
 ## 🎯 Key Highlights
 

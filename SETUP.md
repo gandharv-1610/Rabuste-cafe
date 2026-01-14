@@ -4,7 +4,7 @@ Complete guide for setting up and running the Rabuste Coffee platform.
 
 ## 📋 Prerequisites
 
-- **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
+- **Node.js** (v18 LTS recommended, v16+ supported) - [Download](https://nodejs.org/)
 - **MongoDB** - Local installation or MongoDB Atlas account
 - **Google Gemini API Key** - [Get from Google AI Studio](https://makersuite.google.com/app/apikey)
 - **Cloudinary Account** - [Sign up](https://cloudinary.com) (free tier available)
@@ -13,6 +13,15 @@ Complete guide for setting up and running the Rabuste Coffee platform.
 - **Google Cloud Account** - For Maps and Places API (optional but recommended)
 
 ## 🚀 Step 1: Install Dependencies
+
+You can install everything with a single command (recommended), or run the individual installs.
+
+```bash
+# From the project root
+npm run install-all
+```
+
+Or, run the steps manually:
 
 ```bash
 # Install root dependencies
