@@ -227,10 +227,11 @@ const About = () => {
             Our Journey
           </h2>
           
-          <div className="relative px-4 md:px-0">
+          <div className="relative px-2 sm:px-4 md:px-0">
             {/* Timeline Line */}
-            <div className="absolute left-6 sm:left-8 md:left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-coffee-amber/50 via-coffee-amber/30 to-transparent transform md:-translate-x-1/2"></div>
-            
+            <div className="hidden md:block absolute left-1/2 top-0 bottom-0 w-0.5 bg-gradient-to-b from-coffee-amber/50 via-coffee-amber/30 to-transparent transform -translate-x-1/2 pointer-events-none"></div>
+            <div className="md:hidden absolute left-4 top-0 bottom-0 w-0.5 bg-gradient-to-b from-coffee-amber/50 via-coffee-amber/30 to-transparent pointer-events-none"></div>
+
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -242,21 +243,39 @@ const About = () => {
                 <motion.div
                   key={idx}
                   variants={itemVariants}
-                  className="relative flex items-start md:items-center"
-                  style={{
-                    flexDirection: idx % 2 === 0 ? 'row' : 'row-reverse',
-                  }}
+                  className={`relative flex md:items-center ${
+                    idx % 2 === 0 ? 'md:flex-row' : 'md:flex-row-reverse'
+                  }`}
                 >
-                  {/* Timeline Dot */}
-                  <div className="absolute left-6 sm:left-8 md:left-1/2 w-3 h-3 sm:w-4 sm:h-4 bg-coffee-amber rounded-full border-2 sm:border-4 border-coffee-darker transform md:-translate-x-1/2 z-10"></div>
-                  
-                  {/* Content Card */}
-                  <div className={`ml-12 sm:ml-16 md:ml-0 md:w-5/12 ${idx % 2 === 0 ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'}`}>
-                    <div className="modern-card p-4 sm:p-6 md:p-8">
-                      <h3 className="text-xl sm:text-2xl font-heading font-semibold text-coffee-amber mb-2 md:mb-3">
+                  {/* Mobile: dot + card in row */}
+                  <div className="flex md:hidden w-full items-start gap-4 pl-2">
+                    <div className="relative flex-shrink-0 pt-2">
+                      <div className="w-3 h-3 bg-coffee-amber rounded-full border-2 border-coffee-darker"></div>
+                    </div>
+                    <div className="flex-1">
+                      <div className="modern-card p-4">
+                        <h3 className="text-lg sm:text-xl font-heading font-semibold text-coffee-amber mb-1.5">
+                          {point.title}
+                        </h3>
+                        <p className="text-sm sm:text-base text-coffee-light leading-relaxed">
+                          {point.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Desktop / tablet layout */}
+                  <div className="hidden md:block absolute left-1/2 w-4 h-4 bg-coffee-amber rounded-full border-4 border-coffee-darker transform -translate-x-1/2 z-10"></div>
+                  <div
+                    className={`hidden md:block md:w-5/12 ${
+                      idx % 2 === 0 ? 'md:mr-auto md:pr-8' : 'md:ml-auto md:pl-8'
+                    }`}
+                  >
+                    <div className="modern-card p-6 md:p-8">
+                      <h3 className="text-2xl font-heading font-semibold text-coffee-amber mb-3">
                         {point.title}
                       </h3>
-                      <p className="text-sm sm:text-base text-coffee-light leading-relaxed">
+                      <p className="text-base text-coffee-light leading-relaxed">
                         {point.content}
                       </p>
                     </div>
