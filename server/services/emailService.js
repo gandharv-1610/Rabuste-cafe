@@ -352,7 +352,7 @@ const sendArtEnquiryConfirmationEmail = async (enquiry, art) => {
 const sendCoffeeAnnouncementEmail = async (customer, coffee) => {
   const customerName = customer.name || 'Coffee Lover';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const menuUrl = `${frontendUrl}/menu`;
+  const menuUrl = `${frontendUrl}/coffee`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
@@ -403,9 +403,6 @@ const sendCoffeeAnnouncementEmail = async (customer, coffee) => {
       </div>
       <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
         <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
-        <p style="margin-top: 8px;">
-          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
-        </p>
       </div>
     </div>
   `;
@@ -427,7 +424,7 @@ const sendCoffeeAnnouncementEmail = async (customer, coffee) => {
 const sendOfferAnnouncementEmail = async (customer, offer) => {
   const customerName = customer.name || 'Coffee Lover';
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const menuUrl = `${frontendUrl}/menu`;
+  const menuUrl = `${frontendUrl}/coffee`;
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -502,9 +499,6 @@ const sendOfferAnnouncementEmail = async (customer, offer) => {
       </div>
       <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
         <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
-        <p style="margin-top: 8px;">
-          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
-        </p>
       </div>
     </div>
   `;
@@ -589,9 +583,6 @@ const sendWorkshopAnnouncementEmail = async (customer, workshop) => {
       </div>
       <div style="text-align: center; margin-top: 30px; color: #BCAAA4; font-size: 12px;">
         <p>© ${new Date().getFullYear()} Rabuste Coffee. All rights reserved.</p>
-        <p style="margin-top: 8px;">
-          <a href="${frontendUrl}/unsubscribe" style="color: #BCAAA4; text-decoration: underline;">Unsubscribe</a>
-        </p>
       </div>
     </div>
   `;
@@ -774,7 +765,7 @@ const sendPreOrderCancellationEmail = async (order) => {
 // Send Art Order Confirmation Email (after payment)
 const sendArtOrderConfirmationEmail = async (order, artwork) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const trackOrderUrl = `${frontendUrl}/track-order?orderId=${order.orderNumber}&email=${encodeURIComponent(order.email)}`;
+  const trackOrderUrl = `${frontendUrl}/my-art-orders`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
@@ -844,7 +835,7 @@ const sendArtOrderConfirmationEmail = async (order, artwork) => {
 // Send Art Order Confirmed Email (after admin approval)
 const sendArtOrderConfirmedEmail = async (order, artwork) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const trackOrderUrl = `${frontendUrl}/track-order?orderId=${order.orderNumber}&email=${encodeURIComponent(order.email)}`;
+  const trackOrderUrl = `${frontendUrl}/my-art-orders`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
@@ -1006,7 +997,7 @@ const sendArtistRequestConfirmationEmail = async (request) => {
 // Send Artist Approval Email
 const sendArtistApprovalEmail = async (request, artwork) => {
   const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-  const artGalleryUrl = `${frontendUrl}/art-gallery`;
+  const artGalleryUrl = `${frontendUrl}/art`;
 
   const html = `
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #2C1810; color: #EFEBE9;">
