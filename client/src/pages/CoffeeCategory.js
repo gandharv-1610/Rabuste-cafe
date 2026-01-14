@@ -12,6 +12,7 @@ const CoffeeCategory = () => {
   const [subcategoryFilter, setSubcategoryFilter] = useState('All'); // All, Hot, Cold
   const [milkFilter, setMilkFilter] = useState('All'); // All, Milk, Non-Milk
   const [flippedCards, setFlippedCards] = useState(new Set());
+  const [priceSort, setPriceSort] = useState('None'); // None, lowToHigh, highToLow
 
   useEffect(() => {
     fetchCoffees();
@@ -28,8 +29,30 @@ const CoffeeCategory = () => {
       filtered = filtered.filter(coffee => coffee.milkType === milkFilter);
     }
 
+    // Helper to determine base price for sorting (min of available prices)
+    const getCoffeeBasePrice = (coffee) => {
+      const prices = [];
+      if (coffee.priceBlend && parseFloat(coffee.priceBlend) > 0) {
+        prices.push(parseFloat(coffee.priceBlend));
+      }
+      if (coffee.priceRobustaSpecial && parseFloat(coffee.priceRobustaSpecial) > 0) {
+        prices.push(parseFloat(coffee.priceRobustaSpecial));
+      }
+      if (prices.length === 0) return Number.MAX_VALUE;
+      return Math.min(...prices);
+    };
+
+    if (priceSort === 'lowToHigh' || priceSort === 'highToLow') {
+      filtered = [...filtered].sort((a, b) => {
+        const priceA = getCoffeeBasePrice(a);
+        const priceB = getCoffeeBasePrice(b);
+        if (priceA === priceB) return 0;
+        return priceSort === 'lowToHigh' ? priceA - priceB : priceB - priceA;
+      });
+    }
+
     setFilteredCoffees(filtered);
-  }, [coffees, subcategoryFilter, milkFilter]);
+  }, [coffees, subcategoryFilter, milkFilter, priceSort]);
 
   useEffect(() => {
     filterCoffees();
@@ -116,6 +139,30 @@ const CoffeeCategory = () => {
                     }`}
                   >
                     {option === 'Milk' ? 'With Milk' : option}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Price Sort */}
+            <div className="flex flex-col items-center gap-3">
+              <label className="text-coffee-amber font-semibold text-sm uppercase tracking-wide">Price</label>
+              <div className="flex gap-2 bg-coffee-darker/50 p-1.5 rounded-full border border-coffee-brown/30">
+                {[
+                  { label: 'Default', value: 'None' },
+                  { label: 'Low → High', value: 'lowToHigh' },
+                  { label: 'High → Low', value: 'highToLow' },
+                ].map((option) => (
+                  <button
+                    key={option.value}
+                    onClick={() => setPriceSort(option.value)}
+                    className={`px-4 py-2 rounded-full font-medium text-sm transition-all duration-300 ${
+                      priceSort === option.value
+                        ? 'bg-coffee-amber text-coffee-darker shadow-lg shadow-coffee-amber/30 scale-105'
+                        : 'text-coffee-cream hover:bg-coffee-brown/40 hover:text-coffee-amber'
+                    }`}
+                  >
+                    {option.label}
                   </button>
                 ))}
               </div>
