@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AnimatePresence, motion } from 'framer-motion';
 import Navbar from './components/Navbar';
@@ -30,74 +30,21 @@ import AdminLogin from './pages/AdminLogin';
 import './App.css';
 import heroLogo from './assets/rabuste-logo-horizontal.png';
 
-function App() {
-  const [isAppLoading, setIsAppLoading] = useState(true);
-
-  useEffect(() => {
-    const handleLoad = () => {
-      // Small delay so the transition feels smooth
-      setTimeout(() => setIsAppLoading(false), 400);
-    };
-
-    if (document.readyState === 'complete') {
-      handleLoad();
-    } else {
-      window.addEventListener('load', handleLoad);
-    }
-
-    return () => {
-      window.removeEventListener('load', handleLoad);
-    };
-  }, []);
+function AppContent() {
+  const location = useLocation();
+  const isAdminLogin = location.pathname === '/admin/login';
 
   return (
-    <Router>
+    <>
       <ScrollToTop />
-      {/* Crema Mesh Animated Background */}
-      <div className="mesh-background">
-        <div className="mesh-gradient"></div>
-      </div>
+      {/* Crema Mesh Animated Background - only show on non-admin pages */}
+      {!isAdminLogin && (
+        <div className="mesh-background">
+          <div className="mesh-gradient"></div>
+        </div>
+      )}
       
       <div className="App min-h-screen flex flex-col w-full overflow-x-hidden relative">
-        {/* Global splash loader for first paint with logo handoff */}
-        <AnimatePresence>
-          {isAppLoading && (
-            <motion.div
-              className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#050203] overflow-hidden"
-              initial={{ opacity: 1 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.5, ease: 'easeInOut' }}
-            >
-              <div className="splash-amber-bg" />
-              <motion.img
-                layoutId="rabuste-hero-logo"
-                src={heroLogo}
-                alt="Rabuste Coffee"
-                className="relative w-40 md:w-56 object-contain mb-8 drop-shadow-[0_0_25px_rgba(0,0,0,0.9)]"
-                initial={{ scale: 1.05 }}
-                animate={{ scale: 1 }}
-                exit={{ scale: 0.4, y: -40 }}
-                transition={{ duration: 0.6, ease: 'easeInOut' }}
-              />
-              <motion.div
-                className="relative flex flex-col items-center gap-3"
-                initial={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.4 }}
-              >
-                <div className="coffee-loader-dots">
-                  <span className="coffee-loader-dot" />
-                  <span className="coffee-loader-dot" />
-                  <span className="coffee-loader-dot" />
-                </div>
-                <p className="text-xs uppercase tracking-[0.25em] text-coffee-amber/80">
-                  Brewing your experience
-                </p>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
         <Toaster
           position="top-center"
           toastOptions={{
@@ -139,7 +86,7 @@ function App() {
             },
           }}
         />
-        <Navbar />
+        {!isAdminLogin && <Navbar />}
         <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
@@ -180,8 +127,74 @@ function App() {
             />
           </Routes>
         </main>
-        <Footer />
+        {!isAdminLogin && <Footer />}
       </div>
+    </>
+  );
+}
+
+function App() {
+  const [isAppLoading, setIsAppLoading] = useState(true);
+
+  useEffect(() => {
+    const handleLoad = () => {
+      // Small delay so the transition feels smooth
+      setTimeout(() => setIsAppLoading(false), 400);
+    };
+
+    if (document.readyState === 'complete') {
+      handleLoad();
+    } else {
+      window.addEventListener('load', handleLoad);
+    }
+
+    return () => {
+      window.removeEventListener('load', handleLoad);
+    };
+  }, []);
+
+  return (
+    <Router>
+      {/* Global splash loader for first paint with logo handoff */}
+      <AnimatePresence>
+        {isAppLoading && (
+          <motion.div
+            className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-[#050203] overflow-hidden"
+            initial={{ opacity: 1 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.5, ease: 'easeInOut' }}
+          >
+            <div className="splash-amber-bg" />
+            <motion.img
+              layoutId="rabuste-hero-logo"
+              src={heroLogo}
+              alt="Rabuste Coffee"
+              className="relative w-40 md:w-56 object-contain mb-8 drop-shadow-[0_0_25px_rgba(0,0,0,0.9)]"
+              initial={{ scale: 1.05 }}
+              animate={{ scale: 1 }}
+              exit={{ scale: 0.4, y: -40 }}
+              transition={{ duration: 0.6, ease: 'easeInOut' }}
+            />
+            <motion.div
+              className="relative flex flex-col items-center gap-3"
+              initial={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.4 }}
+            >
+              <div className="coffee-loader-dots">
+                <span className="coffee-loader-dot" />
+                <span className="coffee-loader-dot" />
+                <span className="coffee-loader-dot" />
+              </div>
+              <p className="text-xs uppercase tracking-[0.25em] text-coffee-amber/80">
+                Brewing your experience
+              </p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AppContent />
     </Router>
   );
 }
