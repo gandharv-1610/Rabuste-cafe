@@ -22,6 +22,7 @@ const CoffeeMenu = () => {
   const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true);
   const [offers, setOffers] = useState([]);
   const [activeCardId, setActiveCardId] = useState(null);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const categoryRefs = {
     coffee: useRef(null),
     shakes: useRef(null),
@@ -613,8 +614,8 @@ const CoffeeMenu = () => {
         </div>
       </section>
 
-      <Chatbot />
-      <DailyOffersPopup />
+      <Chatbot onOpenChange={setIsChatbotOpen} />
+      {!isChatbotOpen && <DailyOffersPopup />}
     </div>
   );
 };
