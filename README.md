@@ -724,9 +724,3 @@ This project is open source and available for educational purposes.
 Built with ❤️ for **Rabuste Coffee** - Celebrating Bold Robusta Coffee × Art × Technology
 
 ---
-
-**Note**: This is a production-ready project with proper authentication, error handling, and security measures. Always change default admin credentials and use strong secrets in production.
-
-For setup instructions, see [SETUP.md](./SETUP.md)
-
-For troubleshooting, see [TROUBLESHOOTING.md](./TROUBLESHOOTING.md)
