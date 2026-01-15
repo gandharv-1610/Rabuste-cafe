@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import api from '../api/axios';
 
-const Chatbot = () => {
+const Chatbot = (props) => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
@@ -23,6 +23,12 @@ const Chatbot = () => {
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
+
+  useEffect(() => {
+    if (props.onOpenChange) {
+      props.onOpenChange(isOpen);
+    }
+  }, [isOpen, props]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -44,7 +50,7 @@ const Chatbot = () => {
       });
 
       const botResponse = response.data.response;
-      
+
       // Check if response includes navigation instruction
       if (response.data.navigateTo) {
         setMessages((prev) => [
@@ -136,11 +142,10 @@ const Chatbot = () => {
                   className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
                 >
                   <div
-                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
-                      msg.role === 'user'
-                        ? 'bg-coffee-amber text-coffee-darker'
-                        : 'bg-coffee-brown text-coffee-cream'
-                    }`}
+                    className={`max-w-[80%] rounded-lg px-4 py-2 ${msg.role === 'user'
+                      ? 'bg-coffee-amber text-coffee-darker'
+                      : 'bg-coffee-brown text-coffee-cream'
+                      }`}
                   >
                     <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                   </div>
@@ -175,9 +180,22 @@ const Chatbot = () => {
                 <button
                   onClick={handleSend}
                   disabled={isLoading || !input.trim()}
-                  className="bg-coffee-amber text-coffee-darker px-4 py-2 rounded-lg hover:bg-coffee-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="bg-coffee-amber text-coffee-darker px-3 py-2 rounded-lg hover:bg-coffee-gold disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
+                  aria-label="Send message"
                 >
-                  Send
+                  <svg
+                    className="w-5 h-5 transform rotate-90"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"
+                    />
+                  </svg>
                 </button>
               </div>
             </div>
