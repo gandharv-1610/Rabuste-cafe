@@ -1397,7 +1397,7 @@ const Order = () => {
           initial={{ scale: 0 }}
           animate={{ scale: 1 }}
           onClick={() => setShowMobileCart(true)}
-          className="lg:hidden fixed bottom-24 right-4 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          className="lg:hidden fixed bottom-40 right-4 z-50 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
           style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.4)' }}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

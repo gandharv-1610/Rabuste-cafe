@@ -367,7 +367,7 @@ const CoffeeMenu = () => {
       {!isDiscoveryOpen && (
         <button
           onClick={() => setIsDiscoveryOpen(true)}
-          className="fixed right-4 md:right-6 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker px-4 md:px-6 py-3 md:py-4 rounded-l-full rounded-r-full shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center gap-2 md:gap-3 font-bold text-sm md:text-base group"
+          className="fixed right-2 md:right-4 top-1/2 -translate-y-1/2 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker px-4 md:px-6 py-3 md:py-4 rounded-l-full rounded-r-full shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center gap-2 md:gap-3 font-bold text-sm md:text-base group"
           style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.3)' }}
         >
           <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
