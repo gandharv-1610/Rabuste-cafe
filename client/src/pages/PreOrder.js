@@ -54,6 +54,7 @@ const PreOrder = () => {
   const [cartShake, setCartShake] = useState(0);
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false); // AI Discovery modal state
   const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true); // Show promotional banner
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false); // Chatbot open state
   const [showMobileCart, setShowMobileCart] = useState(false); // Mobile cart drawer state
   const cartRef = useRef(null);
 
@@ -956,7 +957,7 @@ const PreOrder = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-coffee-brown/30 rounded-lg p-4 border border-coffee-brown/50 hover:border-coffee-amber/50 transition-all"
                   >
-                    <div className="flex gap-4">
+                    <div className={`flex gap-4 ${isCoffee ? 'flex-col sm:flex-row' : ''}`}>
                       {(item.image || item.cloudinary_url) && (
                         <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-coffee-brown/40">
                           <img
@@ -987,13 +988,13 @@ const PreOrder = () => {
                           {isCoffee ? (
                             <div className="flex flex-col gap-1">
                               {hasBlend && (
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
                                   <span className="text-xs text-coffee-light">Blend:</span>
                                   <span className="text-coffee-amber font-bold">₹{item.priceBlend.toFixed(2)}</span>
                                 </div>
                               )}
                               {hasRobusta && (
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
                                   <span className="text-xs text-coffee-light">Robusta Special:</span>
                                   <span className="text-coffee-amber font-bold">₹{item.priceRobustaSpecial.toFixed(2)}</span>
                                 </div>
@@ -1008,7 +1009,7 @@ const PreOrder = () => {
                         </div>
 
                         {/* Add to Cart Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           {isCoffee && hasBlend && (
                             <button
                               onClick={() => addToCart(item, 'Blend')}
@@ -1299,12 +1300,12 @@ const PreOrder = () => {
               )}
             </motion.div>
           </div>
-        </div>
-      </div>
+        </div >
+      </div >
 
 
       {/* Login Modal */}
-      <CustomerLoginModal
+      < CustomerLoginModal
         isOpen={showLoginModal}
         onClose={() => {
           setShowLoginModal(false);
@@ -1319,7 +1320,7 @@ const PreOrder = () => {
       />
 
       {/* OTP Modal */}
-      <OTPModal
+      < OTPModal
         isOpen={showOTPModal}
         onClose={() => setShowOTPModal(false)}
         email={customerEmail}
@@ -1328,7 +1329,7 @@ const PreOrder = () => {
       />
 
       {/* Animated Discovery Sidebar */}
-      <AnimatePresence>
+      < AnimatePresence >
         {isDiscoveryOpen && (
           <>
             {/* Backdrop */}
@@ -1376,31 +1377,33 @@ const PreOrder = () => {
             </motion.div>
           </>
         )}
-      </AnimatePresence>
+      </AnimatePresence >
 
       {/* Floating Cart Button for Mobile */}
-      {cart.length > 0 && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          onClick={() => setShowMobileCart(true)}
-          className="lg:hidden fixed bottom-24 right-4 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
-          style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.4)' }}
-        >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-          </svg>
-          {cart.length > 0 && (
-            <motion.span
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
-              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
-            >
-              {cart.reduce((sum, item) => sum + item.quantity, 0)}
-            </motion.span>
-          )}
-        </motion.button>
-      )}
+      {
+        cart.length > 0 && (
+          <motion.button
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            onClick={() => setShowMobileCart(true)}
+            className="lg:hidden fixed bottom-24 right-4 z-40 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
+            style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.4)' }}
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            {cart.length > 0 && (
+              <motion.span
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
+              >
+                {cart.reduce((sum, item) => sum + item.quantity, 0)}
+              </motion.span>
+            )}
+          </motion.button>
+        )
+      }
 
       {/* Mobile Cart Drawer - Note: PreOrder has different structure, so we'll show a simplified version */}
       <AnimatePresence>
@@ -1648,9 +1651,9 @@ const PreOrder = () => {
         )}
       </AnimatePresence>
 
-      <Chatbot />
-      <DailyOffersPopup />
-    </div>
+      <Chatbot onOpenChange={setIsChatbotOpen} />
+      {!isChatbotOpen && <DailyOffersPopup />}
+    </div >
   );
 };
 
