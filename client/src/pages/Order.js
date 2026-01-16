@@ -47,6 +47,7 @@ const Order = () => {
   const [cartShake, setCartShake] = useState(0); // For cart shake animation
   const [isDiscoveryOpen, setIsDiscoveryOpen] = useState(false); // AI Discovery modal state
   const [showDiscoveryBanner, setShowDiscoveryBanner] = useState(true); // Show promotional banner
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false); // Chatbot open state
   const [showMobileCart, setShowMobileCart] = useState(false); // Mobile cart drawer state
   const cartRef = useRef(null);
 
@@ -937,7 +938,7 @@ const Order = () => {
                     animate={{ opacity: 1, y: 0 }}
                     className="bg-coffee-brown/30 rounded-lg p-4 border border-coffee-brown/50 hover:border-coffee-amber/50 transition-all"
                   >
-                    <div className="flex gap-4">
+                    <div className={`flex gap-4 ${isCoffee ? 'flex-col sm:flex-row' : ''}`}>
                       {(item.image || item.cloudinary_url) && (
                         <div className="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-coffee-brown/40">
                           <img
@@ -967,7 +968,7 @@ const Order = () => {
                         {isCoffee && (
                           <div className="mb-3 space-y-1.5">
                             {item.strength && (
-                              <div className="flex items-center gap-2">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-xs text-coffee-light/70">Strength:</span>
                                 <span className={`text-xs px-2 py-0.5 rounded font-semibold ${item.strength === 'Mild' ? 'bg-green-500/20 text-green-400 border border-green-500/30' :
                                   item.strength === 'Medium' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
@@ -998,13 +999,13 @@ const Order = () => {
                           {isCoffee ? (
                             <div className="flex flex-col gap-1">
                               {hasBlend && (
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
                                   <span className="text-xs text-coffee-light">Blend:</span>
                                   <span className="text-coffee-amber font-bold">₹{item.priceBlend.toFixed(2)}</span>
                                 </div>
                               )}
                               {hasRobusta && (
-                                <div className="flex items-center justify-between">
+                                <div className="flex flex-wrap items-center justify-between gap-1">
                                   <span className="text-xs text-coffee-light">Robusta Special:</span>
                                   <span className="text-coffee-amber font-bold">₹{item.priceRobustaSpecial.toFixed(2)}</span>
                                 </div>
@@ -1022,7 +1023,7 @@ const Order = () => {
                         </div>
 
                         {/* Add to Cart Buttons */}
-                        <div className="flex gap-2">
+                        <div className="flex flex-col sm:flex-row gap-2">
                           {isCoffee && hasBlend && (
                             <button
                               onClick={() => addToCart(item, 'Blend')}
@@ -1650,8 +1651,8 @@ const Order = () => {
         )}
       </AnimatePresence>
 
-      <Chatbot />
-      <DailyOffersPopup />
+      <Chatbot onOpenChange={setIsChatbotOpen} />
+      {!isChatbotOpen && <DailyOffersPopup />}
     </div>
   );
 };
