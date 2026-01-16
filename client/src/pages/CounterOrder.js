@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import toast from 'react-hot-toast';
 import api from '../api/axios';
 import ReceiptModal from '../components/ReceiptModal';
@@ -29,6 +29,7 @@ const CounterOrder = () => {
   const [selectedOffer, setSelectedOffer] = useState(null);
   const [recentlyAdded, setRecentlyAdded] = useState(new Set());
   const [cartShake, setCartShake] = useState(0);
+  const [showMobileCart, setShowMobileCart] = useState(false); // Mobile cart drawer state
   const cartRef = useRef(null);
 
   useEffect(() => {
@@ -792,6 +793,284 @@ const CounterOrder = () => {
           </div>
         </div>
       </div>
+
+      {/* Floating Cart Button for Mobile */}
+      {cart.length > 0 && (
+        <motion.button
+          initial={{ scale: 0 }}
+          animate={{ scale: 1 }}
+          onClick={() => setShowMobileCart(true)}
+          className="lg:hidden fixed bottom-40 right-4 z-50 bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker rounded-full p-4 shadow-2xl hover:shadow-coffee-amber/50 transition-all duration-300 hover:scale-110 flex items-center justify-center"
+          style={{ boxShadow: '0 10px 40px rgba(255, 140, 0, 0.4)' }}
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+          </svg>
+          {cart.length > 0 && (
+            <motion.span
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
+            >
+              {cart.reduce((sum, item) => sum + item.quantity, 0)}
+            </motion.span>
+          )}
+        </motion.button>
+      )}
+
+      {/* Mobile Cart Drawer */}
+      <AnimatePresence>
+        {showMobileCart && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowMobileCart(false)}
+              className="lg:hidden fixed inset-0 bg-coffee-darkest/80 backdrop-blur-sm z-50"
+            />
+
+            {/* Cart Drawer */}
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="lg:hidden fixed bottom-0 left-0 right-0 bg-coffee-darkest z-50 shadow-2xl rounded-t-3xl max-h-[85vh] flex flex-col"
+            >
+              {/* Header */}
+              <div className="sticky top-0 bg-coffee-darker border-b border-coffee-brown/30 p-4 flex items-center justify-between z-10 rounded-t-3xl">
+                <h2 className="text-xl font-heading font-bold text-coffee-amber flex items-center gap-2">
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  Counter Order ({cart.reduce((sum, item) => sum + item.quantity, 0)} items)
+                </h2>
+                <button
+                  onClick={() => setShowMobileCart(false)}
+                  className="p-2 rounded-full hover:bg-coffee-brown/30 text-coffee-light hover:text-coffee-amber transition-colors duration-200"
+                  aria-label="Close cart"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Cart Content - Scrollable */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {cart.length === 0 ? (
+                  <div className="text-center py-8 text-coffee-light">
+                    <p>Cart is empty</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Cart Items */}
+                    <div>
+                      <div className="text-sm text-coffee-light/70 mb-3 font-semibold">Cart Items ({cart.length})</div>
+                      <div className="space-y-2">
+                        {cart.map((item, idx) => (
+                          <div key={idx} className="bg-coffee-brown/40 rounded-lg p-3 border border-coffee-brown/30">
+                            <div className="flex items-start justify-between mb-2">
+                              <div className="flex-1 min-w-0 pr-2">
+                                <p className="text-sm font-semibold text-coffee-cream">{item.name}</p>
+                                {item.priceType !== 'Standard' && (
+                                  <p className="text-xs text-coffee-light/80">{item.priceType}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={() => removeFromCart(item.itemId, item.priceType)}
+                                className="text-coffee-light hover:text-red-400 flex-shrink-0 ml-2"
+                                title="Remove"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, -1)}
+                                  className="w-7 h-7 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown text-sm flex items-center justify-center"
+                                >
+                                  -
+                                </button>
+                                <span className="text-sm text-coffee-cream w-8 text-center">{item.quantity}</span>
+                                <button
+                                  onClick={() => updateQuantity(item.itemId, item.priceType, 1)}
+                                  className="w-7 h-7 rounded bg-coffee-brown/60 text-coffee-cream hover:bg-coffee-brown text-sm flex items-center justify-center"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="text-sm font-semibold text-coffee-amber">
+                                ₹{(item.price * item.quantity).toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Totals */}
+                    <div className="border-t border-coffee-brown/50 pt-4 space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">Subtotal:</span>
+                        <span className="text-coffee-cream">₹{subtotal.toFixed(2)}</span>
+                      </div>
+                      {offerDiscountAmount > 0 && (
+                        <>
+                          <div className="flex justify-between text-sm">
+                            <span className="text-coffee-light">Daily Offer ({selectedOffer?.name}):</span>
+                            <span className="text-green-400">-₹{offerDiscountAmount.toFixed(2)}</span>
+                          </div>
+                          <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
+                            <span className="text-coffee-light font-semibold">Discounted Subtotal:</span>
+                            <span className="text-coffee-cream font-semibold">₹{discountedSubtotal.toFixed(2)}</span>
+                          </div>
+                        </>
+                      )}
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">CGST ({cgstRate.toFixed(1)}%):</span>
+                        <span className="text-coffee-cream">₹{cgstAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-coffee-light">SGST ({sgstRate.toFixed(1)}%):</span>
+                        <span className="text-coffee-cream">₹{sgstAmount.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-1 border-t border-coffee-brown/30">
+                        <span className="text-coffee-light font-semibold">Total GST:</span>
+                        <span className="text-coffee-cream font-semibold">₹{tax.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-lg font-bold pt-2 border-t border-coffee-brown/50">
+                        <span className="text-coffee-amber">Total:</span>
+                        <span className="text-coffee-amber">₹{total.toFixed(2)}</span>
+                      </div>
+                    </div>
+
+                    {/* Auto-applied Daily Offer Info */}
+                    {selectedOffer && (
+                      <div className="mb-4 p-3 bg-coffee-amber/10 border border-coffee-amber/30 rounded-lg">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-sm font-semibold text-coffee-amber">✨ Daily Offer Applied</span>
+                        </div>
+                        <div className="text-xs text-coffee-light">
+                          <div className="font-semibold text-coffee-cream">{selectedOffer.name}</div>
+                          {selectedOffer.description && (
+                            <div className="mt-1">{selectedOffer.description}</div>
+                          )}
+                          <div className="mt-1 text-coffee-amber">
+                            {selectedOffer.offerType === 'percentage' 
+                              ? `${selectedOffer.discountValue}% OFF` 
+                              : `₹${selectedOffer.discountValue} OFF`}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Customer Info */}
+                    <div className="space-y-3 pt-4 border-t border-coffee-brown/50">
+                      <div>
+                        <div className="flex gap-2 mb-1">
+                          <input
+                            type="tel"
+                            placeholder="Mobile number *"
+                            value={customerMobile}
+                            onChange={(e) => {
+                              setCustomerMobile(e.target.value);
+                              setMobileError('');
+                              setCustomerExists(false);
+                              setCustomerName('');
+                            }}
+                            className={`flex-1 bg-coffee-brown/40 border ${
+                              mobileError ? 'border-red-500' : 'border-coffee-brown'
+                            } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                            maxLength={13}
+                          />
+                          <button
+                            onClick={handleMobileLookup}
+                            disabled={isLookingUpCustomer || !customerMobile.trim()}
+                            className="px-4 py-2.5 bg-coffee-amber text-coffee-darker rounded-lg text-sm font-semibold hover:bg-coffee-gold disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isLookingUpCustomer ? '...' : 'Lookup'}
+                          </button>
+                        </div>
+                        {mobileError && (
+                          <p className="text-red-400 text-xs">{mobileError}</p>
+                        )}
+                        {customerExists && (
+                          <p className="text-green-400 text-xs">✓ Customer found</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          type="text"
+                          placeholder={customerExists ? "Customer name * (auto-filled)" : "Customer name *"}
+                          value={customerName}
+                          onChange={(e) => {
+                            setCustomerName(e.target.value);
+                            setNameError('');
+                          }}
+                          className={`w-full bg-coffee-brown/40 border ${
+                            nameError ? 'border-red-500' : 'border-coffee-brown'
+                          } text-coffee-cream rounded-lg px-3 py-2.5 text-sm`}
+                          disabled={customerExists && customerName}
+                        />
+                        {nameError && (
+                          <p className="text-red-400 text-xs mt-1">{nameError}</p>
+                        )}
+                      </div>
+                      <input
+                        type="email"
+                        placeholder="Email for receipt (optional)"
+                        value={customerEmail}
+                        onChange={(e) => setCustomerEmail(e.target.value)}
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2.5 text-sm"
+                      />
+                      <textarea
+                        placeholder="Notes (optional)"
+                        value={notes}
+                        onChange={(e) => setNotes(e.target.value)}
+                        rows="2"
+                        className="w-full bg-coffee-brown/40 border border-coffee-brown text-coffee-cream rounded-lg px-3 py-2.5 text-sm"
+                      />
+                      {/* Marketing Consent Checkbox */}
+                      <div className="mt-3">
+                        <label className="flex items-start gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={marketingConsent}
+                            onChange={(e) => setMarketingConsent(e.target.checked)}
+                            className="mt-1 w-4 h-4 text-coffee-amber bg-coffee-brown/40 border-coffee-brown rounded focus:ring-coffee-amber"
+                          />
+                          <span className="text-sm text-coffee-light">
+                            I would like to receive email updates about new coffees, offers, and workshops from Rabuste Coffee.
+                          </span>
+                        </label>
+                        <p className="text-xs text-coffee-light/60 mt-1 ml-6">
+                          You can unsubscribe at any time. We respect your privacy.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Fixed Button at Bottom */}
+              {cart.length > 0 && (
+                <div className="sticky bottom-0 bg-coffee-darker border-t border-coffee-brown/50 p-4 pt-4">
+                  <button
+                    onClick={handlePlaceOrder}
+                    className="w-full bg-gradient-to-r from-coffee-amber to-coffee-gold text-coffee-darker py-3.5 rounded-lg font-bold hover:from-coffee-gold hover:to-coffee-amber transition-all shadow-lg text-base"
+                  >
+                    Complete Order (Cash)
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
     </div>
   );
