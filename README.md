@@ -199,7 +199,7 @@ A comprehensive, consent-based email marketing system designed to convert one-ti
 ### Third-Party Services
 - **Google Gemini API** - AI coffee discovery and chatbot
 - **Cloudinary** - Media storage and optimization
-- **Nodemailer** - Email service (Gmail)
+- **Resend** - Email service 
 - **Google Calendar API** - Workshop calendar integration
 - **Google Maps Embed API** - Map display on home page
 - **Google Places API** - Google Reviews integration
